@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.buildKonfig)
+    alias(libs.plugins.kotlinX.serialization.plugin)
 }
 
 kotlin {
@@ -46,7 +47,10 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.kotlinX.coroutines)
             implementation(libs.ktor.logging)
-//            implementation(libs.ktor.client.cio)
+            implementation(libs.ktor.resources)
+            implementation(libs.ktor.contentNegotiation)
+            implementation(libs.ktor.json)
+//            implementation(libs.ktor.serialization)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
