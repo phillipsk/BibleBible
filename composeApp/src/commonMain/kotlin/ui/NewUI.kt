@@ -3,6 +3,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Card
@@ -20,9 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import data.Bible
+import data.Book
 
 @Composable
-fun BookCategory(title: String, books: List<String>, categoryColor: Color) {
+fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
     Column(modifier = Modifier.padding(8.dp)) {
         Text(
             text = title,
@@ -36,7 +40,7 @@ fun BookCategory(title: String, books: List<String>, categoryColor: Color) {
                 modifier = Modifier.padding(vertical = 4.dp)
             ) {
                 Text(
-                    text = book,
+                    text = book.name,
                     modifier = Modifier.padding(8.dp)
                 )
             }
@@ -46,17 +50,17 @@ fun BookCategory(title: String, books: List<String>, categoryColor: Color) {
 
 @Composable
 fun BibleBookList() {
-    val oldTestamentBooks = listOf("Genesis", "Exodus", "Leviticus")
-    val newTestamentBooks = listOf("Matthew", "Mark", "Luke")
+    val oldTestamentBooks = Bible.books.value.subList(0,39)
+    val newTestamentBooks = Bible.books.value.subList(39,Bible.books.value.size)
 
-    Column {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         BookCategory("Old Testament", oldTestamentBooks, Color(0xFFE3F2FD))
         BookCategory("New Testament", newTestamentBooks, Color(0xFFFFF3E0))
     }
 }
 
 @Composable
-private fun BottomNavigationBar() {
+private fun BottomNavigationBarOld() {
     BottomNavigation(
         backgroundColor = MaterialTheme.colors.primary,
         contentColor = Color.White
@@ -81,6 +85,25 @@ private fun BottomNavigationBar() {
             selected = false,
             onClick = {}
         )
+    }
+}
+
+@Composable
+private fun BottomNavigationBar() {
+    val items = listOf("Home", "Search", "Favorites", "Settings")
+    val icons = listOf(Icons.Default.Home, Icons.Default.Search, Icons.Default.Favorite, Icons.Default.Settings)
+    BottomNavigation(
+        backgroundColor = Color.White,
+        contentColor = Color.Black
+    ) {
+        items.forEachIndexed { index, item ->
+            BottomNavigationItem(
+                icon = { Icon(icons[index], contentDescription = item) },
+                label = { Text(item) },
+                selected = index == 0,
+                onClick = { /* Handle navigation */ }
+            )
+        }
     }
 }
 

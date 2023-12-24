@@ -1,6 +1,7 @@
 package data
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -19,6 +20,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.native.concurrent.ThreadLocal
 
 val httpClient = HttpClient {
     install(Resources)
@@ -69,11 +71,17 @@ data class Chapter(
 internal suspend fun getBooks(books: MutableState<List<Book>>) {
     try {
         val getBooks: List<Book> = httpClient.get(GetBooks()).body<List<Book>>()
-        books.value = getBooks
+//        books.value = getBooks
+        Bible.books.value = getBooks
     } catch (e: Exception) {
         // Handle exceptions here (e.g., network issues, API errors)
         println("Error: ${e.message}")
     } finally {
         httpClient.close() // Close the HttpClient when done
     }
+}
+
+@ThreadLocal
+object Bible {
+    var books = mutableStateOf(listOf<Book>())
 }

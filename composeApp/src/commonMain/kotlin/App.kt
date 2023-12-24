@@ -7,12 +7,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import data.Bible
 import data.Book
 import data.getBooks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
-import ui.MyAppScreen
+import ui.BibleAppScreen
 
 @Composable
 fun App() {
@@ -25,7 +26,8 @@ fun App() {
 
     MaterialTheme {
         var showContent by remember { mutableStateOf(false) }
-        AnimatedVisibility(books.value.isNotEmpty()) {
+        AnimatedVisibility(Bible.books.value.isNotEmpty()) {
+//        AnimatedVisibility(books.value.isNotEmpty()) {
 /*            LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
             ) {
@@ -33,9 +35,9 @@ fun App() {
                     Text(it.name)
                 }
             }*/
-            //            BibleAppScreen()
+                        BibleAppScreen()
 //            BibleAppUI()
-            MyAppScreen()
+//            MyAppScreen()
         }
     }
 }

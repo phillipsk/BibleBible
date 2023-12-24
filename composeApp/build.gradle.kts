@@ -50,7 +50,6 @@ kotlin {
             implementation(libs.ktor.resources)
             implementation(libs.ktor.contentNegotiation)
             implementation(libs.ktor.json)
-//            implementation(libs.ktor.serialization)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
