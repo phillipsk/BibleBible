@@ -40,7 +40,7 @@ val httpClient = HttpClient {
 
 @Serializable
 @Resource("/GetBooks")
-class Books(val language: String = "english")
+private class GetBooks(val language: String = "english")
 
 @Serializable
 data class Book(private val b: String = "", @SerialName("n") val name: String = "") {
@@ -48,7 +48,8 @@ data class Book(private val b: String = "", @SerialName("n") val name: String = 
 }
 
 @Resource("/GetChapters")
-class Chapters()
+private class GetChapters()
+
 @Serializable
 data class Chapter(
     private val id: String,
@@ -63,10 +64,10 @@ data class Chapter(
     val verseId = v.toInt()
 }
 
-internal suspend fun getBooks(greeting: MutableState<String>) {
+internal suspend fun getBooks(books: MutableState<List<Book>>) {
     try {
-        val getBooks: List<Book> = httpClient.get(Books()).body<List<Book>>()
-        greeting.value = getBooks[0].name
+        val getBooks: List<Book> = httpClient.get(GetBooks()).body<List<Book>>()
+        books.value = getBooks
     } catch (e: Exception) {
         // Handle exceptions here (e.g., network issues, API errors)
         println("Error: ${e.message}")
