@@ -1,3 +1,5 @@
+package data
+
 import androidx.compose.runtime.MutableState
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient

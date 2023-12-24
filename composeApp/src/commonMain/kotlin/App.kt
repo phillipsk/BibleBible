@@ -1,18 +1,18 @@
+
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import data.Book
+import data.getBooks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
+import ui.MyAppScreen
 
 @Composable
 fun App() {
@@ -26,13 +26,16 @@ fun App() {
     MaterialTheme {
         var showContent by remember { mutableStateOf(false) }
         AnimatedVisibility(books.value.isNotEmpty()) {
-            LazyVerticalGrid(
+/*            LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
             ) {
                 items(books.value) {
                     Text(it.name)
                 }
-            }
+            }*/
+            //            BibleAppScreen()
+//            BibleAppUI()
+            MyAppScreen()
         }
     }
 }
