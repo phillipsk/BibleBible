@@ -23,10 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.Bible
-import data.Book
+import data.api.bible.DataItem
 
 @Composable
-fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
+fun BookCategory(title: String, books: List<DataItem>, categoryColor: Color) {
     Column(modifier = Modifier.padding(8.dp)) {
         Text(
             text = title,
@@ -39,10 +39,12 @@ fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
                 backgroundColor = categoryColor,
                 modifier = Modifier.padding(vertical = 4.dp)
             ) {
-                Text(
-                    text = book.name,
-                    modifier = Modifier.padding(8.dp)
-                )
+                book.name?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
         }
     }
@@ -50,12 +52,14 @@ fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
 
 @Composable
 fun BibleBookList() {
-    val oldTestamentBooks = Bible.books.value.subList(0,39)
-    val newTestamentBooks = Bible.books.value.subList(39,Bible.books.value.size)
+    val oldTestamentBooks = Bible.responseBibleApi.value.data
+//    val oldTestamentBooks = Bible.responseBibleApi.value.data?.subList(0,39)
+    val newTestamentBooks = Bible.responseBibleApi.value .data
+//    val newTestamentBooks = Bible.responseBibleApi.value .data?.subList(39,Bible.books.value.size)
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        BookCategory("Old Testament", oldTestamentBooks, Color(0xFFE3F2FD))
-        BookCategory("New Testament", newTestamentBooks, Color(0xFFFFF3E0))
+        oldTestamentBooks?.let { BookCategory("Old Testament", it, Color(0xFFE3F2FD)) }
+        newTestamentBooks?.let { BookCategory("New Testament", it, Color(0xFFFFF3E0)) }
     }
 }
 
