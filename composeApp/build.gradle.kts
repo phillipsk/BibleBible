@@ -47,7 +47,6 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.kotlinX.coroutines)
             implementation(libs.ktor.logging)
-            implementation(libs.ktor.resources)
             implementation(libs.ktor.contentNegotiation)
             implementation(libs.ktor.json)
         }
@@ -99,6 +98,11 @@ buildkonfig {
             STRING,
             "API_KEY",
             gradleLocalProperties(rootDir).getProperty("api_key") ?: ""
+        )
+        buildConfigField(
+            STRING,
+            "API_KEY_API_BIBLE",
+            gradleLocalProperties(rootDir).getProperty("api_key_api_bible") ?: ""
         )
     }
 }
