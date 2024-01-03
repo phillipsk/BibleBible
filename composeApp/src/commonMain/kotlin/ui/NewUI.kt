@@ -9,10 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Button
@@ -55,10 +56,12 @@ fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
                 backgroundColor = categoryColor,
                 modifier = Modifier.padding(vertical = 4.dp)
             ) {
-                Text(
-                    text = book.name,
-                    modifier = Modifier.padding(8.dp)
-                )
+                book.name?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
             }
         }
     }
@@ -139,8 +142,8 @@ private fun BibleVersions() {
     with(BibleIQ.bibleVersions.value) {
         AnimatedVisibility(this.isNotEmpty()) {
             LazyRow(contentPadding = PaddingValues(10.dp)) {
-                items(items = this@with) {
-                    it.abbreviation?.let { abbreviation ->
+                items(items = this@with) { bibleVersion ->
+                    bibleVersion.abbreviation?.let { abbreviation ->
                         Button(
                             onClick = { /* TODO: Handle click */ },
                             shape = RoundedCornerShape(50), // Rounded corners
@@ -164,13 +167,28 @@ private fun BibleVersions() {
 
 @Composable
 fun BibleBookList() {
-    if (BibleIQ.books.value.isNotEmpty()) {
-        val oldTestamentBooks = BibleIQ.books.value.subList(0, 39)
-        val newTestamentBooks = BibleIQ.books.value.subList(39, BibleIQ.books.value.size)
-
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            BookCategory("Old Testament", oldTestamentBooks, Color(0xFFE3F2FD))
-            BookCategory("New Testament", newTestamentBooks, Color(0xFFFFF3E0))
+    with(BibleIQ.books.value) {
+        AnimatedVisibility(this.isNotEmpty()) {
+            LazyHorizontalGrid(rows = GridCells.Adaptive(40.dp), contentPadding = PaddingValues(10.dp)) {
+                items(items = this@with) { book ->
+                    book.name?.let { bookName ->
+                        Button(
+                            onClick = { /* TODO: Handle click */ },
+                            shape = RoundedCornerShape(50), // Rounded corners
+                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                            modifier = Modifier
+                                .padding(4.dp) // Add padding around the Button
+                                .height(40.dp) // Fixed height for buttons
+                        ) {
+                            Text(
+                                text = bookName,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colors.onPrimary
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
