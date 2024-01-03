@@ -1,5 +1,4 @@
 
-import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +8,7 @@ import data.bibleIQ.BibleBook
 import data.bibleIQ.getBooks
 import data.bibleIQ.getVersions
 import ui.BibleAppScreen
+import ui.MyCustomMaterialTheme
 
 @Composable
 fun App() {
@@ -20,7 +20,7 @@ fun App() {
         getBooks(books)
     }
 
-    MaterialTheme {
+    MyCustomMaterialTheme {
         BibleAppScreen()
     }
 }
