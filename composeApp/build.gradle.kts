@@ -50,6 +50,7 @@ kotlin {
             implementation(libs.ktor.resources)
             implementation(libs.ktor.contentNegotiation)
             implementation(libs.ktor.json)
+            implementation(libs.napier)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
