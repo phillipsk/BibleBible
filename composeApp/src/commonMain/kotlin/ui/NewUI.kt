@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyHorizontalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
@@ -123,7 +123,7 @@ private fun BottomNavigationBar() {
 @Composable
 fun BibleAppScreen() {
     Scaffold(
-        bottomBar = { BottomNavigationBar() }
+        bottomBar = { /*BottomNavigationBar() */}
     ) {
         var showContent by remember { mutableStateOf(false) }
         Column(
@@ -169,7 +169,7 @@ private fun BibleVersions() {
 fun BibleBookList() {
     with(BibleIQ.books.value) {
         AnimatedVisibility(this.isNotEmpty()) {
-            LazyHorizontalGrid(rows = GridCells.Adaptive(40.dp), contentPadding = PaddingValues(10.dp)) {
+            LazyHorizontalStaggeredGrid(rows = StaggeredGridCells.Adaptive(50.dp), contentPadding = PaddingValues(10.dp)) {
                 items(items = this@with) { book ->
                     book.name?.let { bookName ->
                         Button(
