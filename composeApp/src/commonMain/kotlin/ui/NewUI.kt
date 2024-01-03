@@ -31,43 +31,61 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQ
+import data.bibleIQ.BibleVersion
+
+val homeUiState get() = HomeUiState()
+
+fun updateAbbreviation(abv: String) {
+    homeUiState.version = BibleVersion(abbreviation = abv)
+}
 
 @Composable
 fun BibleAppScreen() {
-    Scaffold {
-        var showContent by remember { mutableStateOf(false) }
+    val title = mutableStateOf("")
+    Scaffold(topBar = { HomeTopBar(title, homeUiState) }) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            BibleVersions()
+            CollapsingColumn()
+            BibleVersions() { abv ->
+                homeUiState.version = BibleVersion(abbreviation = abv)
+                title.value = abv
+            }
             BibleBookList()
         }
     }
 }
 
 @Composable
-private fun BibleVersions() {
-    with(BibleIQ.bibleVersions.value) {
-        AnimatedVisibility(this.isNotEmpty()) {
-            LazyRow(contentPadding = PaddingValues(10.dp)) {
-                items(items = this@with) { bibleVersion ->
-                    bibleVersion.abbreviation?.let { abbreviation ->
-                        Button(
-                            onClick = { /* TODO: Handle click */ },
-                            shape = RoundedCornerShape(50), // Rounded corners
-                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                            modifier = Modifier
-                                .padding(4.dp) // Add padding around the Button
-                                .height(40.dp) // Fixed height for buttons
-                        ) {
-                            Text(
-                                text = abbreviation,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onPrimary
-                            )
-                        }
+private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
+    var selectedAbbreviation by remember { mutableStateOf<String?>(null) }
+
+    // Assume BibleIQ.bibleVersions.value is a list of BibleVersion objects
+    val bibleVersions = BibleIQ.bibleVersions.value
+
+    // Only show the LazyRow if there's no selected abbreviation or the list is not empty
+    AnimatedVisibility(visible = selectedAbbreviation == null && bibleVersions.isNotEmpty()) {
+        LazyRow(contentPadding = PaddingValues(10.dp)) {
+            items(items = bibleVersions) { bibleVersion ->
+                bibleVersion.abbreviation?.let { abbreviation ->
+                    Button(
+                        onClick = {
+                            selectedAbbreviation = abbreviation
+                            onAbbreviationSelected(abbreviation)
+                        },
+                        shape = RoundedCornerShape(50), // Rounded corners
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                        modifier = Modifier
+                            .padding(4.dp) // Add padding around the Button
+                            .height(40.dp) // Fixed height for buttons
+                    ) {
+                        Text(
+                            text = abbreviation,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colors.onPrimary
+                        )
                     }
                 }
             }
