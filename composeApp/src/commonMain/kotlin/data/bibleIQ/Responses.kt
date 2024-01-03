@@ -13,7 +13,7 @@ data class BibleVersion(
 )
 
 @Serializable
-data class Book(private val b: String = "", @SerialName("n") val name: String?) {
+data class BibleBook(private val b: String = "", @SerialName("n") val name: String?) {
     val bookId = b.toInt()
 }
 

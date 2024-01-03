@@ -39,11 +39,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.bibleIQ.BibleBook
 import data.bibleIQ.BibleIQ
-import data.bibleIQ.Book
 
 @Composable
-fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
+fun BookCategory(title: String, bibleBooks: List<BibleBook>, categoryColor: Color) {
     Column(modifier = Modifier.padding(8.dp)) {
         Text(
             text = title,
@@ -51,7 +51,7 @@ fun BookCategory(title: String, books: List<Book>, categoryColor: Color) {
             color = MaterialTheme.colors.onSurface
         )
         Spacer(modifier = Modifier.height(4.dp))
-        for (book in books) {
+        for (book in bibleBooks) {
             Card(
                 backgroundColor = categoryColor,
                 modifier = Modifier.padding(vertical = 4.dp)
@@ -169,22 +169,28 @@ private fun BibleVersions() {
 fun BibleBookList() {
     with(BibleIQ.books.value) {
         AnimatedVisibility(this.isNotEmpty()) {
-            LazyHorizontalStaggeredGrid(rows = StaggeredGridCells.Adaptive(50.dp), contentPadding = PaddingValues(10.dp)) {
-                items(items = this@with) { book ->
-                    book.name?.let { bookName ->
-                        Button(
-                            onClick = { /* TODO: Handle click */ },
-                            shape = RoundedCornerShape(50), // Rounded corners
-                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                            modifier = Modifier
-                                .padding(4.dp) // Add padding around the Button
-                                .height(40.dp) // Fixed height for buttons
-                        ) {
-                            Text(
-                                text = bookName,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onPrimary
-                            )
+            Column(modifier = Modifier) {
+                LazyHorizontalStaggeredGrid(
+                    rows = StaggeredGridCells.Adaptive(50.dp),
+                    contentPadding = PaddingValues(10.dp),
+                    userScrollEnabled = true,
+                ) {
+                    items(items = this@with) { book ->
+                        book.name?.let { bookName ->
+                            Button(
+                                onClick = { /* TODO: Handle click */ },
+                                shape = RoundedCornerShape(50), // Rounded corners
+                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                modifier = Modifier
+                                    .padding(4.dp) // Add padding around the Button
+                                    .height(40.dp) // Fixed height for buttons
+                            ) {
+                                Text(
+                                    text = bookName,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colors.onPrimary
+                                )
+                            }
                         }
                     }
                 }
