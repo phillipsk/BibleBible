@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -93,7 +93,7 @@ fun BibleBookList() {
         AnimatedVisibility(this.isNotEmpty()) {
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(100.dp),
+                    columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(10.dp),
                     userScrollEnabled = true,
                 ) {
@@ -103,15 +103,17 @@ fun BibleBookList() {
                                 onClick = { /* TODO: Handle click */ },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                                modifier = Modifier.width(IntrinsicSize.Min)
+                                modifier = Modifier
                                     .padding(2.dp) // Add padding around the Button
-                                    .height(40.dp) // Fixed height for buttons
+                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                    .defaultMinSize(minWidth = 100.dp, minHeight = 40.dp) // Set a minimum size
                             ) {
                                 Text(
                                     text = bookName,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colors.onPrimary,
-                                    overflow = TextOverflow.Ellipsis
+                                    maxLines = 1, // Ensure text does not wrap
+                                    overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
                                 )
                             }
                         }
@@ -121,6 +123,7 @@ fun BibleBookList() {
         }
     }
 }
+
 
 //@Preview(showBackground = true)
 @Composable
