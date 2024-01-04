@@ -2,8 +2,6 @@ package ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -79,41 +76,4 @@ fun HomeTopBar() {
             }
         }
     }
-}
-
-@Composable
-fun DropdownDemo() {
-    var expanded by remember { mutableStateOf(false) }
-    val items = listOf("A", "B", "C", "D", "E", "F")
-    val disabledValue = "B"
-    var selectedIndex by remember { mutableStateOf(0) }
-//    Box(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.TopStart)) {
-    Text(
-        items[selectedIndex],
-        modifier = Modifier.clickable(onClick = { expanded = true }).background(
-            Color.Gray
-        )
-    )
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false },
-        modifier = Modifier.background(
-            Color.Red
-        )
-    ) {
-        items.forEachIndexed { index, s ->
-            DropdownMenuItem(onClick = {
-                selectedIndex = index
-                expanded = false
-            }) {
-                val disabledText = if (s == disabledValue) {
-                    " (Disabled)"
-                } else {
-                    ""
-                }
-                Text(text = s + disabledText)
-            }
-        }
-    }
-//    }
 }

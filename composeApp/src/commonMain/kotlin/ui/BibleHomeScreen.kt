@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQ
 import data.bibleIQ.BibleVersion
+import data.bibleIQ.bibleBooks
 
 val homeUiState get() = HomeUiState()
 
@@ -89,7 +90,7 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 
 @Composable
 fun BibleBookList() {
-    with(BibleIQ.books.value) {
+    with(bibleBooks) {
         AnimatedVisibility(this.isNotEmpty()) {
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
@@ -98,7 +99,7 @@ fun BibleBookList() {
                     userScrollEnabled = true,
                 ) {
                     items(items = this@with) { book ->
-                        book.name?.let { bookName ->
+                        book.let { bookName ->
                             Button(
                                 onClick = { /* TODO: Handle click */ },
                                 shape = RoundedCornerShape(50), // Rounded corners

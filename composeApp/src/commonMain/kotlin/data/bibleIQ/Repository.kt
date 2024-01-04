@@ -2,14 +2,13 @@ package data.bibleIQ
 
 import JSON_BOOKS
 import JSON_VERSIONS
-import androidx.compose.runtime.MutableState
 import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
 const val READ_JSON = true
-suspend fun getBooks(books: MutableState<List<BibleBook>>) {
+suspend fun getBooks() {
     try {
         val getBooks = if (READ_JSON) {
             Json.decodeFromString<List<BibleBook>>(JSON_BOOKS)
