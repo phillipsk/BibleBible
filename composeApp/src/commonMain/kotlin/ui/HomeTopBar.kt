@@ -1,6 +1,5 @@
 package ui
 
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,7 +18,6 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,12 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQ
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun HomeTopBar(
-    selectedAbbv: MutableState<String>,
-    homeUiState: HomeUiState
-) {
+fun HomeTopBar() {
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -59,7 +53,7 @@ fun HomeTopBar(
             modifier = Modifier.padding(end = 16.dp)
         ) {
             ClickableText(
-                text = AnnotatedString( selectedAbbv.value),
+                text = AnnotatedString(BibleIQ.selectedVersion.value),
                 style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
                 onClick = { expanded = !expanded }
             )
@@ -76,7 +70,7 @@ fun HomeTopBar(
             ) {
                 BibleIQ.abbreviationList.forEach { abbv ->
                     DropdownMenuItem(onClick = {
-                        selectedAbbv.value = abbv
+                        BibleIQ.selectedVersion.value = abbv
                         expanded = false
                     }) {
                         Text(abbv)
