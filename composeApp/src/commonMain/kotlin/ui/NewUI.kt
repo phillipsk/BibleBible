@@ -41,18 +41,13 @@ fun updateAbbreviation(abv: String) {
 
 @Composable
 fun BibleAppScreen() {
-    val title = mutableStateOf("")
+    val title = mutableStateOf(BibleIQ.selectedVersion)
     Scaffold(topBar = { HomeTopBar(title, homeUiState) }) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            CollapsingColumn()
-            BibleVersions() { abv ->
-                homeUiState.version = BibleVersion(abbreviation = abv)
-                title.value = abv
-            }
             BibleBookList()
         }
     }
