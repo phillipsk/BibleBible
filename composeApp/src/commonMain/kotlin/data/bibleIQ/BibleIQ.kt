@@ -15,7 +15,7 @@ object BibleIQ {
             if (field.value.isEmpty()) {
                 field.value = abbreviationList.find { it.contains("KJV") } ?: ""
             }
+            println("println :: updated selectedVersion $field")
             return field
         }
-        private set
 }
