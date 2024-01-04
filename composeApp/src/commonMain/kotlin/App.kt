@@ -7,7 +7,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import data.bibleIQ.BibleBook
 import data.bibleIQ.getBooks
 import data.bibleIQ.getVersions
-import ui.BibleAppScreen
+import ui.BibleHomeScreen
 import ui.MyCustomMaterialTheme
 
 @Composable
@@ -21,6 +21,6 @@ fun App() {
     }
 
     MyCustomMaterialTheme {
-        BibleAppScreen()
+        BibleHomeScreen()
     }
 }

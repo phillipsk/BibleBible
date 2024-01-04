@@ -40,7 +40,7 @@ fun updateAbbreviation(abv: String) {
 }
 
 @Composable
-fun BibleAppScreen() {
+fun BibleHomeScreen() {
     Scaffold(topBar = { HomeTopBar() }) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -126,6 +126,6 @@ fun BibleBookList() {
 @Composable
 fun DefaultPreview() {
     MaterialTheme {
-        BibleAppScreen()
+        BibleHomeScreen()
     }
 }
