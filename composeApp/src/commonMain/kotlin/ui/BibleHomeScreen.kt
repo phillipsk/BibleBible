@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQ
+import data.bibleIQ.BibleIQ.books
+import data.bibleIQ.BibleIQ.selectedChapter
 import data.bibleIQ.BibleVersion
+import data.bibleIQ.getChapter
+import kotlinx.coroutines.launch
 
 val homeUiState get() = HomeUiState()
 
@@ -48,7 +53,15 @@ fun BibleHomeScreen() {
             verticalArrangement = Arrangement.Center
         ) {
             BibleBookList()
+            BibleScriptures()
         }
+    }
+}
+
+@Composable
+fun BibleScriptures() {
+    BibleIQ.chapter.value.forEach {
+        Text(it.verse)
     }
 }
 
@@ -89,33 +102,40 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 
 @Composable
 fun BibleBookList() {
-    with(BibleIQ.books.value) {
-        AnimatedVisibility(this.isNotEmpty()) {
-            Column(modifier = Modifier.padding(4.dp)) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    contentPadding = PaddingValues(10.dp),
-                    userScrollEnabled = true,
-                ) {
-                    items(items = this@with) {
-                        it.name?.let {
-                            Button(
-                                onClick = { /* TODO: Handle click */ },
-                                shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                                modifier = Modifier
-                                    .padding(2.dp) // Add padding around the Button
-                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
-                                    .defaultMinSize(minWidth = 100.dp, minHeight = 40.dp) // Set a minimum size
-                            ) {
-                                Text(
-                                    text = it,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colors.onPrimary,
-                                    maxLines = 1, // Ensure text does not wrap
-                                    overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
-                                )
-                            }
+    val scope = rememberCoroutineScope()
+    AnimatedVisibility(books.value.isNotEmpty() && selectedChapter.value == -1) {
+        Column(modifier = Modifier.padding(4.dp)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(10.dp),
+                userScrollEnabled = true,
+            ) {
+                items(items = books.value) {
+                    it.let {
+                        Button(
+                            onClick = {
+                                selectedChapter.value = it.bookId
+                                scope.launch {
+                                    getChapter(it.bookId)
+                                }
+                            },
+                            shape = RoundedCornerShape(50), // Rounded corners
+                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                            modifier = Modifier
+                                .padding(2.dp) // Add padding around the Button
+                                .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                .defaultMinSize(
+                                    minWidth = 100.dp,
+                                    minHeight = 40.dp
+                                ) // Set a minimum size
+                        ) {
+                            Text(
+                                text = it.name,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colors.onPrimary,
+                                maxLines = 1, // Ensure text does not wrap
+                                overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
+                            )
                         }
                     }
                 }

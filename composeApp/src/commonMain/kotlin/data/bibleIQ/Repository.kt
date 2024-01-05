@@ -37,3 +37,13 @@ suspend fun getVersions() {
         httpClient.close()
     }
 }
+
+suspend fun getChapter(bookId: Int) {
+    try {
+        BibleIQ.chapter.value = httpClient.get(GetChapter(bookId = bookId)).body<List<Chapter>>()
+    } catch (e: Exception) {
+        println("Error: ${e.message}")
+    } finally {
+        httpClient.close()
+    }
+}

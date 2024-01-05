@@ -7,6 +7,7 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleIQ {
 
+    var chapter = mutableStateOf(listOf<Chapter>())
     var books = mutableStateOf(listOf<BibleBook>())
     var bibleVersions = mutableStateOf(listOf<BibleVersion>())
     val abbreviationList get() = bibleVersions.value.mapNotNull { it.abbreviation }
@@ -18,4 +19,5 @@ object BibleIQ {
             println("println :: updated selectedVersion $field")
             return field
         }
+    var selectedChapter = mutableStateOf(-1)
 }

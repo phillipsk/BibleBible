@@ -16,9 +16,9 @@ data class BibleVersion(
 
 @Serializable
 data class BibleBook(private val b: String? = null, private val n: String? = null) {
-    private val bookId = b?.toInt()
+    val bookId = b?.toInt() ?: 1
     private val isLongName = bookId in longBookNamesSet
-    val name = if (isLongName) n?.take(7) else n
+    val name = (if (isLongName) n?.take(7) else n) ?: "Genesis"
 }
 
 val bibleBooks = listOf(

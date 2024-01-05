@@ -32,7 +32,7 @@ import data.bibleIQ.BibleIQ
 fun HomeTopBar() {
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
+        targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
 
