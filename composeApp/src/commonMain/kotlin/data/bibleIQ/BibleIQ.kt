@@ -2,6 +2,7 @@ package data.bibleIQ
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import ui.Chapter
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal

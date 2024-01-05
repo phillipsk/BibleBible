@@ -59,13 +59,6 @@ fun BibleHomeScreen() {
 }
 
 @Composable
-fun BibleScriptures() {
-    BibleIQ.chapter.value.forEach {
-        Text(it.verse)
-    }
-}
-
-@Composable
 private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
     var selectedAbbreviation by remember { mutableStateOf<String?>(null) }
 

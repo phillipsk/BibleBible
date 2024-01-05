@@ -48,16 +48,3 @@ val bibleBooksFull = listOf(
 // You can access and use the 'bibleBooks' list in your Kotlin code as needed.
 
 
-@Serializable
-data class Chapter(
-    private val id: String,
-    private val b: String,
-    private val c: String,
-    private val v: String,
-    @SerialName("t") val verse: String
-) {
-    val chapterVerseUUID = id.toLong()
-    val bookId = b.toInt()
-    val chapterId = c.toInt()
-    val verseId = v.toInt()
-}

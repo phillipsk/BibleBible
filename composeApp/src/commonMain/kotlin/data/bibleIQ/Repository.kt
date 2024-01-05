@@ -6,6 +6,7 @@ import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
+import ui.Chapter
 
 const val READ_JSON = true
 suspend fun getBooks() {
