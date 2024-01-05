@@ -2,6 +2,7 @@ package data.bibleIQ
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import data.api.bible.BibleAPIBook
 import ui.Chapter
 import kotlin.native.concurrent.ThreadLocal
 
@@ -9,7 +10,7 @@ import kotlin.native.concurrent.ThreadLocal
 object BibleIQ {
 
     var chapter = mutableStateOf(listOf<Chapter>())
-    var books = mutableStateOf(listOf<BibleBook>())
+    var books: MutableState<BibleAPIBook> = mutableStateOf(BibleAPIBook())
     var bibleVersions = mutableStateOf(listOf<BibleVersion>())
     val abbreviationList get() = bibleVersions.value.mapNotNull { it.abbreviation }
     var selectedVersion: MutableState<String> = mutableStateOf("")

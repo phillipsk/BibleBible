@@ -1,8 +1,7 @@
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import data.bibleIQ.getBooks
-import data.bibleIQ.getVersions
+import data.api.bible.getBooksBibleAPI
 import ui.BibleHomeScreen
 import ui.MyCustomMaterialTheme
 

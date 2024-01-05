@@ -11,25 +11,32 @@ import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
 import io.ktor.http.URLProtocol
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-val httpClient get() = HttpClient {
-    install(Resources)
-    install(Logging) { logger = Logger.SIMPLE }
-    install(DefaultRequest)
-    install(ContentNegotiation) {
-        json(Json {
-            prettyPrint = true
-            isLenient = true
-        })
-    }
-    defaultRequest {
-        url {
-            host = "iq-bible.p.rapidapi.com"
-            protocol = URLProtocol.HTTPS
+val httpClient
+    get() = HttpClient {
+        install(Resources)
+        install(Logging) { logger = Logger.SIMPLE }
+        install(DefaultRequest)
+        install(ContentNegotiation) {
+            json(Json {
+                prettyPrint = true
+                isLenient = true
+            })
         }
-        header("X-RapidAPI-Key", BuildKonfig.API_KEY)
+        defaultRequest {
+            url {
+                host = "api.scripture.api.bible"
+//            path("v1/")
+//            path("bibles/")
+//            path("de4e12af7f28f599-02/")
+                path("v1/bibles/de4e12af7f28f599-02/")
+//            v1/bibles/de4e12af7f28f599-02/
+                protocol = URLProtocol.HTTPS
+            }
+            header("api-key", BuildKonfig.API_KEY_API_BIBLE)
 
+        }
     }
-}

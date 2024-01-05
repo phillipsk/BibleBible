@@ -31,11 +31,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.api.bible.getChapterBibleAPI
 import data.bibleIQ.BibleIQ
 import data.bibleIQ.BibleIQ.books
 import data.bibleIQ.BibleIQ.selectedChapter
 import data.bibleIQ.BibleVersion
-import data.bibleIQ.getChapter
 import kotlinx.coroutines.launch
 
 val homeUiState get() = HomeUiState()
@@ -96,20 +96,20 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(books.value.isNotEmpty() && selectedChapter.value == -1) {
+    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == -1) {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(10.dp),
                 userScrollEnabled = true,
             ) {
-                items(items = books.value) {
+                items(items = books.value.data!!) {
                     it.let {
                         Button(
                             onClick = {
-                                selectedChapter.value = it.bookId
+                                selectedChapter.value = it.chapters?.get(1)?.chapterId ?: -1
                                 scope.launch {
-                                    getChapter(it.bookId)
+                                    getChapterBibleAPI(it.bookId)
                                 }
                             },
                             shape = RoundedCornerShape(50), // Rounded corners
@@ -122,13 +122,15 @@ fun BibleBookList() {
                                     minHeight = 40.dp
                                 ) // Set a minimum size
                         ) {
-                            Text(
-                                text = it.name,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onPrimary,
-                                maxLines = 1, // Ensure text does not wrap
-                                overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
-                            )
+                            it.name?.let { name ->
+                                Text(
+                                    text = name,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colors.onPrimary,
+                                    maxLines = 1, // Ensure text does not wrap
+                                    overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
+                                )
+                            }
                         }
                     }
                 }
