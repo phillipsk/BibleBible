@@ -96,7 +96,7 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == -1) {
+    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -107,9 +107,9 @@ fun BibleBookList() {
                     it.let {
                         Button(
                             onClick = {
-                                selectedChapter.value = it.chapters?.get(1)?.chapterId ?: -1
+                                selectedChapter.value = it.bookId
                                 scope.launch {
-                                    getChapterBibleAPI(it.bookId)
+                                    getChapterBibleAPI()
                                 }
                             },
                             shape = RoundedCornerShape(50), // Rounded corners

@@ -1,5 +1,6 @@
 package data.api.bible
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -16,17 +17,17 @@ data class BookData(
     val nameLong: String? = null,
     val chapters: List<Chapter>? = emptyList()
 ) {
-    val bookId = id ?: "GEN"
+    val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
+
 }
 
 @Serializable
 data class Chapter(
-    private val id: String? = null,
+    @SerialName("id") private val name: String? = null,
     val bibleId: String? = null,
     val bookId: String? = null,
     val number: String? = null,
     val position: Int? = null
 ) {
-    val chapterId = id?.toInt() ?: -1
+//    val chapterId = bookId ?: "GEN.1"
 }
-
