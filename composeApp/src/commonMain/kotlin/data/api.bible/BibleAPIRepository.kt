@@ -25,7 +25,7 @@ suspend fun getBooksBibleAPI() {
 
 suspend fun getChapterBibleAPI() {
     try {
-        BibleIQ.chapter.value = httpClient.get(GetChapterAPIBible()).body<Chapters>()
+        BibleIQ.chapter.value = httpClient.get(GetChapterAPIBible()).body<ChapterContent>()
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {

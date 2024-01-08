@@ -2,11 +2,6 @@ package data.api.bible
 
 import kotlinx.serialization.Serializable
 
-
-@Serializable
-data class Chapters(
-    val data: List<ChapterContent>? = emptyList()
-)
 @Serializable
 data class ChapterContent(
     val data: ChapterData? = null,
