@@ -10,6 +10,7 @@ import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleIQ {
+    var selectedLanguage: MutableState<String>? = null
     private const val defaultBibleId = "de4e12af7f28f599-02"
 
     var selectedBibleId = mutableStateOf(defaultBibleId)

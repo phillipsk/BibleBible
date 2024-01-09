@@ -7,11 +7,11 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
-const val READ_JSON = false
+const val LOCAL_DATA = false
 
 suspend fun getBiblesBibleAPI() {
     try {
-        BibleIQ.bibleVersions.value = if (READ_JSON) {
+        BibleIQ.bibleVersions.value = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBibles>("")
         } else {
             httpClient.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
@@ -24,7 +24,7 @@ suspend fun getBiblesBibleAPI() {
 }
 suspend fun getBooksBibleAPI() {
     try {
-        val getBooksAPIBible = if (READ_JSON) {
+        val getBooksAPIBible = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBook>("")
         } else {
             httpClient.get(GetBooksAPIBible()).body<BibleAPIBook>()

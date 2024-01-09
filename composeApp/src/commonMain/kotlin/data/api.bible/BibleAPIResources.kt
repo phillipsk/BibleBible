@@ -5,7 +5,7 @@ import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 
 @Resource("/bibles")
-class GetBiblesAPIBible(val language: String = "eng")
+class GetBiblesAPIBible(val language: String? = BibleIQ.selectedLanguage?.value)
 
 @Resource("/bibles/{bibleId}/books")
 class GetBooksAPIBible(
