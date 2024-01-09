@@ -2,6 +2,7 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import data.api.bible.getBooksBibleAPI
+import data.api.bible.getVersionsBibleAPI
 import ui.BibleHomeScreen
 import ui.MyCustomMaterialTheme
 
@@ -9,6 +10,7 @@ import ui.MyCustomMaterialTheme
 fun App() {
 
     LaunchedEffect(true) {
+        getVersionsBibleAPI()
         getBooksBibleAPI()
     }
 

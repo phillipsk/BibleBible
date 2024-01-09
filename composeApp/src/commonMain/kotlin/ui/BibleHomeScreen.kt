@@ -68,10 +68,10 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
     val bibleVersions = BibleIQ.bibleVersions.value
 
     // Only show the LazyRow if there's no selected abbreviation or the list is not empty
-    AnimatedVisibility(visible = selectedAbbreviation == null && bibleVersions.isNotEmpty()) {
+    AnimatedVisibility(visible = selectedAbbreviation == null && bibleVersions.data?.isEmpty() == false) {
         LazyRow(contentPadding = PaddingValues(10.dp)) {
-            items(items = bibleVersions) { bibleVersion ->
-                bibleVersion.abbreviation?.let { abbreviation ->
+            items(items = bibleVersions.data!!) { bibleVersion ->
+                bibleVersion.abbreviationLocal?.let { abbreviation ->
                     Button(
                         onClick = {
                             selectedAbbreviation = abbreviation

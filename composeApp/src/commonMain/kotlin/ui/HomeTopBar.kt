@@ -65,12 +65,14 @@ fun HomeTopBar() {
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                BibleIQ.abbreviationList.forEach { abbv ->
-                    DropdownMenuItem(onClick = {
-                        BibleIQ.selectedVersion.value = abbv
-                        expanded = false
-                    }) {
-                        Text(abbv)
+                BibleIQ.abbreviationList.forEach {
+                    it.abbreviationLocal?.let { abbv ->
+                        DropdownMenuItem(onClick = {
+                            BibleIQ.selectedVersion.value = abbv
+                            expanded = false
+                        }) {
+                            Text("$abbv ${it.descriptionLocal ?: ""}")
+                        }
                     }
                 }
             }

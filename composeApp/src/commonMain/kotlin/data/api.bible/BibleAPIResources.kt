@@ -3,6 +3,8 @@ package data.api.bible
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 
+@Resource("/bibles")
+class GetBiblesAPIBible(val language: String = "eng")
 @Resource("/books")
 class GetBooksAPIBible(@SerialName("include-chapters") private val includeChapters: Boolean = true)
 

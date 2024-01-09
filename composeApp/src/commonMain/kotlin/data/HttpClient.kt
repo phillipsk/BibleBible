@@ -24,16 +24,14 @@ val httpClient
             json(Json {
                 prettyPrint = true
                 isLenient = true
+                ignoreUnknownKeys = true
             })
         }
         defaultRequest {
             url {
                 host = "api.scripture.api.bible"
-//            path("v1/")
-//            path("bibles/")
-//            path("de4e12af7f28f599-02/")
-                path("v1/bibles/de4e12af7f28f599-02/")
-//            v1/bibles/de4e12af7f28f599-02/
+                path("v1/")
+//                path("v1/bibles/de4e12af7f28f599-02/")
                 protocol = URLProtocol.HTTPS
             }
             header("api-key", BuildKonfig.API_KEY_API_BIBLE)

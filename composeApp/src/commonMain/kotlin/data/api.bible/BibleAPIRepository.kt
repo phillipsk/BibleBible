@@ -8,6 +8,20 @@ import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
 const val READ_JSON = false
+
+suspend fun getVersionsBibleAPI() {
+    try {
+        BibleIQ.bibleVersions.value = if (READ_JSON) {
+            Json.decodeFromString<BibleAPIBibles>("")
+        } else {
+            httpClient.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
+        }
+    } catch (e: Exception) {
+        println("Error: ${e.message}")
+    } finally {
+        httpClient.close()
+    }
+}
 suspend fun getBooksBibleAPI() {
     try {
         val getBooksAPIBible = if (READ_JSON) {
