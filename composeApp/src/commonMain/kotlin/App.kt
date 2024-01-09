@@ -9,8 +9,7 @@ import ui.MyCustomMaterialTheme
 fun App() {
 
     LaunchedEffect(true) {
-        getVersions()
-        getBooks()
+        getBooksBibleAPI()
     }
 
     MyCustomMaterialTheme {

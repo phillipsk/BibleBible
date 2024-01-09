@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.sp
 import data.api.bible.getChapterBibleAPI
 import data.bibleIQ.BibleIQ
 import data.bibleIQ.BibleIQ.books
+import data.bibleIQ.BibleIQ.selectedBookData
 import data.bibleIQ.BibleIQ.selectedChapter
+import data.bibleIQ.BibleIQ.updateSelectedChapter
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
 
@@ -96,7 +98,7 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == "") {
+    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == -1) {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -107,7 +109,8 @@ fun BibleBookList() {
                     it.let {
                         Button(
                             onClick = {
-                                selectedChapter.value = it.bookId
+                                selectedBookData.value = it
+                                updateSelectedChapter()
                                 scope.launch {
                                     getChapterBibleAPI()
                                 }

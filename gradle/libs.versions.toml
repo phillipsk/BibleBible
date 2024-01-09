@@ -18,6 +18,7 @@ junit = "4.13.2"
 kotlin = "1.9.21"
 buildKonfig = "0.15.1"
 kotlinxCoroutines = "1.7.3"
+kotlinx-json = "1.6.0"
 ktor = "2.3.7"
 
 [libraries]
@@ -37,6 +38,7 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "compose" }
 compose-material = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 kotlinX-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinX-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-json" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-serialization = { module = "io.ktor:ktor-client-serialization", version.ref = "ktor" }
 ktor-contentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }

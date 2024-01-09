@@ -18,7 +18,6 @@ data class BookData(
     val chapters: List<Chapter>? = emptyList()
 ) {
     val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
-
 }
 
 @Serializable
@@ -28,6 +27,4 @@ data class Chapter(
     val bookId: String? = null,
     val number: String? = null,
     val position: Int? = null
-) {
-//    val chapterId = bookId ?: "GEN.1"
-}
+)

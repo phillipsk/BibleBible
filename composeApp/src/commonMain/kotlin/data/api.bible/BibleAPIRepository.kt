@@ -1,6 +1,7 @@
 package data.api.bible
 
 import data.bibleIQ.BibleIQ
+import data.bibleIQ.BibleIQ.selectedChapterString
 import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -25,7 +26,7 @@ suspend fun getBooksBibleAPI() {
 
 suspend fun getChapterBibleAPI() {
     try {
-        BibleIQ.chapter.value = httpClient.get(GetChapterAPIBible()).body<ChapterContent>()
+        BibleIQ.chapter.value = httpClient.get(GetChapterAPIBible(chapter = selectedChapterString)).body<ChapterContent>()
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {

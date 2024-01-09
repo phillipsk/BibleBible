@@ -15,7 +15,7 @@ import data.bibleIQ.BibleIQ
 fun BibleScriptures() {
     val chapters: ChapterContent = BibleIQ.chapter.value
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        chapters.data?.content?.let {
+        chapters.data?.cleanedContent?.let {
             Text(
                 it,
                 modifier = Modifier.padding(4.dp)

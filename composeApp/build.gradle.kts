@@ -47,8 +47,11 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.kotlinX.coroutines)
             implementation(libs.ktor.logging)
+            implementation(libs.ktor.resources)
             implementation(libs.ktor.contentNegotiation)
             implementation(libs.ktor.json)
+            implementation(libs.ktor.serialization)
+            implementation(libs.kotlinX.serialization)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

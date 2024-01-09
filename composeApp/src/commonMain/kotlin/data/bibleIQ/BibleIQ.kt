@@ -3,6 +3,7 @@ package data.bibleIQ
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import data.api.bible.BibleAPIBook
+import data.api.bible.BookData
 import data.api.bible.ChapterContent
 import kotlin.native.concurrent.ThreadLocal
 
@@ -21,5 +22,20 @@ object BibleIQ {
             println("println :: updated selectedVersion $field")
             return field
         }
-    var selectedChapter = mutableStateOf("")
+    var selectedBookData = mutableStateOf(BookData())
+
+    var selectedChapter = mutableStateOf(-1)
+    var selectedChapterString = ""
+
+    fun updateSelectedChapter(chapter: Int? = null) {
+        if (selectedChapter.value == -1) {
+            val chapterList = selectedBookData.value.chapters
+            if (!chapterList.isNullOrEmpty()) {
+                selectedChapter.value = chapter ?: 1
+                selectedChapterString = selectedBookData.value.bookId + "." + selectedChapter.value
+            }
+        }
+    }
+
+
 }

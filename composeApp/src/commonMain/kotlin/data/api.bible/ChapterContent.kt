@@ -17,10 +17,12 @@ data class ChapterData(
     val reference: String? = null,
     val copyright: String? = null,
     val verseCount: Int? = null,
-    val content: String? = null,
+    private val content: String? = null,
     val next: ChapterReference? = null,
     val previous: ChapterReference? = null
-)
+) {
+    val cleanedContent = content?.replace("¶", "")
+}
 
 @Serializable
 data class ChapterReference(

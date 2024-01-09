@@ -6,8 +6,9 @@ import kotlinx.serialization.SerialName
 @Resource("/books")
 class GetBooksAPIBible(@SerialName("include-chapters") private val includeChapters: Boolean = true)
 
-@Resource("/chapters/JOL.1")
+@Resource("/chapters/{chapter}")
 class GetChapterAPIBible(
+    val chapter: String,
     @SerialName("content-type") val contentType: String = "text", // TODO: review text vs. HTML impl
     @SerialName("include-notes") val includeNotes: Boolean = false,
     @SerialName("include-titles") val includeTitles: Boolean = true,
