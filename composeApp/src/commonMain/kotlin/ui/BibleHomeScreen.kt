@@ -125,7 +125,7 @@ fun BibleBookList() {
                                     minHeight = 40.dp
                                 ) // Set a minimum size
                         ) {
-                            it.name?.let { name ->
+                            it.cleanedName?.let { name ->
                                 Text(
                                     text = name,
                                     fontSize = 14.sp,
