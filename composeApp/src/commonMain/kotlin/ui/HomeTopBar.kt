@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,10 +27,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.api.bible.getBooksBibleAPI
 import data.bibleIQ.BibleIQ
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeTopBar() {
+    val scope = rememberCoroutineScope { Dispatchers.IO }
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
@@ -65,12 +71,18 @@ fun HomeTopBar() {
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                BibleIQ.abbreviationList.forEach { abbv ->
-                    DropdownMenuItem(onClick = {
-                        BibleIQ.selectedVersion.value = abbv
-                        expanded = false
-                    }) {
-                        Text(abbv)
+                BibleIQ.abbreviationList.forEach {
+                    if (it.abbreviationLocal != null && it.id != null) {
+                        DropdownMenuItem(onClick = {
+                            BibleIQ.selectedVersion.value = it.abbreviationLocal
+                            BibleIQ.selectedBibleId.value = it.id
+                            scope.launch {
+                                getBooksBibleAPI()
+                            }
+                            expanded = false
+                        }) {
+                            Text("${it.abbreviationLocal} ${it.descriptionLocal ?: ""}")
+                        }
                     }
                 }
             }

@@ -1,0 +1,30 @@
+package data.api.bible
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class BibleAPIBook(
+    val data: List<BookData>? = emptyList()
+)
+
+@Serializable
+data class BookData(
+    private val id: String? = null,
+    val bibleId: String? = null,
+    val abbreviation: String? = null,
+    val name: String? = null,
+    val nameLong: String? = null,
+    val chapters: List<Chapter>? = emptyList()
+) {
+    val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
+}
+
+@Serializable
+data class Chapter(
+    @SerialName("id") private val name: String? = null,
+    val bibleId: String? = null,
+    val bookId: String? = null,
+    val number: String? = null,
+    val position: Int? = null
+)

@@ -6,7 +6,6 @@ import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
-import ui.Chapter
 
 const val READ_JSON = true
 suspend fun getBooks() {
@@ -16,7 +15,7 @@ suspend fun getBooks() {
         } else {
             httpClient.get(GetBooks()).body<List<BibleBook>>()
         }
-        BibleIQ.books.value = getBooks
+//        BibleIQ.books.value = getBooks // TODO: uncomment for use
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
@@ -31,7 +30,7 @@ suspend fun getVersions() {
         } else {
             httpClient.get(GetVersions()).body<List<BibleVersion>>()
         }
-        BibleIQ.bibleVersions.value = versions
+//        BibleIQ.bibleVersions.value = versions
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
@@ -41,7 +40,7 @@ suspend fun getVersions() {
 
 suspend fun getChapter(bookId: Int) {
     try {
-        BibleIQ.chapter.value = httpClient.get(GetChapter(bookId = bookId)).body<List<Chapter>>()
+//        BibleIQ.chapter.value = httpClient.get(GetChapter(bookId = bookId)).body<List<Chapter>>()
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
