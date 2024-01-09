@@ -1,5 +1,6 @@
 package ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -14,12 +15,14 @@ import data.bibleIQ.BibleIQ
 @Composable
 fun BibleScriptures() {
     val chapters: ChapterContent = BibleIQ.chapter.value
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        chapters.data?.cleanedContent?.let {
-            Text(
-                it,
-                modifier = Modifier.padding(4.dp)
-            )
+    AnimatedVisibility(chapters.data?.cleanedContent != null) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            chapters.data?.cleanedContent?.let {
+                Text(
+                    it,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
         }
     }
 }

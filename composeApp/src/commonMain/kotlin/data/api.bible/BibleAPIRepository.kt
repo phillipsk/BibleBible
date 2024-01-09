@@ -9,7 +9,7 @@ import kotlinx.serialization.json.Json
 
 const val READ_JSON = false
 
-suspend fun getVersionsBibleAPI() {
+suspend fun getBiblesBibleAPI() {
     try {
         BibleIQ.bibleVersions.value = if (READ_JSON) {
             Json.decodeFromString<BibleAPIBibles>("")

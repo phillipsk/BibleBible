@@ -10,7 +10,9 @@ import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleIQ {
+    private const val defaultBibleId = "de4e12af7f28f599-02"
 
+    var selectedBibleId = mutableStateOf(defaultBibleId)
     var chapter = mutableStateOf(ChapterContent())
     var books = mutableStateOf(BibleAPIBook())
     var bibleVersions = mutableStateOf(BibleAPIBibles())
@@ -39,6 +41,5 @@ object BibleIQ {
             }
         }
     }
-
 
 }
