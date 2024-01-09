@@ -81,7 +81,7 @@ fun HomeTopBar() {
                             }
                             expanded = false
                         }) {
-                            Text("${it.abbreviationLocal} ${it.descriptionLocal ?: ""}")
+                            Text("${it.abbreviationLocal} ")
                         }
                     }
                 }

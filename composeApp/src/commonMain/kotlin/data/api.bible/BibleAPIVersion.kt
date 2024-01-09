@@ -22,7 +22,7 @@ data class BibleAPIBibles(
         val countries: List<Country>? = null,
         val type: String? = null,
         val updatedAt: String? = null,
-//    val audioBibles: List<Any> = emptyList()
+        val audioBibles: List<AudioBible> = emptyList()
     ) {
         @Serializable
         data class Language(
@@ -40,6 +40,14 @@ data class BibleAPIBibles(
             val nameLocal: String? = null
         )
     }
+
+    @Serializable
+    data class AudioBible(
+        val id: String? = null,
+        val name: String? = null,
+        val nameLocal: String? = null,
+        val dblId: String? = null
+    )
 }
 
 
