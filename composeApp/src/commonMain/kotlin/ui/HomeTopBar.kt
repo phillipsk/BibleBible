@@ -83,7 +83,6 @@ fun BookMenu() {
             DropdownMenuItem(onClick = {
                 expanded = false
                 BibleIQ.selectedBookData.value = it
-                BibleIQ.selectedChapter.value = -1
                 BibleIQ.updateSelectedChapter()
                 scope.launch {
                     getChapterBibleAPI()

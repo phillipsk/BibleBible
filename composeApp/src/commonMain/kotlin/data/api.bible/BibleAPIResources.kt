@@ -16,7 +16,7 @@ class GetBooksAPIBible(
 @Resource("/bibles/{bibleId}/chapters/{chapter}")
 class GetChapterAPIBible(
     private val bibleId: String = BibleIQ.selectedBibleId.value,
-    private val chapter: String = BibleIQ.selectedChapterString,
+    private val chapter: String = BibleIQ.selectedChapter,
     @SerialName("content-type") val contentType: String = "text", // TODO: review text vs. HTML impl
     @SerialName("include-notes") val includeNotes: Boolean = false,
     @SerialName("include-titles") val includeTitles: Boolean = true,

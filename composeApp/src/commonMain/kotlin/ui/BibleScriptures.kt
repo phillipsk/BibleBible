@@ -64,9 +64,7 @@ fun ScrollableTabScriptures() {
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
-//                        BibleIQ.selectedBookData.value = it
-                                BibleIQ.selectedChapter.value = -1
-                                BibleIQ.updateSelectedChapter()
+                                BibleIQ.updateSelectedChapter(chapter.number)
                                 scope.launch {
                                     getChapterBibleAPI()
                                 }

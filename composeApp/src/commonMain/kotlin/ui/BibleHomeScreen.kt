@@ -56,7 +56,7 @@ fun BibleHomeScreen() {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == -1) {
+    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),

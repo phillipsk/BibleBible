@@ -13,11 +13,11 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleIQ {
     const val MVP_UI = true
-    private const val defaultBibleId = "de4e12af7f28f599-02"
+    private const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
 
     var uiState by mutableStateOf(UIState())
-    var selectedBibleId = mutableStateOf(defaultBibleId)
+    var selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
     var chapter = mutableStateOf(ChapterContent())
     var books = mutableStateOf(BibleAPIBook())
     var bibleVersions = mutableStateOf(BibleAPIBibles())
@@ -34,22 +34,15 @@ object BibleIQ {
         }
     var selectedBookData = mutableStateOf(BookData())
 
-    var selectedChapter = mutableStateOf(-1)
-    var selectedChapterString = ""
+    private var _selectedChapter: MutableState<String> = mutableStateOf("")
+    val selectedChapter: String by _selectedChapter
 
-    fun updateSelectedChapter(chapter: Int? = null) {
-        if (selectedChapter.value == -1) {
-            val chapterList = selectedBookData.value.chapters
-            if (!chapterList.isNullOrEmpty()) {
-                selectedChapter.value = chapter ?: 1
-                selectedChapterString = selectedBookData.value.bookId + "." + selectedChapter.value
-            }
-        }
+    fun updateSelectedChapter(chapter: String? = null) {
+        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
 
     fun updateBooksView() {
         uiState = uiState.copy(updateView = true, selectedBookData = selectedBookData.value)
-//        books.value = BibleAPIBook()
         chapter.value = ChapterContent()
     }
 
