@@ -20,7 +20,7 @@ class GetChapterAPIBible(
     @SerialName("content-type") val contentType: String = "text", // TODO: review text vs. HTML impl
     @SerialName("include-notes") val includeNotes: Boolean = false,
     @SerialName("include-titles") val includeTitles: Boolean = true,
-    @SerialName("include-chapter-numbers") val includeChapterNumbers: Boolean = false,
+    @SerialName("include-chapter-numbers") val includeChapterNumbers: Boolean = true,
     @SerialName("include-verse-numbers") val includeVerseNumbers: Boolean = true,
     @SerialName("include-verse-spans") val includeVerseSpans: Boolean = false
 )

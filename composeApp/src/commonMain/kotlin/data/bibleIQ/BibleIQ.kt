@@ -1,7 +1,9 @@
 package data.bibleIQ
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import data.api.bible.BibleAPIBibles
 import data.api.bible.BibleAPIBook
 import data.api.bible.BookData
@@ -14,6 +16,7 @@ object BibleIQ {
     private const val defaultBibleId = "de4e12af7f28f599-02"
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
 
+    var uiState by mutableStateOf(UIState())
     var selectedBibleId = mutableStateOf(defaultBibleId)
     var chapter = mutableStateOf(ChapterContent())
     var books = mutableStateOf(BibleAPIBook())
@@ -44,4 +47,18 @@ object BibleIQ {
         }
     }
 
+    fun updateBooksView() {
+        uiState = uiState.copy(updateView = true, selectedBookData = selectedBookData.value)
+//        books.value = BibleAPIBook()
+        chapter.value = ChapterContent()
+    }
+
 }
+
+data class UIState(
+    var updateView: Boolean = false,
+    var selectedVersion: MutableState<String> = mutableStateOf("KJV"),
+    var selectedBookData: BookData = BookData(),
+    var selectedChapter: MutableState<Int> = mutableStateOf(-1),
+    var selectedChapterString: MutableState<String> = mutableStateOf(""),
+)
