@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.buildKonfig)
     alias(libs.plugins.kotlinX.serialization.plugin)
+    alias(libs.plugins.sqlDelight)
 }
 
 kotlin {
@@ -37,6 +38,7 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.sqlDelight.driver.android)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -56,6 +58,7 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqlDelight.driver.native)
         }
     }
 }
@@ -108,5 +111,13 @@ buildkonfig {
             "API_KEY_API_BIBLE",
             gradleLocalProperties(rootDir).getProperty("api_key_api_bible") ?: ""
         )
+    }
+}
+
+sqldelight {
+    databases {
+        create("BibleBibleDatabase") {
+            packageName.set("email.kevinphillips.biblebible")
+        }
     }
 }
