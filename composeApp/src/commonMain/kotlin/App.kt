@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import data.api.bible.getBiblesBibleAPI
 import data.api.bible.getBooksBibleAPI
-import data.bibleIQ.BibleIQ
+import data.api.bible.BibleAPIDataModel
 import ui.BibleHomeScreen
 import ui.MyCustomMaterialTheme
 
@@ -14,7 +14,7 @@ import ui.MyCustomMaterialTheme
 fun App() {
 
     val uiState by remember {
-        mutableStateOf(BibleIQ.uiState)
+        mutableStateOf(BibleAPIDataModel.uiState)
     }
 
     LaunchedEffect(uiState.updateView) {

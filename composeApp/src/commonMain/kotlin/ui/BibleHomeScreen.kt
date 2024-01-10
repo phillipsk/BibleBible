@@ -26,10 +26,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.bible.getChapterBibleAPI
-import data.bibleIQ.BibleIQ.books
-import data.bibleIQ.BibleIQ.selectedBookData
-import data.bibleIQ.BibleIQ.selectedChapter
-import data.bibleIQ.BibleIQ.updateSelectedChapter
+import data.api.bible.BibleAPIDataModel.books
+import data.api.bible.BibleAPIDataModel.selectedBookData
+import data.api.bible.BibleAPIDataModel.selectedChapter
+import data.api.bible.BibleAPIDataModel.updateSelectedChapter
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
 

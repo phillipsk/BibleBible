@@ -21,14 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.api.bible.ChapterContent
 import data.api.bible.getChapterBibleAPI
-import data.bibleIQ.BibleIQ
+import data.api.bible.BibleAPIDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 @Composable
 private fun BibleScriptures() {
-    val chapters: ChapterContent = BibleIQ.chapter.value
+    val chapters: ChapterContent = BibleAPIDataModel.chapter.value
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.cleanedContent?.let {
             Text(
@@ -45,7 +45,7 @@ fun ScrollableTabScriptures() {
     var selectedTabIndex by remember {
         mutableStateOf(0)
     }
-    val chapters: ChapterContent = BibleIQ.chapter.value
+    val chapters: ChapterContent = BibleAPIDataModel.chapter.value
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
             ScrollableTabRow(
@@ -58,13 +58,13 @@ fun ScrollableTabScriptures() {
                     )
                 }
             ) {
-                BibleIQ.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
+                BibleAPIDataModel.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
-                                BibleIQ.updateSelectedChapter(chapter.number)
+                                BibleAPIDataModel.updateSelectedChapter(chapter.number)
                                 scope.launch {
                                     getChapterBibleAPI()
                                 }

@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.bible.getBooksBibleAPI
 import data.api.bible.getChapterBibleAPI
-import data.bibleIQ.BibleIQ
+import data.api.bible.BibleAPIDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
@@ -64,7 +64,7 @@ fun BookMenu() {
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(BibleIQ.selectedBookData.value.abbreviation ?: "Gen"),
+        text = AnnotatedString(BibleAPIDataModel.selectedBookData.value.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
         onClick = { expanded = !expanded }
     )
@@ -79,11 +79,11 @@ fun BookMenu() {
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        BibleIQ.books.value.data?.forEach {
+        BibleAPIDataModel.books.value.data?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                BibleIQ.selectedBookData.value = it
-                BibleIQ.updateSelectedChapter()
+                BibleAPIDataModel.selectedBookData.value = it
+                BibleAPIDataModel.updateSelectedChapter()
                 scope.launch {
                     getChapterBibleAPI()
                 }
@@ -103,7 +103,7 @@ fun BibleMenu() {
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(BibleIQ.selectedVersion.value),
+        text = AnnotatedString(BibleAPIDataModel.selectedVersion.value),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
         onClick = { expanded = !expanded }
     )
@@ -118,11 +118,11 @@ fun BibleMenu() {
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        BibleIQ.abbreviationList.forEach {
+        BibleAPIDataModel.abbreviationList.forEach {
             if (it.abbreviationLocal != null && it.id != null) {
                 DropdownMenuItem(onClick = {
-                    BibleIQ.selectedVersion.value = it.abbreviationLocal
-                    BibleIQ.selectedBibleId.value = it.id
+                    BibleAPIDataModel.selectedVersion.value = it.abbreviationLocal
+                    BibleAPIDataModel.selectedBibleId.value = it.id
                     scope.launch {
                         getBooksBibleAPI()
                     }

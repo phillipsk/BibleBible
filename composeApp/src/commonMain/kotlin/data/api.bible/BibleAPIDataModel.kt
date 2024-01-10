@@ -1,17 +1,13 @@
-package data.bibleIQ
+package data.api.bible
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.api.bible.BibleAPIBibles
-import data.api.bible.BibleAPIBook
-import data.api.bible.BookData
-import data.api.bible.ChapterContent
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
-object BibleIQ {
+object BibleAPIDataModel {
     const val MVP_UI = true
     private const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
