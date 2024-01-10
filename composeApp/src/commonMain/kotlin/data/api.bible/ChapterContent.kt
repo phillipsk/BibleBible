@@ -21,7 +21,7 @@ data class ChapterData(
     val next: ChapterReference? = null,
     val previous: ChapterReference? = null
 ) {
-    val cleanedContent = content?.replace("¶", "")
+    val cleanedContent = "Chapter ${content?.replace("¶", "")}"
 }
 
 @Serializable

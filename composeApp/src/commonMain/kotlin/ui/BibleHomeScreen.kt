@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -21,22 +19,17 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.bible.getChapterBibleAPI
-import data.bibleIQ.BibleIQ
-import data.bibleIQ.BibleIQ.books
-import data.bibleIQ.BibleIQ.selectedBookData
-import data.bibleIQ.BibleIQ.selectedChapter
-import data.bibleIQ.BibleIQ.updateSelectedChapter
+import data.api.bible.BibleAPIDataModel.books
+import data.api.bible.BibleAPIDataModel.selectedBookData
+import data.api.bible.BibleAPIDataModel.selectedChapter
+import data.api.bible.BibleAPIDataModel.updateSelectedChapter
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
 
@@ -55,42 +48,7 @@ fun BibleHomeScreen() {
             verticalArrangement = Arrangement.Center
         ) {
             BibleBookList()
-            BibleScriptures()
-        }
-    }
-}
-
-@Composable
-private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
-    var selectedAbbreviation by remember { mutableStateOf<String?>(null) }
-
-    // Assume BibleIQ.bibleVersions.value is a list of BibleVersion objects
-    val bibleVersions = BibleIQ.bibleVersions.value
-
-    // Only show the LazyRow if there's no selected abbreviation or the list is not empty
-    AnimatedVisibility(visible = selectedAbbreviation == null && bibleVersions.data?.isEmpty() == false) {
-        LazyRow(contentPadding = PaddingValues(10.dp)) {
-            items(items = bibleVersions.data!!) { bibleVersion ->
-                bibleVersion.abbreviationLocal?.let { abbreviation ->
-                    Button(
-                        onClick = {
-                            selectedAbbreviation = abbreviation
-                            onAbbreviationSelected(abbreviation)
-                        },
-                        shape = RoundedCornerShape(50), // Rounded corners
-                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                        modifier = Modifier
-                            .padding(4.dp) // Add padding around the Button
-                            .height(40.dp) // Fixed height for buttons
-                    ) {
-                        Text(
-                            text = abbreviation,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colors.onPrimary
-                        )
-                    }
-                }
-            }
+            ScrollableTabScriptures()
         }
     }
 }
@@ -98,7 +56,7 @@ private fun BibleVersions(onAbbreviationSelected: (String) -> Unit = {}) {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter.value == -1) {
+    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
@@ -125,7 +83,7 @@ fun BibleBookList() {
                                     minHeight = 40.dp
                                 ) // Set a minimum size
                         ) {
-                            it.name?.let { name ->
+                            it.cleanedName?.let { name ->
                                 Text(
                                     text = name,
                                     fontSize = 14.sp,

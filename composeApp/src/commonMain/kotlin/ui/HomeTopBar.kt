@@ -28,20 +28,14 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.bible.getBooksBibleAPI
-import data.bibleIQ.BibleIQ
+import data.api.bible.getChapterBibleAPI
+import data.api.bible.BibleAPIDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeTopBar() {
-    val scope = rememberCoroutineScope { Dispatchers.IO }
-    var expanded by remember { mutableStateOf(false) }
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(300)
-    )
-
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -55,35 +49,86 @@ fun HomeTopBar() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(end = 16.dp)
         ) {
-            ClickableText(
-                text = AnnotatedString(BibleIQ.selectedVersion.value),
-                style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
-                onClick = { expanded = !expanded }
-            )
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    Icons.Filled.ArrowDropDown,
-                    contentDescription = "Dropdown Menu",
-                    modifier = Modifier.graphicsLayer(rotationZ = rotationAngle)
-                )
+            BookMenu()
+            BibleMenu()
+        }
+    }
+}
+
+@Composable
+fun BookMenu() {
+    val scope = rememberCoroutineScope { Dispatchers.IO }
+    var expanded by remember { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(300)
+    )
+    ClickableText(
+        text = AnnotatedString(BibleAPIDataModel.selectedBookData.value.abbreviation ?: "Gen"),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        onClick = { expanded = !expanded }
+    )
+    IconButton(onClick = { expanded = !expanded }) {
+        Icon(
+            Icons.Filled.ArrowDropDown,
+            contentDescription = "Dropdown Menu",
+            modifier = Modifier.graphicsLayer(rotationZ = rotationAngle)
+        )
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+        BibleAPIDataModel.books.value.data?.forEach {
+            DropdownMenuItem(onClick = {
+                expanded = false
+                BibleAPIDataModel.selectedBookData.value = it
+                BibleAPIDataModel.updateSelectedChapter()
+                scope.launch {
+                    getChapterBibleAPI()
+                }
+            }) {
+                Text("${it.abbreviation} ")
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                BibleIQ.abbreviationList.forEach {
-                    if (it.abbreviationLocal != null && it.id != null) {
-                        DropdownMenuItem(onClick = {
-                            BibleIQ.selectedVersion.value = it.abbreviationLocal
-                            BibleIQ.selectedBibleId.value = it.id
-                            scope.launch {
-                                getBooksBibleAPI()
-                            }
-                            expanded = false
-                        }) {
-                            Text("${it.abbreviationLocal} ${it.descriptionLocal ?: ""}")
-                        }
+        }
+    }
+}
+
+@Composable
+fun BibleMenu() {
+    val scope = rememberCoroutineScope { Dispatchers.IO }
+    var expanded by remember { mutableStateOf(false) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(300)
+    )
+    ClickableText(
+        text = AnnotatedString(BibleAPIDataModel.selectedVersion.value),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        onClick = { expanded = !expanded }
+    )
+    IconButton(onClick = { expanded = !expanded }) {
+        Icon(
+            Icons.Filled.ArrowDropDown,
+            contentDescription = "Dropdown Menu",
+            modifier = Modifier.graphicsLayer(rotationZ = rotationAngle)
+        )
+    }
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { expanded = false }
+    ) {
+        BibleAPIDataModel.abbreviationList.forEach {
+            if (it.abbreviationLocal != null && it.id != null) {
+                DropdownMenuItem(onClick = {
+                    BibleAPIDataModel.selectedVersion.value = it.abbreviationLocal
+                    BibleAPIDataModel.selectedBibleId.value = it.id
+                    scope.launch {
+                        getBooksBibleAPI()
                     }
+                    expanded = false
+                }) {
+                    Text("${it.abbreviationLocal} ")
                 }
             }
         }

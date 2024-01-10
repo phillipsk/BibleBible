@@ -1,18 +1,18 @@
 package data.api.bible
 
-import data.bibleIQ.BibleIQ
-import data.bibleIQ.BibleIQ.selectedChapterString
+import data.api.bible.json.JSON_BIBLES_API_BIBLE
+import data.api.bible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
-const val LOCAL_DATA = false
+const val LOCAL_DATA = true
 
 suspend fun getBiblesBibleAPI() {
     try {
-        BibleIQ.bibleVersions.value = if (LOCAL_DATA) {
-            Json.decodeFromString<BibleAPIBibles>("")
+        BibleAPIDataModel.bibleVersions.value = if (LOCAL_DATA) {
+            Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE)
         } else {
             httpClient.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
         }
@@ -25,11 +25,11 @@ suspend fun getBiblesBibleAPI() {
 suspend fun getBooksBibleAPI() {
     try {
         val getBooksAPIBible = if (LOCAL_DATA) {
-            Json.decodeFromString<BibleAPIBook>("")
+            Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
         } else {
             httpClient.get(GetBooksAPIBible()).body<BibleAPIBook>()
         }
-        BibleIQ.books.value = getBooksAPIBible
+        BibleAPIDataModel.books.value = getBooksAPIBible
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
@@ -40,7 +40,7 @@ suspend fun getBooksBibleAPI() {
 
 suspend fun getChapterBibleAPI() {
     try {
-        BibleIQ.chapter.value = httpClient.get(GetChapterAPIBible(chapter = selectedChapterString)).body<ChapterContent>()
+        BibleAPIDataModel.chapter.value = httpClient.get(GetChapterAPIBible()).body<ChapterContent>()
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {

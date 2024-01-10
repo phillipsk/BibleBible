@@ -1,5 +1,6 @@
 package data.bibleIQ
 
+import data.api.bible.BibleAPIDataModel
 import io.ktor.resources.Resource
 
 //@Serializable
@@ -14,5 +15,5 @@ class GetBooks(val language: String = "english")
 class GetChapter(
     val bookId: Int,
     private val chapterId: String = "1",
-    private val versionId: String = BibleIQ.selectedVersion.value.lowercase()
+    private val versionId: String = BibleAPIDataModel.selectedVersion.value.lowercase()
 )
