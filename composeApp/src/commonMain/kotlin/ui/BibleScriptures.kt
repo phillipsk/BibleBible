@@ -19,9 +19,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import data.api.bible.ChapterContent
-import data.api.bible.getChapterBibleAPI
-import data.api.bible.BibleAPIDataModel
+import data.apiBible.ChapterContent
+import data.apiBible.getChapterBibleAPI
+import data.api.apiBible.BibleAPIDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch

@@ -1,6 +1,6 @@
 package data.bibleIQ
 
-import data.api.bible.BibleAPIDataModel
+import data.api.apiBible.BibleAPIDataModel
 import io.ktor.resources.Resource
 
 //@Serializable

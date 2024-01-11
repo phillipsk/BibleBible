@@ -1,9 +1,13 @@
-package data.api.bible
+package data.api.apiBible
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.apiBible.BibleAPIBibles
+import data.apiBible.BibleAPIBook
+import data.apiBible.BookData
+import data.apiBible.ChapterContent
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal

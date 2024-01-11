@@ -1,5 +1,6 @@
-package data.api.bible
+package data.apiBible
 
+import data.api.apiBible.BibleAPIDataModel
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 

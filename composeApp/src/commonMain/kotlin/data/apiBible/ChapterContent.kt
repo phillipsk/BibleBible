@@ -1,4 +1,4 @@
-package data.api.bible
+package data.apiBible
 
 import kotlinx.serialization.Serializable
 

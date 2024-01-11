@@ -1,7 +1,8 @@
-package data.api.bible
+package data.apiBible
 
-import data.api.bible.json.JSON_BIBLES_API_BIBLE
-import data.api.bible.json.JSON_BOOKS_API_BIBLE
+import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.json.JSON_BIBLES_API_BIBLE
+import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
