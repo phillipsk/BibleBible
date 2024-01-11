@@ -19,9 +19,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.ChapterContent
 import data.apiBible.getChapterBibleAPI
-import data.api.apiBible.BibleAPIDataModel
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
@@ -32,7 +33,7 @@ private fun BibleScriptures() {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.cleanedContent?.let {
             Text(
-                it,
+                "Chapter $it",
                 modifier = Modifier.padding(4.dp)
             )
         }
@@ -45,6 +46,7 @@ fun ScrollableTabScriptures() {
     var selectedTabIndex by remember {
         mutableStateOf(0)
     }
+    Napier.d("selectedTabIndex $selectedTabIndex", tag = "BB2453")
     val chapters: ChapterContent = BibleAPIDataModel.chapter.value
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
