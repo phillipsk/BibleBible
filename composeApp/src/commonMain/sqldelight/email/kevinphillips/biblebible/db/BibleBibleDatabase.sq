@@ -41,3 +41,7 @@ DELETE FROM BibleVerses;
 selectAllVerses:
 SELECT BibleVerses.*
 FROM BibleVerses;
+
+selectVersesById:
+SELECT BibleVerses.*
+FROM BibleVerses WHERE id = ?;
