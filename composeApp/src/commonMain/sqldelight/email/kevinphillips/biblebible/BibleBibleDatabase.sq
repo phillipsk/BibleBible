@@ -1,0 +1,43 @@
+CREATE TABLE IF NOT EXISTS BibleVerses (
+    id TEXT PRIMARY KEY,
+    bibleId TEXT,
+    number TEXT,
+    bookId TEXT,
+    reference TEXT,
+    copyright TEXT,
+    verseCount INTEGER,
+    content TEXT,
+    nextId TEXT,
+    nextNumber TEXT,
+    nextBookId TEXT,
+    previousId TEXT,
+    previousNumber TEXT,
+    previousBookId TEXT
+);
+
+insertVerse:
+INSERT INTO BibleVerses (
+                id,
+                bibleId,
+                number,
+                bookId,
+                reference,
+                copyright,
+                verseCount,
+                content,
+                nextId,
+                nextNumber,
+                nextBookId,
+                previousId,
+                previousNumber,
+                previousBookId
+            ) VALUES (
+?,?,?,?,?,?,?,?,?,?,?,?,?,?
+            );
+
+removeAllVerses:
+DELETE FROM BibleVerses;
+
+selectAllVerses:
+SELECT BibleVerses.*
+FROM BibleVerses;
