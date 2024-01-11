@@ -11,7 +11,6 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -55,20 +54,27 @@ suspend fun getChapterBibleAPI() {
         Napier.d("end load", tag = "BB2452")
 
         if (cachedData == null) {
-            Napier.d("remote api: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}", tag = "BB2452")
+            Napier.d(
+                "remote api: ${BibleAPIDataModel.chapter.value.data?.id} :: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}",
+                tag = "BB2452"
+            )
             Napier.d("start fetch", tag = "BB2452")
             BibleAPIDataModel.chapter.value =
                 httpClient.get(GetChapterAPIBible()).body<ChapterContent>()
             Napier.d("end fetch", tag = "BB2452")
             Napier.d("start delay", tag = "BB2452")
-            delay(3000)
+//            delay(3000)
             Napier.d("end delay", tag = "BB2452")
             Napier.d("start insertVerse", tag = "BB2452")
             insertBibleVerses()
             Napier.d("end insertVerse", tag = "BB2452")
         } else {
             BibleAPIDataModel.chapter.value = cachedData
-            Napier.d("db query: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}", tag = "BB2452")
+            Napier.d(cachedData.toString(), tag = "BB2452-ios")
+            Napier.d(
+                "db query: ${BibleAPIDataModel.chapter.value.data?.id} :: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}",
+                tag = "BB2452"
+            )
         }
 
     } catch (e: Exception) {
@@ -91,12 +97,12 @@ private suspend fun insertBibleVerses() {
                 copyright = it.data?.copyright ?: "",
                 verseCount = it.data?.verseCount?.toLong() ?: 0L,
                 content = it.data?.cleanedContent ?: "",
-                nextId = it.data?.next?.number ?: "",
-                nextNumber = it.data?.next?.bookId ?: "",
-                nextBookId = it.data?.previous?.id ?: "",
-                previousId = it.data?.previous?.number ?: "",
-                previousNumber = it.data?.previous?.bookId ?: "",
-                previousBookId = it.data?.previous?.id ?: "",
+                nextId = it.data?.next?.id ?: "",
+                nextNumber = it.data?.next?.number ?: "",
+                nextBookId = it.data?.next?.bookId ?: "",
+                previousId = it.data?.previous?.id ?: "",
+                previousNumber = it.data?.previous?.number ?: "",
+                previousBookId = it.data?.previous?.bookId ?: "",
             )
         }
     }
@@ -107,7 +113,7 @@ private suspend fun insertBibleVerses() {
 private suspend fun loadVerseData(): ChapterContent? {
     return withContext(Dispatchers.IO) {
         Napier.d("inside start load before delay", tag = "BB2452")
-        delay(3000)
+//        delay(3000)
         Napier.d("inside start load end delay", tag = "BB2452")
         val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
         val bibleQueries = database.bibleBibleDatabaseQueries
@@ -116,7 +122,7 @@ private suspend fun loadVerseData(): ChapterContent? {
         bibleQueries.firstOrNull()?.let {
             ChapterContent(
                 ChapterData(
-                    id = it.bookId,
+                    id = it.id,
                     bibleId = it.bibleId,
                     number = it.number,
                     bookId = it.bookId,
