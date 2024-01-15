@@ -70,7 +70,7 @@ suspend fun getChapterBibleAPI() {
             Napier.d("end insertVerse", tag = "BB2452")
         } else {
             BibleAPIDataModel.chapter.value = cachedData
-            Napier.d(cachedData.toString(), tag = "BB2452-ios")
+//            Napier.d(cachedData.toString(), tag = "BB2452-ios")
             Napier.d(
                 "db query: ${BibleAPIDataModel.chapter.value.data?.id} :: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}",
                 tag = "BB2452"
