@@ -26,7 +26,7 @@ suspend fun getBiblesBibleAPI() {
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }
 
@@ -41,7 +41,7 @@ suspend fun getBooksBibleAPI() {
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }
 
@@ -100,7 +100,7 @@ suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }
 
