@@ -19,9 +19,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import data.api.bible.BibleAPIDataModel
 import data.api.bible.ChapterContent
 import data.api.bible.getChapterBibleAPI
-import data.api.bible.BibleAPIDataModel
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
@@ -60,13 +61,16 @@ fun ScrollableTabScriptures() {
             ) {
                 BibleAPIDataModel.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
+                        val chapterString = chapter.bookId + "." + chapter.number
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
-                                BibleAPIDataModel.updateSelectedChapter(chapter.number)
+                                BibleAPIDataModel.updateSelectedChapter(chapterString)
                                 scope.launch {
-                                    getChapterBibleAPI()
+                                    Napier.i("scope.launch start: $chapterString")
+                                    getChapterBibleAPI(chapterString)
+                                    Napier.i("scope.launch finished")
                                 }
                             },
                             text = { Text(chapter.number) },
