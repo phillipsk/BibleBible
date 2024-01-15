@@ -62,13 +62,17 @@ fun ScrollableTabScriptures() {
             ) {
                 BibleAPIDataModel.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
+                        val chapterString = chapter.bookId + "." + chapter.number
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
-                                BibleAPIDataModel.updateSelectedChapter(chapter.number)
+                                BibleAPIDataModel.updateSelectedChapter(chapterString)
+                                Napier.v("ScrollableTabScriptures :: updateSelectedChapter: $chapter", tag = "BB2452")
                                 scope.launch {
-                                    getChapterBibleAPI()
+                                    Napier.i("scope.launch start: $chapterString")
+                                    getChapterBibleAPI(chapterString)
+                                    Napier.i("scope.launch finished")
                                 }
                             },
                             text = { Text(chapter.number) },

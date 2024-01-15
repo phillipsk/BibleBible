@@ -46,21 +46,31 @@ suspend fun getBooksBibleAPI() {
 }
 
 
-suspend fun getChapterBibleAPI() {
+suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
     try {
-
+        val chapter = chapterNumber ?: BibleAPIDataModel.selectedChapter
+        Napier.i("getChapterBibleAPI: $chapter")
         Napier.d("start load", tag = "BB2452")
         val cachedData = loadVerseData()
         Napier.d("end load", tag = "BB2452")
+        Napier.v("cachedData value $cachedData", tag = "BB2452")
 
-        if (cachedData == null) {
+        if (cachedData == null || cachedData.data?.verseCount == 0) {
             Napier.d(
-                "remote api: ${BibleAPIDataModel.chapter.value.data?.id} :: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}",
+                "remote api: ${BibleAPIDataModel.chapter.value.data?.id} :: ${
+                    BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(
+                        130
+                    )
+                }",
                 tag = "BB2452"
             )
             Napier.d("start fetch", tag = "BB2452")
-            BibleAPIDataModel.chapter.value =
-                httpClient.get(GetChapterAPIBible()).body<ChapterContent>()
+            Napier.d("start fetch :: $chapter", tag = "BB2452")
+            val chapterContent = httpClient.get(GetChapterAPIBible(chapter = chapter))
+                .body<ChapterContent>()
+            withContext(Dispatchers.Main) {
+                BibleAPIDataModel.chapter.value = chapterContent
+            }
             Napier.d("end fetch", tag = "BB2452")
             Napier.d("start delay", tag = "BB2452")
 //            delay(3000)
@@ -68,11 +78,21 @@ suspend fun getChapterBibleAPI() {
             Napier.d("start insertVerse", tag = "BB2452")
             insertBibleVerses()
             Napier.d("end insertVerse", tag = "BB2452")
+
         } else {
-            BibleAPIDataModel.chapter.value = cachedData
+            Napier.v("enter DB query", tag = "BB2452")
+            withContext(Dispatchers.Main) {
+//                TODO: review suspend
+                Napier.v("update UI main thread", tag = "BB2452")
+                BibleAPIDataModel.chapter.value = cachedData
+            }
 //            Napier.d(cachedData.toString(), tag = "BB2452-ios")
             Napier.d(
-                "db query: ${BibleAPIDataModel.chapter.value.data?.id} :: ${BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(130)}",
+                "db query: ${BibleAPIDataModel.chapter.value.data?.id} :: ${
+                    BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(
+                        130
+                    )
+                }",
                 tag = "BB2452"
             )
         }
@@ -143,5 +163,5 @@ private suspend fun loadVerseData(): ChapterContent? {
                 )
             )
         }
-    }
+    }.also { Napier.d("UI ready to update from DB query end", tag = "BB2452") }
 }
