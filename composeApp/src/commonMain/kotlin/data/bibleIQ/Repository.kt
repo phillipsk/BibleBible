@@ -19,7 +19,7 @@ suspend fun getBooks() {
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }
 
@@ -34,7 +34,7 @@ suspend fun getVersions() {
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }
 
@@ -44,6 +44,6 @@ suspend fun getChapter(bookId: Int) {
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
-        httpClient.close()
+        // httpClient.close()
     }
 }

@@ -1,9 +1,14 @@
-package data.api.bible
+package data.api.apiBible
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.apiBible.BibleAPIBibles
+import data.apiBible.BibleAPIBook
+import data.apiBible.BookData
+import data.apiBible.ChapterContent
+import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
@@ -34,7 +39,9 @@ object BibleAPIDataModel {
     val selectedChapter: String by _selectedChapter
 
     fun updateSelectedChapter(chapter: String? = null) {
-        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
+        Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
+        _selectedChapter.value = chapter ?: (selectedBookData.value.bookId + ".1")
+//        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
 
     fun updateBooksView() {

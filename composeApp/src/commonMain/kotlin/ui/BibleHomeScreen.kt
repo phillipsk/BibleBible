@@ -25,11 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.api.bible.getChapterBibleAPI
-import data.api.bible.BibleAPIDataModel.books
-import data.api.bible.BibleAPIDataModel.selectedBookData
-import data.api.bible.BibleAPIDataModel.selectedChapter
-import data.api.bible.BibleAPIDataModel.updateSelectedChapter
+import data.apiBible.getChapterBibleAPI
+import data.api.apiBible.BibleAPIDataModel.books
+import data.api.apiBible.BibleAPIDataModel.selectedBookData
+import data.api.apiBible.BibleAPIDataModel.selectedChapter
+import data.api.apiBible.BibleAPIDataModel.updateSelectedChapter
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
 

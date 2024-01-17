@@ -7,4 +7,5 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.buildKonfig) apply false
     alias(libs.plugins.kotlinX.serialization.plugin) apply false
+    alias(libs.plugins.sqlDelight) apply false
 }

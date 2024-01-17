@@ -19,11 +19,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import data.api.bible.ChapterContent
-import data.api.bible.getChapterBibleAPI
-import data.api.bible.BibleAPIDataModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
+import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.ChapterContent
+import data.apiBible.getChapterBibleAPI
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
@@ -32,7 +31,7 @@ private fun BibleScriptures() {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.cleanedContent?.let {
             Text(
-                it,
+                "Chapter $it",
                 modifier = Modifier.padding(4.dp)
             )
         }
@@ -41,10 +40,11 @@ private fun BibleScriptures() {
 
 @Composable
 fun ScrollableTabScriptures() {
-    val scope = rememberCoroutineScope { Dispatchers.IO }
+    val scope = rememberCoroutineScope()
     var selectedTabIndex by remember {
         mutableStateOf(0)
     }
+    Napier.d("selectedTabIndex $selectedTabIndex", tag = "BB2453")
     val chapters: ChapterContent = BibleAPIDataModel.chapter.value
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
@@ -60,13 +60,17 @@ fun ScrollableTabScriptures() {
             ) {
                 BibleAPIDataModel.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
+                        val chapterString = chapter.bookId + "." + chapter.number
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = {
                                 selectedTabIndex = index
-                                BibleAPIDataModel.updateSelectedChapter(chapter.number)
+                                BibleAPIDataModel.updateSelectedChapter(chapterString)
+                                Napier.v("ScrollableTabScriptures :: updateSelectedChapter: $chapter", tag = "BB2452")
                                 scope.launch {
-                                    getChapterBibleAPI()
+                                    Napier.i("scope.launch start: $chapterString")
+                                    getChapterBibleAPI(chapterString)
+                                    Napier.i("scope.launch finished")
                                 }
                             },
                             text = { Text(chapter.number) },

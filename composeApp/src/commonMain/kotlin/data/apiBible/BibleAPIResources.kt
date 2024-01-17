@@ -1,5 +1,6 @@
-package data.api.bible
+package data.apiBible
 
+import data.api.apiBible.BibleAPIDataModel
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 
@@ -15,8 +16,8 @@ class GetBooksAPIBible(
 @Resource("/bibles/{bibleId}/chapters/{chapter}")
 class GetChapterAPIBible(
     private val bibleId: String = BibleAPIDataModel.selectedBibleId.value,
-    private val chapter: String = BibleAPIDataModel.selectedChapter,
-    @SerialName("content-type") val contentType: String = "text", // TODO: review text vs. HTML impl
+    val chapter: String,
+    @SerialName("content-type") val contentType: String = "text",
     @SerialName("include-notes") val includeNotes: Boolean = false,
     @SerialName("include-titles") val includeTitles: Boolean = true,
     @SerialName("include-chapter-numbers") val includeChapterNumbers: Boolean = true,

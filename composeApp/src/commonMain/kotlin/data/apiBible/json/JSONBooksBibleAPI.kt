@@ -1,4 +1,4 @@
-package data.api.bible.json
+package data.apiBible.json
 
 val JSON_BOOKS_API_BIBLE = """
     {
