@@ -59,7 +59,7 @@ suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
             Napier.d("remote api: $chapterNumber", tag = "BB2452")
             fetchChapter(chapter)?.let {
                 withContext(Dispatchers.Main) {
-                    BibleAPIDataModel.chapter.value = it
+                    BibleAPIDataModel.updateChapterContent(it)
                     Napier.d("end fetch ui updated", tag = "BB2452")
                 }
                 Napier.d("start delay", tag = "BB2452")
@@ -73,11 +73,11 @@ suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
             Napier.v("enter DB query", tag = "BB2452")
             withContext(Dispatchers.Main) {
                 Napier.v("update UI main thread", tag = "BB2452")
-                BibleAPIDataModel.chapter.value = cachedData
+                BibleAPIDataModel.updateChapterContent(cachedData)
             }
             Napier.d(
-                "db query ui update: ${BibleAPIDataModel.chapter.value.data?.id} :: ${
-                    BibleAPIDataModel.chapter.value.data?.cleanedContent?.take(
+                "db query ui update: ${BibleAPIDataModel.chapterContent.data?.id} :: ${
+                    BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(
                         130
                     )
                 }",

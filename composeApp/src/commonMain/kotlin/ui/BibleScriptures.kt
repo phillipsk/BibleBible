@@ -20,14 +20,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.Chapter
 import data.apiBible.ChapterContent
 import data.apiBible.getChapterBibleAPI
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
-private fun BibleScriptures() {
-    val chapters: ChapterContent = BibleAPIDataModel.chapter.value
+private fun BibleScriptures(chapters: ChapterContent) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.cleanedContent?.let {
             Text(
@@ -39,13 +39,12 @@ private fun BibleScriptures() {
 }
 
 @Composable
-fun ScrollableTabScriptures() {
+fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>?) {
     val scope = rememberCoroutineScope()
     var selectedTabIndex by remember {
         mutableStateOf(0)
     }
     Napier.d("selectedTabIndex $selectedTabIndex", tag = "BB2453")
-    val chapters: ChapterContent = BibleAPIDataModel.chapter.value
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
             ScrollableTabRow(
@@ -58,7 +57,7 @@ fun ScrollableTabScriptures() {
                     )
                 }
             ) {
-                BibleAPIDataModel.selectedBookData.value.chapters?.forEachIndexed { index, chapter ->
+                chapterList?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
                         val chapterString = chapter.bookId + "." + chapter.number
                         Tab(
@@ -80,7 +79,7 @@ fun ScrollableTabScriptures() {
                 }
             }
 
-            BibleScriptures()
+            BibleScriptures(BibleAPIDataModel.chapterContent)
         }
     }
 }

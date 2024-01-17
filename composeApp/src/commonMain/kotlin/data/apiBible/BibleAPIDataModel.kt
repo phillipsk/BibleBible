@@ -19,7 +19,12 @@ object BibleAPIDataModel {
 
     var uiState by mutableStateOf(UIState())
     var selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
-    var chapter = mutableStateOf(ChapterContent())
+    private var _chapterContent: MutableState<ChapterContent> = mutableStateOf(ChapterContent())
+    val chapterContent: ChapterContent get() = _chapterContent.value
+    fun updateChapterContent(newContent: ChapterContent) {
+        _chapterContent.value = newContent
+    }
+
     var books = mutableStateOf(BibleAPIBook())
     var bibleVersions = mutableStateOf(BibleAPIBibles())
     val abbreviationList get() = bibleVersions.value.data?.map { it } ?: emptyList()
@@ -44,10 +49,10 @@ object BibleAPIDataModel {
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
 
-    fun updateBooksView() {
+/*    fun updateBooksView() {
         uiState = uiState.copy(updateView = true, selectedBookData = selectedBookData.value)
-        chapter.value = ChapterContent()
-    }
+        _chapterContent = ChapterContent()
+    }*/
 
 }
 
