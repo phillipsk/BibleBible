@@ -23,8 +23,6 @@ import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.ChapterContent
 import data.apiBible.getChapterBibleAPI
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,7 +40,7 @@ private fun BibleScriptures() {
 
 @Composable
 fun ScrollableTabScriptures() {
-    val scope = rememberCoroutineScope { Dispatchers.IO }
+    val scope = rememberCoroutineScope()
     var selectedTabIndex by remember {
         mutableStateOf(0)
     }

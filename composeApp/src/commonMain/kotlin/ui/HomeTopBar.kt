@@ -27,9 +27,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.getBooksBibleAPI
 import data.apiBible.getChapterBibleAPI
-import data.api.apiBible.BibleAPIDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
@@ -57,7 +57,7 @@ fun HomeTopBar() {
 
 @Composable
 fun BookMenu() {
-    val scope = rememberCoroutineScope { Dispatchers.IO }
+    val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
