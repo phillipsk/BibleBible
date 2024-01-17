@@ -25,7 +25,12 @@ object BibleAPIDataModel {
         _chapterContent.value = newContent
     }
 
-    var books = mutableStateOf(BibleAPIBook())
+    private var _books = mutableStateOf(BibleAPIBook())
+    val books: BibleAPIBook get() = _books.value
+    fun updateBooks(newBooks: BibleAPIBook) {
+        _books.value = newBooks
+    }
+
     var bibleVersions = mutableStateOf(BibleAPIBibles())
     val abbreviationList get() = bibleVersions.value.data?.map { it } ?: emptyList()
     var selectedVersion: MutableState<String> = mutableStateOf("")
@@ -38,14 +43,18 @@ object BibleAPIDataModel {
             println("println :: updated selectedVersion $field")
             return field
         }
-    var selectedBookData = mutableStateOf(BookData())
+    private var _selectedBookData = mutableStateOf(BookData())
+    val selectedBookData: BookData get() = _selectedBookData.value
+    fun updateBookData(newBookData: BookData) {
+        _selectedBookData.value = newBookData
+    }
 
     private var _selectedChapter: MutableState<String> = mutableStateOf("")
     val selectedChapter: String by _selectedChapter
 
     fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
-        _selectedChapter.value = chapter ?: (selectedBookData.value.bookId + ".1")
+        _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
 

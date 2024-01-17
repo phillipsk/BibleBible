@@ -17,6 +17,7 @@ data class BookData(
     val nameLong: String? = null,
     val chapters: List<Chapter>? = emptyList()
 ) {
+    val key get() = "$bookId.1"
     val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
     val cleanedName = if ((name?.length ?: 0) >= 12
         && name?.getOrNull(0)?.isDigit() == true

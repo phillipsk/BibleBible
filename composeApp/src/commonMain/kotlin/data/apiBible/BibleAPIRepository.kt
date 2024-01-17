@@ -37,7 +37,7 @@ suspend fun getBooksBibleAPI() {
         } else {
             httpClient.get(GetBooksAPIBible()).body<BibleAPIBook>()
         }
-        BibleAPIDataModel.books.value = getBooksAPIBible
+        BibleAPIDataModel.updateBooks(getBooksAPIBible)
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {

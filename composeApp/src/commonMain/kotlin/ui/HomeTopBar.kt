@@ -64,7 +64,7 @@ fun BookMenu() {
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(BibleAPIDataModel.selectedBookData.value.abbreviation ?: "Gen"),
+        text = AnnotatedString(BibleAPIDataModel.selectedBookData.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
         onClick = { expanded = !expanded }
     )
@@ -79,11 +79,13 @@ fun BookMenu() {
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        BibleAPIDataModel.books.value.data?.forEach {
+        BibleAPIDataModel.books.data?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                BibleAPIDataModel.selectedBookData.value = it
-                BibleAPIDataModel.updateSelectedChapter()
+                BibleAPIDataModel.run {
+                    updateBookData(it)
+                    updateSelectedChapter(it.key)
+                }
                 scope.launch {
                     getChapterBibleAPI()
                 }

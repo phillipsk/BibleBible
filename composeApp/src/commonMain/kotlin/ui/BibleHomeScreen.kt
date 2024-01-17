@@ -26,10 +26,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.apiBible.BibleAPIDataModel
-import data.api.apiBible.BibleAPIDataModel.books
-import data.api.apiBible.BibleAPIDataModel.selectedBookData
-import data.api.apiBible.BibleAPIDataModel.selectedChapter
-import data.api.apiBible.BibleAPIDataModel.updateSelectedChapter
 import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
@@ -51,7 +47,7 @@ fun BibleHomeScreen() {
             BibleBookList()
             ScrollableTabScriptures(
                 BibleAPIDataModel.chapterContent,
-                selectedBookData.value.chapters
+                BibleAPIDataModel.selectedBookData.chapters
             )
         }
     }
@@ -60,19 +56,21 @@ fun BibleHomeScreen() {
 @Composable
 fun BibleBookList() {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter == "") {
+    AnimatedVisibility(!BibleAPIDataModel.books.data.isNullOrEmpty() && BibleAPIDataModel.selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(10.dp),
                 userScrollEnabled = true,
             ) {
-                items(items = books.value.data!!) {
+                items(items = BibleAPIDataModel.books.data!!) {
                     it.let {
                         Button(
                             onClick = {
-                                selectedBookData.value = it
-                                updateSelectedChapter()
+                                BibleAPIDataModel.run {
+                                    updateBookData(it)
+                                    updateSelectedChapter(it.key)
+                                }
                                 scope.launch {
                                     getChapterBibleAPI()
                                 }
