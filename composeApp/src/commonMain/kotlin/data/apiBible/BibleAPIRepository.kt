@@ -71,16 +71,19 @@ suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
         } else {
             Napier.v("enter DB query", tag = "BB2452")
             withContext(Dispatchers.Main) {
-                Napier.v("update UI main thread", tag = "BB2452")
+                Napier.v(
+                    "update UI main thread cachedData :: ${
+                        cachedData.data?.cleanedContent?.take(
+                            100
+                        )
+                    }", tag = "BB2452"
+                )
                 BibleAPIDataModel.updateChapterContent(cachedData)
             }
             Napier.d(
                 "db query ui update: ${BibleAPIDataModel.chapterContent.data?.id} :: ${
-                    BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(
-                        130
-                    )
-                }",
-                tag = "BB2452"
+                    BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(100)
+                }", tag = "BB2452"
             )
         }
 

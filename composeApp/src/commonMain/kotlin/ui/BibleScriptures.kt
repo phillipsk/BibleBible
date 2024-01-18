@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.api.apiBible.BibleAPIDataModel
-import data.apiBible.BookData
 import data.apiBible.Chapter
 import data.apiBible.ChapterContent
 import data.apiBible.getChapterBibleAPI
@@ -31,7 +30,6 @@ import kotlinx.coroutines.launch
 fun ScrollableTabScriptures(
     chapters: ChapterContent,
     chapterListBookData: List<Chapter>?,
-    bookDataList: List<BookData>?,
     bibleId: String
 ) {
     val scope = rememberCoroutineScope()
@@ -39,7 +37,7 @@ fun ScrollableTabScriptures(
     var selectedTabIndex by remember(chapterListBookData) { mutableStateOf(0) }
     Napier.d(
         "selectedTabIndex $selectedTabIndex :: bookId ${chapters.data?.bookId} " +
-                ":: number ${chapters.data?.number}", tag = "BB2454"
+                ":: number ${chapters.data?.number}", tag = "BB2452"
     )
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
@@ -81,18 +79,17 @@ fun ScrollableTabScriptures(
                 }
             }
 
-            BibleScriptures(chapters, bookDataList)
+            BibleScriptures(chapters)
         }
     }
 }
 
 @Composable
-private fun BibleScriptures(chapters: ChapterContent, bookDataList: List<BookData>?) {
-    val bookData = bookDataList?.find { it.bookId == chapters.data?.bookId }
+private fun BibleScriptures(chapters: ChapterContent) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.let {
             Text(
-                text = "${bookData?.name} ${it.cleanedContent}",
+                text = it.cleanedContent.substringAfter("\n"),
                 modifier = Modifier.padding(4.dp)
             )
         }
