@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.BibleAPIBibles
 import data.apiBible.BookData
-import data.apiBible.getBooksBibleAPI
 import data.apiBible.getChapterBibleAPI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -139,7 +138,11 @@ fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
                         updateSelectedBibleId(it.id)
                     }
                     scope.launch {
-                        getBooksBibleAPI()
+//                        getBooksBibleAPI()
+                        getChapterBibleAPI(
+                            chapterNumber = BibleAPIDataModel.selectedBookData.key,
+                            bibleId = it.id
+                        )
                     }
                     expanded = false
                 }) {
