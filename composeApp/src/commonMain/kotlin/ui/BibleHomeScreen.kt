@@ -1,7 +1,6 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,11 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
-import data.api.apiBible.BibleAPIDataModel.books
-import data.api.apiBible.BibleAPIDataModel.selectedBookData
-import data.api.apiBible.BibleAPIDataModel.selectedChapter
-import data.api.apiBible.BibleAPIDataModel.updateSelectedChapter
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
 
@@ -45,30 +42,38 @@ fun BibleHomeScreen() {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            BibleBookList()
-            ScrollableTabScriptures()
+            BibleBookList(
+                bookData = BibleAPIDataModel.books.data,
+                selectedChapter = BibleAPIDataModel.selectedChapter
+            )
+            ScrollableTabScriptures(
+                chapters = BibleAPIDataModel.chapterContent,
+                chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
+                bookDataList = BibleAPIDataModel.books.data
+            )
         }
     }
 }
 
 @Composable
-fun BibleBookList() {
+fun BibleBookList(bookData: List<BookData>?, selectedChapter: String) {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!books.value.data.isNullOrEmpty() && selectedChapter == "") {
+    AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(10.dp),
                 userScrollEnabled = true,
             ) {
-                items(items = books.value.data!!) {
+                items(items = bookData!!) {
                     it.let {
                         Button(
                             onClick = {
-                                selectedBookData.value = it
-                                updateSelectedChapter()
+                                BibleAPIDataModel.run {
+                                    updateBookData(it)
+                                    updateSelectedChapter(it.key)
+                                }
                                 scope.launch {
                                     getChapterBibleAPI()
                                 }
@@ -76,7 +81,7 @@ fun BibleBookList() {
                             shape = RoundedCornerShape(50), // Rounded corners
                             colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
                             modifier = Modifier
-                                .padding(2.dp) // Add padding around the Button
+                                .padding(2.dp)
                                 .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
                                 .defaultMinSize(
                                     minWidth = 100.dp,
@@ -88,8 +93,8 @@ fun BibleBookList() {
                                     text = name,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colors.onPrimary,
-                                    maxLines = 1, // Ensure text does not wrap
-                                    overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -97,14 +102,5 @@ fun BibleBookList() {
                 }
             }
         }
-    }
-}
-
-
-//@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    MaterialTheme {
-        BibleHomeScreen()
     }
 }

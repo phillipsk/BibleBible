@@ -28,6 +28,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BibleAPIBibles
+import data.apiBible.BookData
 import data.apiBible.getBooksBibleAPI
 import data.apiBible.getChapterBibleAPI
 import kotlinx.coroutines.Dispatchers
@@ -49,14 +51,19 @@ fun HomeTopBar() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(end = 16.dp)
         ) {
-            BookMenu()
-            BibleMenu()
+            BookMenu(
+                selectedBookData = BibleAPIDataModel.selectedBookData,
+                bookDataList = BibleAPIDataModel.books.data
+            )
+            BibleMenu(
+                bibleVersionsList = BibleAPIDataModel.abbreviationList
+            )
         }
     }
 }
 
 @Composable
-fun BookMenu() {
+fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -64,7 +71,7 @@ fun BookMenu() {
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(BibleAPIDataModel.selectedBookData.value.abbreviation ?: "Gen"),
+        text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
         onClick = { expanded = !expanded }
     )
@@ -79,11 +86,13 @@ fun BookMenu() {
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        BibleAPIDataModel.books.value.data?.forEach {
+        bookDataList?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                BibleAPIDataModel.selectedBookData.value = it
-                BibleAPIDataModel.updateSelectedChapter()
+                BibleAPIDataModel.run {
+                    updateBookData(it)
+                    updateSelectedChapter(it.key)
+                }
                 scope.launch {
                     getChapterBibleAPI()
                 }
@@ -95,7 +104,7 @@ fun BookMenu() {
 }
 
 @Composable
-fun BibleMenu() {
+fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
     val scope = rememberCoroutineScope { Dispatchers.IO }
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -103,7 +112,7 @@ fun BibleMenu() {
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(BibleAPIDataModel.selectedVersion.value),
+        text = AnnotatedString(BibleAPIDataModel.selectedVersion),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
         onClick = { expanded = !expanded }
     )
@@ -118,11 +127,13 @@ fun BibleMenu() {
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        BibleAPIDataModel.abbreviationList.forEach {
+        bibleVersionsList.forEach {
             if (it.abbreviationLocal != null && it.id != null) {
                 DropdownMenuItem(onClick = {
-                    BibleAPIDataModel.selectedVersion.value = it.abbreviationLocal
-                    BibleAPIDataModel.selectedBibleId.value = it.id
+                    BibleAPIDataModel.run {
+                        updateSelectedVersion(it.abbreviationLocal)
+                        updateSelectedBibleId(it.id)
+                    }
                     scope.launch {
                         getBooksBibleAPI()
                     }

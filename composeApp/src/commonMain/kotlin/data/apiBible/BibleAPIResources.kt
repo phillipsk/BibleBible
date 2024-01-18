@@ -9,13 +9,13 @@ class GetBiblesAPIBible(private val language: String? = BibleAPIDataModel.select
 
 @Resource("/bibles/{bibleId}/books")
 class GetBooksAPIBible(
-    private val bibleId: String = BibleAPIDataModel.selectedBibleId.value,
+    private val bibleId: String = BibleAPIDataModel.selectedBibleId,
     @SerialName("include-chapters") private val includeChapters: Boolean = true
 )
 
 @Resource("/bibles/{bibleId}/chapters/{chapter}")
 class GetChapterAPIBible(
-    private val bibleId: String = BibleAPIDataModel.selectedBibleId.value,
+    private val bibleId: String = BibleAPIDataModel.selectedBibleId,
     val chapter: String,
     @SerialName("content-type") val contentType: String = "text",
     @SerialName("include-notes") val includeNotes: Boolean = false,
