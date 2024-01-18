@@ -61,6 +61,7 @@ fun ScrollableTabScriptures(
                                 selectedTabIndex = index
                                 BibleAPIDataModel.updateSelectedChapter(chapterString)
                                 Napier.v(
+//                                    TODO: bibleId is mapped locally to "de4e12af7f28f599-02"
                                     "ScrollableTabScriptures :: updateSelectedChapter: $chapter",
                                     tag = "BB2452"
                                 )

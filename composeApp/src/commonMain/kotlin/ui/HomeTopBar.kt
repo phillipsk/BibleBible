@@ -32,8 +32,6 @@ import data.apiBible.BibleAPIBibles
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 @Composable
@@ -111,7 +109,7 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
 
 @Composable
 fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
-    val scope = rememberCoroutineScope { Dispatchers.IO }
+    val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
@@ -136,16 +134,16 @@ fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
         bibleVersionsList.forEach {
             if (it.abbreviationLocal != null && it.id != null) {
                 DropdownMenuItem(onClick = {
-                    BibleAPIDataModel.run {
-                        updateSelectedVersion(it.abbreviationLocal)
-                        updateSelectedBibleId(it.id)
-                    }
                     scope.launch {
 //                        getBooksBibleAPI()
                         getChapterBibleAPI(
-                            chapterNumber = BibleAPIDataModel.selectedBookData.remoteKey,
+                            chapterNumber = BibleAPIDataModel.selectedChapter,
                             bibleId = it.id
                         )
+                        BibleAPIDataModel.run {
+                            updateSelectedVersion(it.abbreviationLocal)
+                            updateSelectedBibleId(it.id)
+                        }
                     }
                     expanded = false
                 }) {
