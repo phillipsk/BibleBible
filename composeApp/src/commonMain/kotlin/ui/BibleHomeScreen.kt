@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
@@ -42,7 +43,10 @@ fun BibleHomeScreen() {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BibleBookList()
+            BibleBookList(
+                bookData = BibleAPIDataModel.books.data,
+                selectedChapter = BibleAPIDataModel.selectedChapter
+            )
             ScrollableTabScriptures(
                 chapters = BibleAPIDataModel.chapterContent,
                 chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
@@ -53,16 +57,16 @@ fun BibleHomeScreen() {
 }
 
 @Composable
-fun BibleBookList() {
+fun BibleBookList(bookData: List<BookData>?, selectedChapter: String) {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!BibleAPIDataModel.books.data.isNullOrEmpty() && BibleAPIDataModel.selectedChapter == "") {
+    AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(3),
                 contentPadding = PaddingValues(10.dp),
                 userScrollEnabled = true,
             ) {
-                items(items = BibleAPIDataModel.books.data!!) {
+                items(items = bookData!!) {
                     it.let {
                         Button(
                             onClick = {
@@ -77,7 +81,7 @@ fun BibleBookList() {
                             shape = RoundedCornerShape(50), // Rounded corners
                             colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
                             modifier = Modifier
-                                .padding(2.dp) // Add padding around the Button
+                                .padding(2.dp)
                                 .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
                                 .defaultMinSize(
                                     minWidth = 100.dp,
@@ -89,8 +93,8 @@ fun BibleBookList() {
                                     text = name,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colors.onPrimary,
-                                    maxLines = 1, // Ensure text does not wrap
-                                    overflow = TextOverflow.Ellipsis // Use ellipsis for text that is too long
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -98,14 +102,5 @@ fun BibleBookList() {
                 }
             }
         }
-    }
-}
-
-
-//@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    MaterialTheme {
-        BibleHomeScreen()
     }
 }
