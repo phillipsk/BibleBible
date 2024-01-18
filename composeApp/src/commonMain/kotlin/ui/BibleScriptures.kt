@@ -89,7 +89,7 @@ private fun BibleScriptures(chapters: ChapterContent) {
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         chapters.data?.let {
             Text(
-                text = it.cleanedContent.substringAfter("\n"),
+                text = it.uiContent,
                 modifier = Modifier.padding(4.dp)
             )
         }

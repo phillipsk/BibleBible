@@ -91,11 +91,11 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?, bibleId:
                 expanded = false
                 BibleAPIDataModel.run {
                     updateBookData(it)
-                    updateSelectedChapter(it.key)
+                    updateSelectedChapter(it.remoteKey)
                 }
                 scope.launch {
                     getChapterBibleAPI(
-                        chapterNumber = selectedBookData.key,
+                        chapterNumber = selectedBookData.remoteKey,
                         bibleId = bibleId
                     )
                 }
@@ -140,7 +140,7 @@ fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
                     scope.launch {
 //                        getBooksBibleAPI()
                         getChapterBibleAPI(
-                            chapterNumber = BibleAPIDataModel.selectedBookData.key,
+                            chapterNumber = BibleAPIDataModel.selectedBookData.remoteKey,
                             bibleId = it.id
                         )
                     }

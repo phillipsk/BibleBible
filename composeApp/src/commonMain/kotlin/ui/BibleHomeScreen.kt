@@ -73,11 +73,11 @@ fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: S
                             onClick = {
                                 BibleAPIDataModel.run {
                                     updateBookData(it)
-                                    updateSelectedChapter(it.key)
+                                    updateSelectedChapter(it.remoteKey)
                                 }
                                 scope.launch {
                                     getChapterBibleAPI(
-                                        chapterNumber = it.key,
+                                        chapterNumber = it.remoteKey,
                                         bibleId = bibleId
                                     )
                                 }
