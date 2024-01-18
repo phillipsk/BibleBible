@@ -53,7 +53,8 @@ fun HomeTopBar() {
         ) {
             BookMenu(
                 selectedBookData = BibleAPIDataModel.selectedBookData,
-                bookDataList = BibleAPIDataModel.books.data
+                bookDataList = BibleAPIDataModel.books.data,
+                bibleId = BibleAPIDataModel.selectedBibleId
             )
             BibleMenu(
                 bibleVersionsList = BibleAPIDataModel.abbreviationList
@@ -63,7 +64,7 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
+fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?, bibleId: String) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -94,7 +95,10 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
                     updateSelectedChapter(it.key)
                 }
                 scope.launch {
-                    getChapterBibleAPI()
+                    getChapterBibleAPI(
+                        chapterNumber = selectedBookData.key,
+                        bibleId = bibleId
+                    )
                 }
             }) {
                 Text("${it.abbreviation} ")

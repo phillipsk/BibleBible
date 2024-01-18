@@ -22,6 +22,7 @@ data class ChapterData(
     val previous: ChapterReference? = null
 ) {
     val cleanedContent = "${content?.replace("¶", "")}"
+    val key get() = "$id-$bibleId"
 }
 
 @Serializable

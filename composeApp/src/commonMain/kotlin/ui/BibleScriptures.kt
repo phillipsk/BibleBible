@@ -31,7 +31,8 @@ import kotlinx.coroutines.launch
 fun ScrollableTabScriptures(
     chapters: ChapterContent,
     chapterListBookData: List<Chapter>?,
-    bookDataList: List<BookData>?
+    bookDataList: List<BookData>?,
+    bibleId: String
 ) {
     val scope = rememberCoroutineScope()
     var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
@@ -67,7 +68,10 @@ fun ScrollableTabScriptures(
                                 )
                                 scope.launch {
                                     Napier.i("scope.launch start: $chapterString")
-                                    getChapterBibleAPI(chapterString)
+                                    getChapterBibleAPI(
+                                        chapterNumber = chapterString,
+                                        bibleId = bibleId
+                                    )
                                     Napier.i("scope.launch finished")
                                 }
                             },

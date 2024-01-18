@@ -22,7 +22,6 @@ data class BookData(
     val cleanedName = if ((name?.length ?: 0) >= 12
         && name?.getOrNull(0)?.isDigit() == true
     ) name.take(7) else name
-    // how do I drop the first element of this list?
     val chapterListBookData get() = chapters?.drop(1)
 }
 

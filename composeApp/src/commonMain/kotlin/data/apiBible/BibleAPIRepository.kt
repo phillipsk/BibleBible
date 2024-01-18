@@ -46,18 +46,17 @@ suspend fun getBooksBibleAPI() {
 }
 
 
-suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
+suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     try {
-        val chapter = chapterNumber ?: BibleAPIDataModel.selectedChapter
-        Napier.i("getChapterBibleAPI: $chapter")
+        Napier.i("getChapterBibleAPI: $chapterNumber")
         Napier.d("start load", tag = "BB2452")
-        val cachedData = loadVerseData(chapter, BibleAPIDataModel.selectedBibleId)
+        val cachedData = loadVerseData(chapterNumber, bibleId)
         Napier.d("end load", tag = "BB2452")
-        Napier.v("cachedData value ${cachedData?.data?.id}", tag = "BB2452")
+        Napier.v("cachedData value ${cachedData?.data?.key}", tag = "BB2452")
 
         if (cachedData == null || cachedData.data?.verseCount == 0) {
             Napier.d("remote api: $chapterNumber", tag = "BB2452")
-            fetchChapter(chapter)?.let {
+            fetchChapter(chapterNumber, bibleId)?.let {
                 withContext(Dispatchers.Main) {
                     BibleAPIDataModel.updateChapterContent(it)
                     Napier.d("end fetch ui updated", tag = "BB2452")
@@ -92,11 +91,16 @@ suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
     }
 }
 
-private suspend fun fetchChapter(chapter: String): ChapterContent? {
+private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterContent? {
     return try {
         Napier.d("start fetch :: $chapter", tag = "BB2452")
         withContext(Dispatchers.IO) {
-            httpClient.get<GetChapterAPIBible>(GetChapterAPIBible(chapter = chapter))
+            httpClient.get<GetChapterAPIBible>(
+                GetChapterAPIBible(
+                    chapter = chapter,
+                    bibleId = bibleId
+                )
+            )
                 .body<ChapterContent>()
         }.also {
             Napier.d("end fetch", tag = "BB2452")
@@ -117,6 +121,7 @@ private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             chapterContent.let {
                 database.bibleBibleDatabaseQueries.insertVerse(
+                    uuid = it.data?.key ?: "",
                     id = it.data?.id ?: "",
                     bibleId = it.data?.bibleId ?: "",
                     number = it.data?.number ?: "",
