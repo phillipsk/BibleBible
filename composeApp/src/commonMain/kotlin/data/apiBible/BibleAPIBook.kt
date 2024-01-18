@@ -1,5 +1,6 @@
 package data.apiBible
 
+import data.api.apiBible.BibleAPIDataModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -17,8 +18,9 @@ data class BookData(
     val nameLong: String? = null,
     private val chapters: List<Chapter>? = emptyList()
 ) {
-    val remoteKey get() = "$bookId.1"
     val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
+    val cleanedBibleId = bibleId ?: BibleAPIDataModel.DEFAULT_BIBLE_ID
+    val remoteKey get() = "$bookId.1"
     val cleanedName = if ((name?.length ?: 0) >= 12
         && name?.getOrNull(0)?.isDigit() == true
     ) name.take(7) else name

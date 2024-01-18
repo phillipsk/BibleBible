@@ -31,6 +31,7 @@ import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.BibleAPIBibles
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
@@ -52,8 +53,7 @@ fun HomeTopBar() {
         ) {
             BookMenu(
                 selectedBookData = BibleAPIDataModel.selectedBookData,
-                bookDataList = BibleAPIDataModel.books.data,
-                bibleId = BibleAPIDataModel.selectedBibleId
+                bookDataList = BibleAPIDataModel.books.data
             )
             BibleMenu(
                 bibleVersionsList = BibleAPIDataModel.abbreviationList
@@ -63,7 +63,7 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?, bibleId: String) {
+fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -89,15 +89,18 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?, bibleId:
         bookDataList?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                BibleAPIDataModel.run {
-                    updateBookData(it)
-                    updateSelectedChapter(it.remoteKey)
-                }
                 scope.launch {
+                    Napier.v("scope launch", tag = "BB2455")
                     getChapterBibleAPI(
-                        chapterNumber = selectedBookData.remoteKey,
-                        bibleId = bibleId
+                        chapterNumber = it.remoteKey,
+                        bibleId = it.cleanedBibleId
                     )
+                    Napier.v("scope middle", tag = "BB2455")
+                    BibleAPIDataModel.run {
+                        updateBookData(it)
+                        updateSelectedChapter(it.remoteKey)
+                    }
+                    Napier.v("scope end", tag = "BB2455")
                 }
             }) {
                 Text("${it.abbreviation} ")

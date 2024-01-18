@@ -14,7 +14,7 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleAPIDataModel {
     const val MVP_UI = true
-    private const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
+    const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
 
     var uiState by mutableStateOf(UIState())
