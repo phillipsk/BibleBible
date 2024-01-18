@@ -51,7 +51,7 @@ suspend fun getChapterBibleAPI(chapterNumber: String? = null) {
         val chapter = chapterNumber ?: BibleAPIDataModel.selectedChapter
         Napier.i("getChapterBibleAPI: $chapter")
         Napier.d("start load", tag = "BB2452")
-        val cachedData = loadVerseData(chapter)
+        val cachedData = loadVerseData(chapter, BibleAPIDataModel.selectedBibleId)
         Napier.d("end load", tag = "BB2452")
         Napier.v("cachedData value ${cachedData?.data?.id}", tag = "BB2452")
 
@@ -140,7 +140,7 @@ private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
     }
 }
 
-private suspend fun loadVerseData(selectedChapter: String): ChapterContent? {
+private suspend fun loadVerseData(selectedChapter: String, bibleId: String): ChapterContent? {
     return try {
         withContext(Dispatchers.IO) {
             Napier.d("inside start load before delay", tag = "BB2452")
@@ -149,7 +149,7 @@ private suspend fun loadVerseData(selectedChapter: String): ChapterContent? {
 
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             val bibleQueries = database.bibleBibleDatabaseQueries
-                .selectVersesById(selectedChapter).executeAsList()
+                .selectVersesById(selectedChapter, bibleId).executeAsList()
 
             Napier.v("bibleQueries selectedChapter $selectedChapter :: hello world", tag = "BB2452")
             Napier.v("bibleQueries size ${bibleQueries.size}", tag = "BB2452")

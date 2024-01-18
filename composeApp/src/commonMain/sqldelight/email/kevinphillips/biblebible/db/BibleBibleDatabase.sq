@@ -44,4 +44,4 @@ FROM BibleVerses;
 
 selectVersesById:
 SELECT BibleVerses.*
-FROM BibleVerses WHERE id = ?;
+FROM BibleVerses WHERE id = ? AND bibleId = ?;
