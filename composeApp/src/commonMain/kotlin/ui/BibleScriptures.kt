@@ -27,10 +27,10 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
-fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>?) {
+fun ScrollableTabScriptures(chapters: ChapterContent, chapterListBookData: List<Chapter>?) {
     val scope = rememberCoroutineScope()
     var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
-    var selectedTabIndex by remember(chapterList) { mutableStateOf(0) }
+    var selectedTabIndex by remember(chapterListBookData) { mutableStateOf(0) }
     Napier.d(
         "selectedTabIndex $selectedTabIndex :: bookId ${chapters.data?.bookId} " +
                 ":: number ${chapters.data?.number}", tag = "BB2454"
@@ -47,7 +47,7 @@ fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>
                     )
                 }
             ) {
-                chapterList?.forEachIndexed { index, chapter ->
+                chapterListBookData?.forEachIndexed { index, chapter ->
                     if (!chapter.number.isNullOrEmpty()) {
                         val chapterString = chapter.bookId + "." + chapter.number
                         Tab(
@@ -73,7 +73,7 @@ fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>
                 }
             }
 
-            BibleScriptures(BibleAPIDataModel.chapterContent)
+            BibleScriptures(chapters)
         }
     }
 }

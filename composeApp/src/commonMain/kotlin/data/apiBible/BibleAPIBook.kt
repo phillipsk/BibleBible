@@ -23,7 +23,7 @@ data class BookData(
         && name?.getOrNull(0)?.isDigit() == true
     ) name.take(7) else name
     // how do I drop the first element of this list?
-    val chapterList get() = chapters?.drop(1)
+    val chapterListBookData get() = chapters?.drop(1)
 }
 
 @Serializable
