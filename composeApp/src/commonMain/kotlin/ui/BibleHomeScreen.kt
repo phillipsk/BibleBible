@@ -1,7 +1,6 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,12 +41,11 @@ fun BibleHomeScreen() {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
             BibleBookList()
             ScrollableTabScriptures(
-                BibleAPIDataModel.chapterContent,
-                BibleAPIDataModel.selectedBookData.chapters
+                chapters = BibleAPIDataModel.chapterContent,
+                chapterList = BibleAPIDataModel.selectedBookData.chapterList
             )
         }
     }

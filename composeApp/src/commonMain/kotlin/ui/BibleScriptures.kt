@@ -27,24 +27,14 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
-private fun BibleScriptures(chapters: ChapterContent) {
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        chapters.data?.cleanedContent?.let {
-            Text(
-                "Chapter $it",
-                modifier = Modifier.padding(4.dp)
-            )
-        }
-    }
-}
-
-@Composable
 fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>?) {
     val scope = rememberCoroutineScope()
-    var selectedTabIndex by remember {
-        mutableStateOf(0)
-    }
-    Napier.d("selectedTabIndex $selectedTabIndex", tag = "BB2453")
+    var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
+    var selectedTabIndex by remember(chapterList) { mutableStateOf(0) }
+    Napier.d(
+        "selectedTabIndex $selectedTabIndex :: bookId ${chapters.data?.bookId} " +
+                ":: number ${chapters.data?.number}", tag = "BB2454"
+    )
     AnimatedVisibility(chapters.data?.cleanedContent != null) {
         Column {
             ScrollableTabRow(
@@ -63,9 +53,13 @@ fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = {
+                                selectedChapter = chapter
                                 selectedTabIndex = index
                                 BibleAPIDataModel.updateSelectedChapter(chapterString)
-                                Napier.v("ScrollableTabScriptures :: updateSelectedChapter: $chapter", tag = "BB2452")
+                                Napier.v(
+                                    "ScrollableTabScriptures :: updateSelectedChapter: $chapter",
+                                    tag = "BB2452"
+                                )
                                 scope.launch {
                                     Napier.i("scope.launch start: $chapterString")
                                     getChapterBibleAPI(chapterString)
@@ -80,6 +74,18 @@ fun ScrollableTabScriptures(chapters: ChapterContent, chapterList: List<Chapter>
             }
 
             BibleScriptures(BibleAPIDataModel.chapterContent)
+        }
+    }
+}
+
+@Composable
+private fun BibleScriptures(chapters: ChapterContent) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        chapters.data?.cleanedContent?.let {
+            Text(
+                "Chapter $it",
+                modifier = Modifier.padding(4.dp)
+            )
         }
     }
 }

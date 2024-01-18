@@ -15,13 +15,15 @@ data class BookData(
     val abbreviation: String? = null,
     private val name: String? = null,
     val nameLong: String? = null,
-    val chapters: List<Chapter>? = emptyList()
+    private val chapters: List<Chapter>? = emptyList()
 ) {
     val key get() = "$bookId.1"
     val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
     val cleanedName = if ((name?.length ?: 0) >= 12
         && name?.getOrNull(0)?.isDigit() == true
     ) name.take(7) else name
+    // how do I drop the first element of this list?
+    val chapterList get() = chapters?.drop(1)
 }
 
 @Serializable
