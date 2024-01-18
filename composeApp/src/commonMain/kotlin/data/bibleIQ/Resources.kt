@@ -15,5 +15,5 @@ class GetBooks(val language: String = "english")
 class GetChapter(
     val bookId: Int,
     private val chapterId: String = "1",
-    private val versionId: String = BibleAPIDataModel.selectedVersion.value.lowercase()
+    private val versionId: String = BibleAPIDataModel.selectedVersion.lowercase()
 )

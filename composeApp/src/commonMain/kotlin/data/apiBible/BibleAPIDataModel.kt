@@ -18,7 +18,13 @@ object BibleAPIDataModel {
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
 
     var uiState by mutableStateOf(UIState())
-    var selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
+    private var _selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
+    val selectedBibleId: String by _selectedBibleId
+    fun updateSelectedBibleId(bibleId: String? = null) {
+        Napier.v("updateSelectedBibleId: $bibleId", tag = "BB2452")
+        _selectedBibleId.value = bibleId ?: (selectedBibleId)
+    }
+
     private var _chapterContent: MutableState<ChapterContent> = mutableStateOf(ChapterContent())
     val chapterContent: ChapterContent get() = _chapterContent.value
     fun updateChapterContent(newContent: ChapterContent) {
@@ -32,8 +38,9 @@ object BibleAPIDataModel {
     }
 
     var bibleVersions = mutableStateOf(BibleAPIBibles())
-    val abbreviationList get() = bibleVersions.value.data?.map { it } ?: emptyList()
-    var selectedVersion: MutableState<String> = mutableStateOf("")
+    val abbreviationList: List<BibleAPIBibles.BibleAPIVersion> get() = bibleVersions.value.data?.map { it } ?: emptyList()
+
+    private var _selectedVersion: MutableState<String> = mutableStateOf("")
         get() {
             if (field.value.isEmpty()) {
                 field.value = abbreviationList.find {
@@ -43,6 +50,12 @@ object BibleAPIDataModel {
             println("println :: updated selectedVersion $field")
             return field
         }
+    val selectedVersion: String by _selectedVersion
+    fun updateSelectedVersion(version: String? = null) {
+        Napier.v("updateSelectedVersion: $version", tag = "BB2452")
+        _selectedVersion.value = version ?: (selectedVersion)
+    }
+
     private var _selectedBookData = mutableStateOf(BookData())
     val selectedBookData: BookData get() = _selectedBookData.value
     fun updateBookData(newBookData: BookData) {
