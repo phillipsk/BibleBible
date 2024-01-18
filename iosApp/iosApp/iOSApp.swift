@@ -4,7 +4,7 @@ import ComposeApp
 @main
 struct iOSApp: App {
     init() {
-        NapierLogger().doInitIosNapierLogger()
+//        NapierLogger().doInitIosNapierLogger()
     }
 	var body: some Scene {
 		WindowGroup {
