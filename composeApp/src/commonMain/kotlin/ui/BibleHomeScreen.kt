@@ -45,7 +45,8 @@ fun BibleHomeScreen() {
             BibleBookList()
             ScrollableTabScriptures(
                 chapters = BibleAPIDataModel.chapterContent,
-                chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData
+                chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
+                bookDataList = BibleAPIDataModel.books.data
             )
         }
     }

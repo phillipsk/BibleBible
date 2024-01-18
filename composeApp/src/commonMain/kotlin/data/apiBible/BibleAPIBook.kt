@@ -13,7 +13,7 @@ data class BookData(
     private val id: String? = null,
     val bibleId: String? = null,
     val abbreviation: String? = null,
-    private val name: String? = null,
+    val name: String? = null,
     val nameLong: String? = null,
     private val chapters: List<Chapter>? = emptyList()
 ) {
