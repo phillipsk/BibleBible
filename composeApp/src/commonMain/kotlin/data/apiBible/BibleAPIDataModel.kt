@@ -70,12 +70,6 @@ object BibleAPIDataModel {
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
-
-/*    fun updateBooksView() {
-        uiState = uiState.copy(updateView = true, selectedBookData = selectedBookData.value)
-        _chapterContent = ChapterContent()
-    }*/
-
 }
 
 data class UIState(

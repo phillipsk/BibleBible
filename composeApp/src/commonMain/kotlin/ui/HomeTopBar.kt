@@ -143,7 +143,7 @@ fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
                     }
                     expanded = false
                 }) {
-                    Text("${it.abbreviationLocal} ")
+                    Text("${it.nameLocalCleaned} ")
                 }
             }
         }

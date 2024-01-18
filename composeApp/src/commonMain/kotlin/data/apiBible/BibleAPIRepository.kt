@@ -1,7 +1,7 @@
 package data.apiBible
 
 import data.api.apiBible.BibleAPIDataModel
-import data.apiBible.json.JSON_BIBLES_API_BIBLE
+import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -19,7 +19,7 @@ const val LOCAL_DATA = true
 suspend fun getBiblesBibleAPI() {
     try {
         BibleAPIDataModel.bibleVersions.value = if (LOCAL_DATA) {
-            Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE)
+            Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE_SELECT)
         } else {
             httpClient.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
         }
