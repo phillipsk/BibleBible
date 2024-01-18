@@ -20,11 +20,11 @@ data class BookData(
 ) {
     val bookId = chapters?.getOrNull(1)?.bookId ?: "GEN.1"
     val cleanedBibleId = bibleId ?: BibleAPIDataModel.DEFAULT_BIBLE_ID
-    val remoteKey get() = "$bookId.1"
+    val remoteKey = "$bookId.1"
     val cleanedName = if ((name?.length ?: 0) >= 12
         && name?.getOrNull(0)?.isDigit() == true
     ) name.take(7) else name
-    val chapterListBookData get() = chapters?.drop(1)
+    val chapterListBookData = chapters?.drop(1)
 }
 
 @Serializable

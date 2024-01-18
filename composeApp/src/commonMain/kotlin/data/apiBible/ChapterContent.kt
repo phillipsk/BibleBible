@@ -23,7 +23,7 @@ data class ChapterData(
 ) {
     val cleanedContent = "${content?.replace("¶", "")}"
     val uiContent = cleanedContent.substringAfter("\n")
-    val databaseKey get() = "$id-$bibleId"
+    val databaseKey = "$id-$bibleId"
 }
 
 @Serializable
