@@ -1,5 +1,6 @@
 package data.apiBible
 
+import data.apiBible.BibleAPIDataModel.DATABASE_RETENTION
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
@@ -60,7 +61,7 @@ internal suspend fun checkDatabaseSize() {
         withContext(Dispatchers.IO) {
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
-            val max = 10000L
+            val max = DATABASE_RETENTION
             if (count > max) {
                 Napier.d(
                     "clean database :: count $count :: max $max :: diff ${count - max}",
