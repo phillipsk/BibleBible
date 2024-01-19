@@ -21,7 +21,7 @@ fun App() {
     LaunchedEffect(true) {
         getBiblesBibleAPI()
         getBooksBibleAPI()
-        Napier.v("App :: LaunchedEffect", tag = "BB2452"  )
+        Napier.v("App :: LaunchedEffect", tag = "BB2452")
     }
 
     MyCustomMaterialTheme {
@@ -35,9 +35,11 @@ private val napierInitialized: Boolean by lazy {
 }
 
 fun initializeNapier() {
-    if (!napierInitialized) {
-        println("Napier initialization error: Napier is not initialized.")
-    }
+    if (BibleAPIDataModel.RELEASE_BUILD) {
+        if (!napierInitialized) {
+            println("Napier initialization error: Napier is not initialized.")
+        }
+    } else println("Release build :: ${BibleAPIDataModel.RELEASE_BUILD} :: BB2452")
 }
 
 fun configureNapier(): Boolean {
