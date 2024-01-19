@@ -45,19 +45,20 @@ fun BibleHomeScreen() {
         ) {
             BibleBookList(
                 bookData = BibleAPIDataModel.books.data,
-                selectedChapter = BibleAPIDataModel.selectedChapter
+                selectedChapter = BibleAPIDataModel.selectedChapter,
+                bibleId = BibleAPIDataModel.selectedBibleId
             )
             ScrollableTabScriptures(
                 chapters = BibleAPIDataModel.chapterContent,
                 chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
-                bookDataList = BibleAPIDataModel.books.data
+                bibleId = BibleAPIDataModel.selectedBibleId
             )
         }
     }
 }
 
 @Composable
-fun BibleBookList(bookData: List<BookData>?, selectedChapter: String) {
+fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
         Column(modifier = Modifier.padding(4.dp)) {
@@ -72,10 +73,13 @@ fun BibleBookList(bookData: List<BookData>?, selectedChapter: String) {
                             onClick = {
                                 BibleAPIDataModel.run {
                                     updateBookData(it)
-                                    updateSelectedChapter(it.key)
+                                    updateSelectedChapter(it.remoteKey)
                                 }
                                 scope.launch {
-                                    getChapterBibleAPI()
+                                    getChapterBibleAPI(
+                                        chapterNumber = it.remoteKey,
+                                        bibleId = bibleId
+                                    )
                                 }
                             },
                             shape = RoundedCornerShape(50), // Rounded corners

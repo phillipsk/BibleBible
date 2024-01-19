@@ -13,7 +13,7 @@ data class BibleAPIBibles(
         val dblId: String? = null,
         val relatedDbl: String? = null,
         val name: String? = null,
-        val nameLocal: String? = null,
+        private var nameLocal: String? = null,
         val abbreviation: String? = null,
         val abbreviationLocal: String? = null,
         val description: String? = null,
@@ -24,6 +24,17 @@ data class BibleAPIBibles(
         val updatedAt: String? = null,
         val audioBibles: List<AudioBible> = emptyList()
     ) {
+        val nameLocalCleaned: String
+            get() {
+                return when (abbreviationLocal) {
+                    "ASV" -> {
+                        "American Standard Version"
+                    }
+
+                    else -> nameLocal ?: ""
+                }
+            }
+
         @Serializable
         data class Language(
             val id: String? = null,

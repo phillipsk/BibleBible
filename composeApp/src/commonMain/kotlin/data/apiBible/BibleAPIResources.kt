@@ -15,7 +15,7 @@ class GetBooksAPIBible(
 
 @Resource("/bibles/{bibleId}/chapters/{chapter}")
 class GetChapterAPIBible(
-    private val bibleId: String = BibleAPIDataModel.selectedBibleId,
+    private val bibleId: String,
     val chapter: String,
     @SerialName("content-type") val contentType: String = "text",
     @SerialName("include-notes") val includeNotes: Boolean = false,

@@ -14,7 +14,7 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleAPIDataModel {
     const val MVP_UI = true
-    private const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
+    const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
     var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
 
     var uiState by mutableStateOf(UIState())
@@ -70,12 +70,6 @@ object BibleAPIDataModel {
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
-
-/*    fun updateBooksView() {
-        uiState = uiState.copy(updateView = true, selectedBookData = selectedBookData.value)
-        _chapterContent = ChapterContent()
-    }*/
-
 }
 
 data class UIState(
