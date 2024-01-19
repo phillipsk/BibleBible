@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS BibleVerses (
     nextBookId TEXT,
     previousId TEXT,
     previousNumber TEXT,
-    previousBookId TEXT
+    previousBookId TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 insertVerse:
@@ -36,13 +37,21 @@ INSERT INTO BibleVerses (
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
             );
 
-removeAllVerses:
-DELETE FROM BibleVerses;
-
-selectAllVerses:
-SELECT BibleVerses.*
-FROM BibleVerses;
+cleanBibleVerses:
+DELETE FROM BibleVerses WHERE created_at < date('now', '-60 days');
 
 selectVersesById:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND bibleId = ?;
+
+CREATE INDEX idx_id_bibleId ON BibleVerses(id, bibleId);
+
+countVerses:
+SELECT COUNT(*) FROM BibleVerses;
+
+removeExcessVerses:
+DELETE FROM BibleVerses WHERE uuid IN (
+    SELECT uuid FROM BibleVerses ORDER BY created_at ASC LIMIT (
+        SELECT COUNT(*) - ? FROM BibleVerses
+    )
+);

@@ -44,6 +44,36 @@ internal suspend fun getBooksBibleAPI() {
     }
 }
 
+internal suspend fun checkDatabaseRetention() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            database.bibleBibleDatabaseQueries.cleanBibleVerses()
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    }
+}
+
+internal suspend fun checkDatabaseSize() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
+            val max = 10000L
+            if (count > max) {
+                Napier.d(
+                    "clean database :: count $count :: max $max :: diff ${count - max}",
+                    tag = "BB2452"
+                )
+                database.bibleBibleDatabaseQueries.removeExcessVerses(max)
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    }
+}
+
 
 internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     try {
