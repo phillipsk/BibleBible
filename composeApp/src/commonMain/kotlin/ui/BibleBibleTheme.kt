@@ -68,7 +68,7 @@ object BibleBibleTheme {
 }
 
 @Composable
-fun BibleBibleApp(content: @Composable () -> Unit) {
+internal fun BibleBibleApp(content: @Composable () -> Unit) {
     MaterialTheme(colors = BibleBibleTheme.colors, typography = BibleBibleTheme.typography) {
         content()
     }
@@ -76,7 +76,7 @@ fun BibleBibleApp(content: @Composable () -> Unit) {
 
 
 @Composable
-fun MyCustomMaterialTheme(
+internal fun MyCustomMaterialTheme(
     content: @Composable () -> Unit
 ) {
     val colorPalette = if (isSystemInDarkTheme()) {

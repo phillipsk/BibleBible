@@ -17,20 +17,20 @@ object BibleAPIDataModel {
     var uiState by mutableStateOf(UIState())
     private var _selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
     val selectedBibleId: String by _selectedBibleId
-    fun updateSelectedBibleId(bibleId: String? = null) {
+    internal fun updateSelectedBibleId(bibleId: String? = null) {
         Napier.v("updateSelectedBibleId: $bibleId", tag = "BB2452")
         _selectedBibleId.value = bibleId ?: (selectedBibleId)
     }
 
     private var _chapterContent: MutableState<ChapterContent> = mutableStateOf(ChapterContent())
     val chapterContent: ChapterContent get() = _chapterContent.value
-    fun updateChapterContent(newContent: ChapterContent) {
+    internal fun updateChapterContent(newContent: ChapterContent) {
         _chapterContent.value = newContent
     }
 
     private var _books = mutableStateOf(BibleAPIBook())
     val books: BibleAPIBook get() = _books.value
-    fun updateBooks(newBooks: BibleAPIBook) {
+    internal fun updateBooks(newBooks: BibleAPIBook) {
         _books.value = newBooks
     }
 
@@ -44,25 +44,24 @@ object BibleAPIDataModel {
                     it.abbreviationLocal?.contains("KJV") == true
                 }?.abbreviationLocal ?: "KJV"
             }
-            println("println :: updated selectedVersion $field")
             return field
         }
     val selectedVersion: String by _selectedVersion
-    fun updateSelectedVersion(version: String? = null) {
+    internal fun updateSelectedVersion(version: String? = null) {
         Napier.v("updateSelectedVersion: $version", tag = "BB2452")
         _selectedVersion.value = version ?: (selectedVersion)
     }
 
     private var _selectedBookData = mutableStateOf(BookData())
     val selectedBookData: BookData get() = _selectedBookData.value
-    fun updateBookData(newBookData: BookData) {
+    internal fun updateBookData(newBookData: BookData) {
         _selectedBookData.value = newBookData
     }
 
     private var _selectedChapter: MutableState<String> = mutableStateOf("")
     val selectedChapter: String by _selectedChapter
 
-    fun updateSelectedChapter(chapter: String? = null) {
+    internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")

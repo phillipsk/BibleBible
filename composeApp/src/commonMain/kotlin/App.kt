@@ -12,7 +12,7 @@ import ui.BibleHomeScreen
 import ui.MyCustomMaterialTheme
 
 @Composable
-fun App() {
+internal fun App() {
     initializeNapier()
     val uiState by remember {
         mutableStateOf(BibleAPIDataModel.uiState)
@@ -34,7 +34,7 @@ private val napierInitialized: Boolean by lazy {
     configureNapier()
 }
 
-fun initializeNapier() {
+internal fun initializeNapier() {
     if (BibleAPIDataModel.RELEASE_BUILD) {
         if (!napierInitialized) {
             println("Napier initialization error: Napier is not initialized.")
@@ -42,7 +42,7 @@ fun initializeNapier() {
     } else println("Release build :: ${BibleAPIDataModel.RELEASE_BUILD} :: BB2452")
 }
 
-fun configureNapier(): Boolean {
+internal fun configureNapier(): Boolean {
     return try {
         Napier.base(DebugAntilog())
         true

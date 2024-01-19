@@ -27,7 +27,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
-fun ScrollableTabScriptures(
+internal fun ScrollableTabScriptures(
     chapters: ChapterContent,
     chapterListBookData: List<Chapter>?,
     bibleId: String

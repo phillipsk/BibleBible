@@ -32,12 +32,12 @@ import kotlinx.coroutines.launch
 
 val homeUiState get() = HomeUiState()
 
-fun updateAbbreviation(abv: String) {
+internal fun updateAbbreviation(abv: String) {
     homeUiState.version = BibleVersion(abbreviation = abv)
 }
 
 @Composable
-fun BibleHomeScreen() {
+internal fun BibleHomeScreen() {
     Scaffold(topBar = { HomeTopBar() }) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -58,7 +58,7 @@ fun BibleHomeScreen() {
 }
 
 @Composable
-fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
+internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
         bookData?.let { bookDataList ->

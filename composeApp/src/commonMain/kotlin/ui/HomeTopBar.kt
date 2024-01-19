@@ -27,15 +27,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.apiBible.BibleAPIDataModel
 import data.apiBible.BibleAPIBibles
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeTopBar() {
+internal fun HomeTopBar() {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -61,7 +61,7 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
+internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -108,7 +108,7 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
 }
 
 @Composable
-fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
+internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(

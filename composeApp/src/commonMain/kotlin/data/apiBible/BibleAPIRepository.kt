@@ -15,7 +15,7 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 
-suspend fun getBiblesBibleAPI() {
+internal suspend fun getBiblesBibleAPI() {
     try {
         BibleAPIDataModel.bibleVersions.value = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE_SELECT)
@@ -29,7 +29,7 @@ suspend fun getBiblesBibleAPI() {
     }
 }
 
-suspend fun getBooksBibleAPI() {
+internal suspend fun getBooksBibleAPI() {
     try {
         val getBooksAPIBible = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
@@ -45,7 +45,7 @@ suspend fun getBooksBibleAPI() {
 }
 
 
-suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
+internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     try {
         Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
         Napier.d("start load", tag = "BB2452")
