@@ -48,7 +48,7 @@ suspend fun getBooksBibleAPI() {
 
 suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     try {
-        Napier.i("getChapterBibleAPI: $chapterNumber", tag = "BB2452")
+        Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
         Napier.d("start load", tag = "BB2452")
         val cachedData = loadVerseData(chapterNumber, bibleId)
         Napier.d("end load", tag = "BB2452")

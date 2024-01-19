@@ -91,7 +91,7 @@ fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
                     Napier.v("scope launch", tag = "BB2455")
                     getChapterBibleAPI(
                         chapterNumber = it.remoteKey,
-                        bibleId = it.cleanedBibleId
+                        bibleId = BibleAPIDataModel.selectedBibleId
                     )
                     Napier.v("scope middle", tag = "BB2455")
                     BibleAPIDataModel.run {
