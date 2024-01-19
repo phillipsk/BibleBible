@@ -3,7 +3,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.getBiblesBibleAPI
 import data.apiBible.getBooksBibleAPI
 import io.github.aakira.napier.DebugAntilog

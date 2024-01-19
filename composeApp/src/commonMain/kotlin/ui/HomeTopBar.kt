@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.BibleAPIBibles
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI

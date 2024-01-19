@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleVersion
@@ -61,45 +61,47 @@ fun BibleHomeScreen() {
 fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
-        Column(modifier = Modifier.padding(4.dp)) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                contentPadding = PaddingValues(10.dp),
-                userScrollEnabled = true,
-            ) {
-                items(items = bookData!!) {
-                    it.let {
-                        Button(
-                            onClick = {
-                                BibleAPIDataModel.run {
-                                    updateBookData(it)
-                                    updateSelectedChapter(it.remoteKey)
-                                }
-                                scope.launch {
-                                    getChapterBibleAPI(
-                                        chapterNumber = it.remoteKey,
-                                        bibleId = bibleId
+        bookData?.let { bookDataList ->
+            Column(modifier = Modifier.padding(4.dp)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(10.dp),
+                    userScrollEnabled = true,
+                ) {
+                    items(items = bookDataList) {
+                        it.let {
+                            Button(
+                                onClick = {
+                                    BibleAPIDataModel.run {
+                                        updateBookData(it)
+                                        updateSelectedChapter(it.remoteKey)
+                                    }
+                                    scope.launch {
+                                        getChapterBibleAPI(
+                                            chapterNumber = it.remoteKey,
+                                            bibleId = bibleId
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(50), // Rounded corners
+                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                    .defaultMinSize(
+                                        minWidth = 100.dp,
+                                        minHeight = 40.dp
+                                    ) // Set a minimum size
+                            ) {
+                                it.cleanedName?.let { name ->
+                                    Text(
+                                        text = name,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colors.onPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                            },
-                            shape = RoundedCornerShape(50), // Rounded corners
-                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
-                            modifier = Modifier
-                                .padding(2.dp)
-                                .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
-                                .defaultMinSize(
-                                    minWidth = 100.dp,
-                                    minHeight = 40.dp
-                                ) // Set a minimum size
-                        ) {
-                            it.cleanedName?.let { name ->
-                                Text(
-                                    text = name,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colors.onPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
                             }
                         }
                     }

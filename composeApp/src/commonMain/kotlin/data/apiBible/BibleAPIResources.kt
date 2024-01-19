@@ -1,11 +1,10 @@
 package data.apiBible
 
-import data.api.apiBible.BibleAPIDataModel
 import io.ktor.resources.Resource
 import kotlinx.serialization.SerialName
 
 @Resource("/bibles")
-class GetBiblesAPIBible(private val language: String? = BibleAPIDataModel.selectedLanguage?.value)
+class GetBiblesAPIBible(private val language: String? = BibleAPIDataModel.selectedLanguage)
 
 @Resource("/bibles/{bibleId}/books")
 class GetBooksAPIBible(

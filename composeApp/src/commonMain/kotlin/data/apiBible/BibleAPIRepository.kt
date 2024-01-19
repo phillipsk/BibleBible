@@ -1,6 +1,5 @@
 package data.apiBible
 
-import data.api.apiBible.BibleAPIDataModel
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
@@ -158,12 +157,12 @@ private suspend fun loadVerseData(selectedChapter: String, bibleId: String): Cha
 
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             val bibleQueries = database.bibleBibleDatabaseQueries
-                .selectVersesById(selectedChapter, bibleId).executeAsList()
+                .selectVersesById(selectedChapter, bibleId).executeAsOneOrNull()
 
             Napier.v("bibleQueries selectedChapter $selectedChapter :: hello world", tag = "BB2452")
-            Napier.v("bibleQueries size ${bibleQueries.size}", tag = "BB2452")
+            Napier.v("bibleQueries $bibleQueries", tag = "BB2452")
 
-            bibleQueries.firstOrNull()?.let {
+            bibleQueries?.let {
                 ChapterContent(
                     ChapterData(
                         id = it.id,
