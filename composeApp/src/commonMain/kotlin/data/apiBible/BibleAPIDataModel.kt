@@ -1,39 +1,37 @@
-package data.api.apiBible
+package data.apiBible
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.apiBible.BibleAPIBibles
-import data.apiBible.BibleAPIBook
-import data.apiBible.BookData
-import data.apiBible.ChapterContent
 import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleAPIDataModel {
-    const val MVP_UI = true
     const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
-    var selectedLanguage: MutableState<String>? = if (MVP_UI) mutableStateOf("eng") else null
+    const val RELEASE_BUILD = false
+    const val DATABASE_RETENTION = 30_000L
+    private var _selectedLanguage: MutableState<String> = mutableStateOf("eng")
+    val selectedLanguage by _selectedLanguage
 
     var uiState by mutableStateOf(UIState())
     private var _selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
     val selectedBibleId: String by _selectedBibleId
-    fun updateSelectedBibleId(bibleId: String? = null) {
+    internal fun updateSelectedBibleId(bibleId: String? = null) {
         Napier.v("updateSelectedBibleId: $bibleId", tag = "BB2452")
         _selectedBibleId.value = bibleId ?: (selectedBibleId)
     }
 
     private var _chapterContent: MutableState<ChapterContent> = mutableStateOf(ChapterContent())
     val chapterContent: ChapterContent get() = _chapterContent.value
-    fun updateChapterContent(newContent: ChapterContent) {
+    internal fun updateChapterContent(newContent: ChapterContent) {
         _chapterContent.value = newContent
     }
 
     private var _books = mutableStateOf(BibleAPIBook())
     val books: BibleAPIBook get() = _books.value
-    fun updateBooks(newBooks: BibleAPIBook) {
+    internal fun updateBooks(newBooks: BibleAPIBook) {
         _books.value = newBooks
     }
 
@@ -47,25 +45,24 @@ object BibleAPIDataModel {
                     it.abbreviationLocal?.contains("KJV") == true
                 }?.abbreviationLocal ?: "KJV"
             }
-            println("println :: updated selectedVersion $field")
             return field
         }
     val selectedVersion: String by _selectedVersion
-    fun updateSelectedVersion(version: String? = null) {
+    internal fun updateSelectedVersion(version: String? = null) {
         Napier.v("updateSelectedVersion: $version", tag = "BB2452")
         _selectedVersion.value = version ?: (selectedVersion)
     }
 
     private var _selectedBookData = mutableStateOf(BookData())
     val selectedBookData: BookData get() = _selectedBookData.value
-    fun updateBookData(newBookData: BookData) {
+    internal fun updateBookData(newBookData: BookData) {
         _selectedBookData.value = newBookData
     }
 
     private var _selectedChapter: MutableState<String> = mutableStateOf("")
     val selectedChapter: String by _selectedChapter
 
-    fun updateSelectedChapter(chapter: String? = null) {
+    internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
 //        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")

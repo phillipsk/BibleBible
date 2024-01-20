@@ -8,7 +8,7 @@ import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
 const val READ_JSON = true
-suspend fun getBooks() {
+internal suspend fun getBooks() {
     try {
         val getBooks = if (READ_JSON) {
             Json.decodeFromString<List<BibleBook>>(JSON_BOOKS)
@@ -23,7 +23,7 @@ suspend fun getBooks() {
     }
 }
 
-suspend fun getVersions() {
+internal suspend fun getVersions() {
     try {
         val versions = if (READ_JSON) {
             Json.decodeFromString<List<BibleVersion>>(JSON_VERSIONS)
@@ -38,7 +38,7 @@ suspend fun getVersions() {
     }
 }
 
-suspend fun getChapter(bookId: Int) {
+internal fun getChapter(bookId: Int) {
     try {
 //        BibleIQ.chapter.value = httpClient.get(GetChapter(bookId = bookId)).body<List<Chapter>>()
     } catch (e: Exception) {

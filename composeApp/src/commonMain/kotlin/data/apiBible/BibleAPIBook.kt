@@ -1,12 +1,11 @@
 package data.apiBible
 
-import data.api.apiBible.BibleAPIDataModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class BibleAPIBook(
-    val data: List<BookData>? = emptyList()
+    val data: List<BookData>? = null
 )
 
 @Serializable

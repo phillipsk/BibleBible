@@ -1,6 +1,6 @@
 package data.apiBible
 
-import data.api.apiBible.BibleAPIDataModel
+import data.apiBible.BibleAPIDataModel.DATABASE_RETENTION
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 
-suspend fun getBiblesBibleAPI() {
+internal suspend fun getBiblesBibleAPI() {
     try {
         BibleAPIDataModel.bibleVersions.value = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE_SELECT)
@@ -30,7 +30,7 @@ suspend fun getBiblesBibleAPI() {
     }
 }
 
-suspend fun getBooksBibleAPI() {
+internal suspend fun getBooksBibleAPI() {
     try {
         val getBooksAPIBible = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
@@ -45,8 +45,38 @@ suspend fun getBooksBibleAPI() {
     }
 }
 
+internal suspend fun checkDatabaseRetention() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            database.bibleBibleDatabaseQueries.cleanBibleVerses()
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    }
+}
 
-suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
+internal suspend fun checkDatabaseSize() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
+            val max = DATABASE_RETENTION
+            if (count > max) {
+                Napier.d(
+                    "clean database :: count $count :: max $max :: diff ${count - max}",
+                    tag = "BB2452"
+                )
+                database.bibleBibleDatabaseQueries.removeExcessVerses(max)
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    }
+}
+
+
+internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     try {
         Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
         Napier.d("start load", tag = "BB2452")
@@ -158,12 +188,12 @@ private suspend fun loadVerseData(selectedChapter: String, bibleId: String): Cha
 
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             val bibleQueries = database.bibleBibleDatabaseQueries
-                .selectVersesById(selectedChapter, bibleId).executeAsList()
+                .selectVersesById(selectedChapter, bibleId).executeAsOneOrNull()
 
             Napier.v("bibleQueries selectedChapter $selectedChapter :: hello world", tag = "BB2452")
-            Napier.v("bibleQueries size ${bibleQueries.size}", tag = "BB2452")
+            Napier.v("bibleQueries $bibleQueries", tag = "BB2452")
 
-            bibleQueries.firstOrNull()?.let {
+            bibleQueries?.let {
                 ChapterContent(
                     ChapterData(
                         id = it.id,
