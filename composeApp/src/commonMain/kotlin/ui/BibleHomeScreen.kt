@@ -38,7 +38,7 @@ internal fun updateAbbreviation(abv: String) {
 
 @Composable
 internal fun BibleHomeScreen() {
-    Scaffold(topBar = { HomeTopBar() }) {
+    Scaffold(topBar = { HomeTopBar(onClick = { BibleAPIDataModel.onHomeClick() }) }) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
