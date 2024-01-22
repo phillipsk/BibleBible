@@ -1,6 +1,8 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -60,7 +62,11 @@ internal fun BibleHomeScreen() {
 @Composable
 internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
-    AnimatedVisibility(!bookData.isNullOrEmpty() && selectedChapter == "") {
+    AnimatedVisibility(
+        visible = !bookData.isNullOrEmpty() && selectedChapter == "",
+        enter = slideInVertically(initialOffsetY = { -40 }),
+        exit = slideOutVertically(targetOffsetY = { -40 })
+    ) {
         bookData?.let { bookDataList ->
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
