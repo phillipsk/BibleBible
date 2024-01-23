@@ -191,7 +191,7 @@ private suspend fun loadVerseData(selectedChapter: String, bibleId: String): Cha
                 .selectVersesById(selectedChapter, bibleId).executeAsOneOrNull()
 
             Napier.v("bibleQueries selectedChapter $selectedChapter :: hello world", tag = "BB2452")
-            Napier.v("bibleQueries $bibleQueries", tag = "BB2452")
+            Napier.v("bibleQueries ${bibleQueries?.content?.take(100)}", tag = "BB2452")
 
             bibleQueries?.let {
                 ChapterContent(
