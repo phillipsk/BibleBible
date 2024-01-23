@@ -1,4 +1,3 @@
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,10 +38,13 @@ private val napierInitialized: Boolean by lazy {
 
 internal fun initializeNapier() {
     if (BibleAPIDataModel.RELEASE_BUILD) {
+        println("Release build :: ${BibleAPIDataModel.RELEASE_BUILD} :: BB2452")
+    }
+    else {
         if (!napierInitialized) {
             println("Napier initialization error: Napier is not initialized.")
         }
-    } else println("Release build :: ${BibleAPIDataModel.RELEASE_BUILD} :: BB2452")
+    }
 }
 
 internal fun configureNapier(): Boolean {
