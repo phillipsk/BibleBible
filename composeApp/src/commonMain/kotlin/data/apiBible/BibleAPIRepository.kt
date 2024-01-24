@@ -1,6 +1,5 @@
 package data.apiBible
 
-import data.apiBible.BibleAPIDataModel.DATABASE_RETENTION
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
@@ -11,10 +10,12 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
+const val DATABASE_RETENTION = 30_000L
 
 internal suspend fun getBiblesBibleAPI() {
     try {
@@ -140,6 +141,9 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             Napier.d("end fetch", tag = "BB2452")
         }
     } catch (e: Exception) {
+        if (e is TimeoutCancellationException) {
+            Napier.e("timeout error fetching chapter: ${e.message}", tag = "BB2452")
+        }
         Napier.e("Error fetching chapter: ${e.message}", tag = "BB2452")
         null
     }

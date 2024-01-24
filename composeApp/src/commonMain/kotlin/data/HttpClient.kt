@@ -3,6 +3,7 @@ package data
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.Logger
@@ -27,11 +28,15 @@ val httpClient
                 ignoreUnknownKeys = true
             })
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 5000 // Request timeout: 5 seconds
+            connectTimeoutMillis = 3000 // Connect timeout: 3 seconds
+            socketTimeoutMillis = 15000 // Socket timeout: 15 seconds
+        }
         defaultRequest {
             url {
                 host = "api.scripture.api.bible"
                 path("v1/")
-//                path("v1/bibles/de4e12af7f28f599-02/")
                 protocol = URLProtocol.HTTPS
             }
             header("api-key", BuildKonfig.API_KEY_API_BIBLE)
