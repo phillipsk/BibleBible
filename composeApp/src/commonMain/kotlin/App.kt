@@ -10,7 +10,7 @@ import data.apiBible.getBooksBibleAPI
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleHomeScreen
-import ui.MyCustomMaterialTheme
+import ui.BibleBibleTheme
 
 @Composable
 internal fun App() {
@@ -26,7 +26,7 @@ internal fun App() {
         checkDatabaseSize()
     }
 
-    MyCustomMaterialTheme {
+    BibleBibleTheme {
         BibleHomeScreen()
     }
 }

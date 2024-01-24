@@ -110,7 +110,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
     )
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
@@ -157,7 +157,7 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
     )
     ClickableText(
         text = AnnotatedString(BibleAPIDataModel.selectedVersion),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
