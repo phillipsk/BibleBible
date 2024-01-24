@@ -1,6 +1,5 @@
 package data.apiBible
 
-import data.apiBible.BibleAPIDataModel.DATABASE_RETENTION
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClient
@@ -12,12 +11,11 @@ import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
+val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 5L
 
 internal suspend fun getBiblesBibleAPI() {
     try {
