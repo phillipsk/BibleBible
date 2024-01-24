@@ -1,8 +1,9 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -64,8 +65,8 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
         visible = !bookData.isNullOrEmpty() && selectedChapter == "",
-        enter = slideInVertically(initialOffsetY = { -40 }),
-        exit = slideOutVertically(targetOffsetY = { -40 })
+        enter = fadeIn(initialAlpha = 0.4f),
+        exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         bookData?.let { bookDataList ->
             Column(modifier = Modifier.padding(4.dp)) {
