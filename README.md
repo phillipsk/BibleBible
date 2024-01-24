@@ -1,10 +1,16 @@
-# BibleBible-app
+# BibleBible
 This is a Bible reading compose multiplatform app that demonstrates the power of Kotlin Multiplatform along with a shared Jetpack Compose UI.
 
-Contributions by [Kevin Phillips]
+Contributions by Kevin Phillips
 
 ## About the App
 I am currently prioritizing the development of a minimal viable product (MVP) for this app. This means that the app's core functionality is the primary focus, and I will be adding additional features over time.
+
+To run the app, you will need to provide your own API key from [Bible API](https://scripture.api.bible/). Once you have your API key, add the key to the file `local.properties` in the root directory of the project:
+```
+# local.properties
+api_key_api_bible=YOUR_API_KEY_HERE
+```
 
 ## Approach
 To keep things simple and avoid third-party navigation and state management libraries, I have taken a unique approach. Instead of using a traditional navigation library or Koin DI framework, I manage the app's state with a Kotlin object and mimic navigation using animated visibility composables.
