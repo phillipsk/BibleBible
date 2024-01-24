@@ -19,8 +19,11 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,18 +33,19 @@ import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
-import data.bibleIQ.BibleVersion
 import kotlinx.coroutines.launch
-
-val homeUiState get() = HomeUiState()
-
-internal fun updateAbbreviation(abv: String) {
-    homeUiState.version = BibleVersion(abbreviation = abv)
-}
 
 @Composable
 internal fun BibleHomeScreen() {
-    Scaffold(topBar = { HomeTopBar(onClick = { BibleAPIDataModel.onHomeClick() }) }) {
+    val errorMsg = BibleAPIDataModel.errorSnackBar
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    Scaffold(
+        topBar = { HomeTopBar(onClick = { BibleAPIDataModel.onHomeClick() }) },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+    ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -56,6 +60,13 @@ internal fun BibleHomeScreen() {
                 chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
                 bibleId = BibleAPIDataModel.selectedBibleId
             )
+        }
+        if (errorMsg.isNotEmpty()) {
+            scope.launch {
+                snackbarHostState.showSnackbar(errorMsg).also {
+                    BibleAPIDataModel.clearErrorSnackBar()
+                }
+            }
         }
     }
 }

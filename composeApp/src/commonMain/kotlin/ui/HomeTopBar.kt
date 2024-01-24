@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.DropdownMenu
@@ -79,14 +80,13 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 8.dp)
+                        .padding(start = 4.dp, end = 4.dp)
                 )
 
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 16.dp)
-                    .weight(0.75f)
+                modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
                 BookMenu(
                     selectedBookData = BibleAPIDataModel.selectedBookData,
@@ -110,7 +110,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
     )
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
@@ -157,7 +157,7 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
     )
     ClickableText(
         text = AnnotatedString(BibleAPIDataModel.selectedVersion),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 16.sp),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
