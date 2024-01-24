@@ -26,7 +26,7 @@ internal fun BibleBibleTheme(
     }
 
     MaterialTheme(
-        colorPalette,
+        colors = colorPalette,
         typography = Typography,
         shapes = Shapes,
         content = content
@@ -34,9 +34,9 @@ internal fun BibleBibleTheme(
 }
 
 private val LightColorPalette = lightColors(
-    primary = Color(0xFF2196F3), // Blue
-    primaryVariant = Color(0xFF1976D2), // Cyan
-    secondary = Color(0xFFFFD600), // Yellowish
+    primary = Color(0xFF3A5F8F), // Dark Blue
+    primaryVariant = Color(0xFF8A9BB3), // Light Blue for the pages
+    secondary = Color(0xFF3A5F8F), // Dark Blue
     background = Color.White,
     surface = Color.White,
     onPrimary = Color.White,
@@ -46,11 +46,11 @@ private val LightColorPalette = lightColors(
 )
 
 private val DarkColorPalette = darkColors(
-    primary = Color(0xFF2196F3), // Blue
-    primaryVariant = Color(0xFF1976D2), // Cyan
-    secondary = Color(0xFFFFD600), // Yellowish
-    background = Color(0xFF121212), // Dark background color
-    surface = Color(0xFF121212), // Dark surface color
+    primary = Color(0xFF3A5F8F), // Dark Blue
+    primaryVariant = Color(0xFF8A9BB3), // Light Blue for the pages
+    secondary = Color(0xFF3A5F8F), // Dark Blue
+    background = Color(0xFF2C3E50), // Even Darker Blue for dark theme background
+    surface = Color(0xFF2C3E50), // Even Darker Blue for dark theme surface
     onPrimary = Color.White,
     onSecondary = Color.Black,
     onBackground = Color.White,
@@ -64,6 +64,7 @@ private val Typography = Typography(
         fontSize = 30.sp,
         letterSpacing = 0.15.sp
     ),
+    // Add other text styles as needed
 )
 
 private val Shapes = Shapes(
@@ -71,4 +72,3 @@ private val Shapes = Shapes(
     medium = RoundedCornerShape(8.dp),
     large = RoundedCornerShape(16.dp)
 )
-
