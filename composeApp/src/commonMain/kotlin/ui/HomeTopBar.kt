@@ -2,9 +2,14 @@ package ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
@@ -23,8 +28,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIBibles
@@ -33,29 +43,59 @@ import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.painterResource
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun HomeTopBar() {
+internal fun HomeTopBar(onClick: () -> Unit = {}) {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "BibleBible",
-            style = MaterialTheme.typography.h6.copy(fontSize = 20.sp),
-            color = MaterialTheme.colors.onSurface,
-            modifier = Modifier.weight(1f)
-        )
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(end = 16.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            BookMenu(
-                selectedBookData = BibleAPIDataModel.selectedBookData,
-                bookDataList = BibleAPIDataModel.books.data
-            )
-            BibleMenu(
-                bibleVersionsList = BibleAPIDataModel.abbreviationList
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(onClick = onClick)
+                    .weight(1f)
+            ) {
+                Image(
+                    painter = painterResource("BibleBible_ico_iv.png"),
+                    contentDescription = "BibleBible",
+                    modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(20.dp))
+                )
+                Spacer(modifier = Modifier.padding(4.dp))
+
+                Text(
+                    text = "BibleBible",
+                    style = TextStyle(
+                        fontFamily = FontFamily.Cursive,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.1.sp,
+                        color = Color.White
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp)
+                )
+
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(end = 16.dp)
+                    .weight(0.75f)
+            ) {
+                BookMenu(
+                    selectedBookData = BibleAPIDataModel.selectedBookData,
+                    bookDataList = BibleAPIDataModel.books.data
+                )
+                BibleMenu(
+                    bibleVersionsList = BibleAPIDataModel.abbreviationList
+                )
+            }
         }
     }
 }

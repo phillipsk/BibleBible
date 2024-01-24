@@ -1,6 +1,9 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -42,7 +45,11 @@ internal fun ScrollableTabScriptures(
         scrollState.scrollTo(0)
     }
 
-    AnimatedVisibility(chapters.data?.cleanedContent != null) {
+    AnimatedVisibility(
+        visible = chapters.data?.cleanedContent != null,
+        enter = fadeIn(initialAlpha = 0.4f),
+        exit = fadeOut(animationSpec = tween(durationMillis = 250))
+    ) {
         Column {
             ScrollableTabRow(
                 selectedTabIndex = selectedTabIndex,
