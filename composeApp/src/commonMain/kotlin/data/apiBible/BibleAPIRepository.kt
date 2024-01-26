@@ -121,7 +121,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
     } finally {
-        Napier.v("finally", tag = "BB2455")
+        Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
         // httpClient.close()
     }
 }
