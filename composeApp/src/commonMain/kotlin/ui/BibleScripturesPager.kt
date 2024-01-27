@@ -99,6 +99,7 @@ internal fun BibleScripturesPager(
                                         bibleId = bibleId
                                     )
                                     pagerColumnScrollState.scrollTo(0) // Scroll to the top
+                                    pagerState.animateScrollToPage(selectedTabIndex)
                                 }
                             },
                             text = { Text(chapter.number) }
