@@ -109,7 +109,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
         animationSpec = tween(300)
     )
     ClickableText(
-        text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
+        text = AnnotatedString(selectedBookData.abbreviation ?: "GEN"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
@@ -141,7 +141,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
                     Napier.v("scope end", tag = "BB2455")
                 }
             }) {
-                Text("${it.abbreviation} ")
+                Text("${it.abbreviation?.uppercase()} ")
             }
         }
     }
