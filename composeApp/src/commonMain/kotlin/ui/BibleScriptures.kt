@@ -1,8 +1,8 @@
 package ui
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -11,8 +11,7 @@ import androidx.compose.ui.unit.dp
 import data.apiBible.ChapterContent
 
 @Composable
-internal fun BibleScriptures(chapters: ChapterContent) {
-    val scrollState = rememberScrollState()
+internal fun BibleScriptures(chapters: ChapterContent, scrollState: ScrollState) {
     Column(modifier = Modifier.verticalScroll(scrollState)) {
         chapters.data?.let {
             Text(
