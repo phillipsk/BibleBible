@@ -1,5 +1,6 @@
 package ui
 
+import BibleScripturesPager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -55,7 +56,7 @@ internal fun BibleHomeScreen() {
                 selectedChapter = BibleAPIDataModel.selectedChapter,
                 bibleId = BibleAPIDataModel.selectedBibleId
             )
-            ScrollableTabScriptures(
+            BibleScripturesPager(
                 chapters = BibleAPIDataModel.chapterContent,
                 chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
                 bibleId = BibleAPIDataModel.selectedBibleId

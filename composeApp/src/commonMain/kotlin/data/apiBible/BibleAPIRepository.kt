@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
-val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 15L
+val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 10L
 
 internal suspend fun getBiblesBibleAPI() {
     try {
@@ -121,7 +121,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
     } finally {
-        Napier.v("finally", tag = "BB2455")
+        Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
         // httpClient.close()
     }
 }
