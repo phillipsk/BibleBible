@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
-val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 5L
+val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 10L
 
 internal suspend fun getBiblesBibleAPI() {
     try {
