@@ -16,13 +16,13 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
-import androidx.compose.material.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -103,7 +103,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                     }
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                                 modifier = Modifier
                                     .padding(2.dp)
                                     .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
@@ -116,7 +116,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                     Text(
                                         text = name,
                                         fontSize = 14.sp,
-                                        color = MaterialTheme.colors.onPrimary,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )

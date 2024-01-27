@@ -2,40 +2,32 @@ package ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIBibles
@@ -47,57 +39,41 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
-@OptIn(ExperimentalResourceApi::class)
+@OptIn(ExperimentalResourceApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeTopBar(onClick: () -> Unit = {}) {
-    TopAppBar(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onClick)
-                    .weight(1f)
-            ) {
-                Image(
+    CenterAlignedTopAppBar(
+        title = {
+            // Title content goes here, you can adjust or add more content
+            Text(text = "BibleBible", color = Color.White)
+        },
+        navigationIcon = {
+            // Navigation icon content goes here, e.g., a back arrow or a menu icon
+            IconButton(onClick = { /* do something */ }) {
+                Icon(
                     painter = painterResource("BibleBible_ico_iv.png"),
                     contentDescription = "BibleBible",
                     modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(20.dp))
                 )
-                Spacer(modifier = Modifier.padding(4.dp))
-
-                Text(
-                    text = "BibleBible",
-                    style = TextStyle(
-                        fontFamily = FontFamily.Cursive,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.1.sp,
-                        color = Color.White
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, end = 4.dp)
-                )
-
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
-            ) {
-                BookMenu(
-                    selectedBookData = BibleAPIDataModel.selectedBookData,
-                    bookDataList = BibleAPIDataModel.books.data
-                )
-                BibleMenu(
-                    bibleVersionsList = BibleAPIDataModel.abbreviationList
-                )
-            }
-        }
-    }
+        },
+        actions = {
+            // Actions content goes here, e.g., icons on the right side of the top bar
+            BookMenu(
+                selectedBookData = BibleAPIDataModel.selectedBookData,
+                bookDataList = BibleAPIDataModel.books.data
+            )
+            BibleMenu(
+                bibleVersionsList = BibleAPIDataModel.abbreviationList
+            )
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
 @Composable
@@ -110,7 +86,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
     )
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
@@ -140,9 +116,9 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
                     }
                     Napier.v("scope end", tag = "BB2455")
                 }
-            }) {
+            }, text = {
                 Text("${it.abbreviation} ")
-            }
+            })
         }
     }
 }
@@ -157,7 +133,7 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
     )
     ClickableText(
         text = AnnotatedString(BibleAPIDataModel.selectedVersion),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
     IconButton(onClick = { expanded = !expanded }) {
@@ -186,9 +162,9 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
                         }
                     }
                     expanded = false
-                }) {
+                }, text = {
                     Text("${it.nameLocalCleaned} ")
-                }
+                })
             }
         }
     }

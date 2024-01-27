@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
@@ -78,7 +77,7 @@ internal fun BibleScripturesPager(
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                        color = MaterialTheme.colorScheme.primary
+//                        color = colorScheme.primary
                     )
                 }
             ) {
