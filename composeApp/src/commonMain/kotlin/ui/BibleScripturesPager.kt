@@ -41,13 +41,11 @@ internal fun BibleScripturesPager(
     val scope = rememberCoroutineScope()
     val pagerColumnScrollState = rememberScrollState()
     var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
-    var selectedTabIndex by remember(chapterListBookData) { mutableStateOf(0) }
-    // when recomposing with a different chapterListBookData, the pagerState.currentPage is not updated
+    var selectedTabIndex by remember() { mutableStateOf(0) }
     Napier.v("selectedTabIndex: $selectedTabIndex", tag = "BB2460")
     val pagerState = rememberPagerState(0, 0f) {
         chapterListBookData?.size ?: 0
     }
-    Napier.v("pagerState.currentPage: ${pagerState.currentPage}", tag = "BB2460")
 
     LaunchedEffect(pagerState.currentPage) {
         val currentPage = pagerState.currentPage
@@ -61,9 +59,17 @@ internal fun BibleScripturesPager(
                     chapterNumber = it,
                     bibleId = bibleId
                 )
-                selectedTabIndex = currentPage
                 pagerState.animateScrollToPage(currentPage)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTabIndex) {
+        Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
+        if (selectedTabIndex != pagerState.currentPage) {
+            scope.launch {
+                pagerState.animateScrollToPage(selectedTabIndex)
             }
         }
     }
@@ -91,7 +97,7 @@ internal fun BibleScripturesPager(
                             onClick = {
                                 Napier.v("Tab onClick: $index", tag = "BB2460")
                                 scope.launch {
-                                    pagerState.animateScrollToPage(index)
+                                    selectedTabIndex = index
                                 }
 //                                selectedChapter = chapter
                             },
@@ -106,7 +112,7 @@ internal fun BibleScripturesPager(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.weight(1f)
             ) { page ->
-                Napier.v("HorizontalPager: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
+                Napier.v("HorizontalPager: currentPage: ${pagerState.currentPage}", tag = "BB2460")
                 BibleScriptures(chapters, pagerColumnScrollState)
             }
         }
