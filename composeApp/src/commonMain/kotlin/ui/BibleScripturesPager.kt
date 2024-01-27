@@ -94,11 +94,8 @@ internal fun BibleScripturesPager(
                                 BibleAPIDataModel.updateSelectedChapter(chapterString)
                                 scope.launch {
                                     Napier.v("tap scope launch: $chapterString", tag = "BB2460")
-                                    getChapterBibleAPI(
-                                        chapterNumber = chapterString,
-                                        bibleId = bibleId
-                                    )
                                     pagerColumnScrollState.scrollTo(0) // Scroll to the top
+                                    pagerState.animateScrollToPage(index)
                                 }
                             },
                             text = { Text(chapter.number) }
