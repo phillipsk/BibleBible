@@ -7,6 +7,7 @@ import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -141,8 +142,10 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             Napier.d("end fetch", tag = "BB2452")
         }
     } catch (e: Exception) {
-        if (e is TimeoutCancellationException) {
-            BibleAPIDataModel.updateErrorSnackBar("Timeout error")
+        when (e) {
+            is TimeoutCancellationException -> BibleAPIDataModel.updateErrorSnackBar("Timeout error")
+            is HttpRequestTimeoutException -> BibleAPIDataModel.updateErrorSnackBar("HttpTimeout error")
+            else -> BibleAPIDataModel.updateErrorSnackBar("${e.message}")
         }
         Napier.e("Error fetching chapter: ${e.message}", tag = "BB2452")
         null
