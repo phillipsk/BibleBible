@@ -42,7 +42,8 @@ internal fun BibleScripturesPager(
     val pagerColumnScrollState = rememberScrollState()
     var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
     var selectedTabIndex by remember() { mutableStateOf(0) }
-    Napier.v("selectedTabIndex: $selectedTabIndex", tag = "BB2460")
+    Napier.v("params :: bookId ${chapters.data?.bookId} :: chapterListBookData?.size ${chapterListBookData?.size} " +
+            " :: selectedTabIndex $selectedTabIndex", tag = "BB2460")
     val pagerState = rememberPagerState(0, 0f) {
         chapterListBookData?.size ?: 0
     }
@@ -66,6 +67,10 @@ internal fun BibleScripturesPager(
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
         }
+    }
+    LaunchedEffect(chapters.data?.bookId) {
+        selectedTabIndex = 0
+        pagerState.animateScrollToPage(0)
     }
 
     // Sync selectedTabIndex with HorizontalPager's currentPage
