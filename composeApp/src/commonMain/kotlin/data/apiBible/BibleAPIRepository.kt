@@ -7,6 +7,7 @@ import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
