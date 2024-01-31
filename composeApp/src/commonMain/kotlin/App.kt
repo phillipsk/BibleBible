@@ -1,23 +1,18 @@
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.checkDatabaseSize
 import data.apiBible.getBiblesBibleAPI
 import data.apiBible.getBooksBibleAPI
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import ui.BibleHomeScreen
 import ui.BibleBibleTheme
+import ui.BibleHomeScreen
 
 @Composable
 internal fun App() {
     initializeNapier()
-    val uiState by remember {
-        mutableStateOf(BibleAPIDataModel.uiState)
-    }
 
     LaunchedEffect(true) {
         getBiblesBibleAPI()

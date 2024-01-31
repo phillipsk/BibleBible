@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
-const val DATABASE_RETENTION = 30_000L
+val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 10L
 
 internal suspend fun getBiblesBibleAPI() {
     try {
@@ -121,7 +121,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
     } finally {
-        Napier.v("finally", tag = "BB2455")
+        Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
         // httpClient.close()
     }
 }
@@ -142,7 +142,7 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
         }
     } catch (e: Exception) {
         if (e is TimeoutCancellationException) {
-            Napier.e("timeout error fetching chapter: ${e.message}", tag = "BB2452")
+            BibleAPIDataModel.updateErrorSnackBar("Timeout error")
         }
         Napier.e("Error fetching chapter: ${e.message}", tag = "BB2452")
         null

@@ -3,7 +3,6 @@ package data.apiBible
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
@@ -14,7 +13,6 @@ object BibleAPIDataModel {
     private var _selectedLanguage: MutableState<String> = mutableStateOf("eng")
     val selectedLanguage by _selectedLanguage
 
-    var uiState by mutableStateOf(UIState())
     private var _selectedBibleId = mutableStateOf(DEFAULT_BIBLE_ID)
     val selectedBibleId: String by _selectedBibleId
     internal fun updateSelectedBibleId(bibleId: String? = null) {
@@ -71,12 +69,14 @@ object BibleAPIDataModel {
         Napier.v("onHomeClick", tag = "BB2452")
         _selectedChapter.value = ""
     }
-}
 
-data class UIState(
-    var updateView: Boolean = false,
-    var selectedVersion: MutableState<String> = mutableStateOf("KJV"),
-    var selectedBookData: BookData = BookData(),
-    var selectedChapter: MutableState<Int> = mutableStateOf(-1),
-    var selectedChapterString: MutableState<String> = mutableStateOf(""),
-)
+    private var _errorSnackBar = mutableStateOf("")
+    val errorSnackBar: String by _errorSnackBar
+    internal fun updateErrorSnackBar(error: String) {
+        Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
+        _errorSnackBar.value = error
+    }
+    internal fun clearErrorSnackBar() {
+        _errorSnackBar.value = ""
+    }
+}
