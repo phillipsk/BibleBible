@@ -10,7 +10,6 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -141,10 +140,10 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             Napier.d("end fetch", tag = "BB2452")
         }
     } catch (e: Exception) {
-        if (e is TimeoutCancellationException) {
-            BibleAPIDataModel.updateErrorSnackBar("Timeout error")
+        "Error fetching chapter: ${chapter + " :: " + e.message}".also {
+            BibleAPIDataModel.updateErrorSnackBar(it)
+            Napier.e(it, tag = "BB2452")
         }
-        Napier.e("Error fetching chapter: ${e.message}", tag = "BB2452")
         null
     }
 }
