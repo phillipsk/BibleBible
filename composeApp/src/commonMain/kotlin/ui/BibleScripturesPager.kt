@@ -56,20 +56,21 @@ internal fun BibleScripturesPager(
     LaunchedEffect(selectedTabIndex) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
         Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
-        if (selectedTabIndex != 0) {
+        val chapter = selectedTabIndex.plus(1)
             scope.launch {
-                getChapterBibleIQ(book = chapters.bookId, chapter = selectedTabIndex)
+                getChapterBibleIQ(book = chapters.bookId, chapter = chapter)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
-        }
     }
     LaunchedEffect(chapters.bookId) {
+        Napier.v("LaunchedEffect: bookId: ${chapters.bookId}", tag = "BB2460")
         selectedTabIndex = 0
         pagerState.animateScrollToPage(0)
     }
 
     // Sync selectedTabIndex with HorizontalPager's currentPage
     LaunchedEffect(pagerState.currentPage) {
+        Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (!isPageChangeFromTabClick && currentTime - lastTabClickTime > debounceDuration && pagerState.currentPage != selectedTabIndex) {
             Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
@@ -95,7 +96,8 @@ internal fun BibleScripturesPager(
                     )
                 }
             ) {
-                chapters.chapterList?.forEach { index ->
+                Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
+                chapters.chapterList?.forEachIndexed { index, e ->
                     Tab(
                         selected = pagerState.currentPage == index,
                         onClick = {
@@ -108,9 +110,8 @@ internal fun BibleScripturesPager(
                                     pagerState.animateScrollToPage(index)
                                 }
                             }
-//                                selectedChapter = chapter
                         },
-                        text = { Text(index.toString()) }
+                        text = { Text(e.toString()) }
                     )
                 }
             }
