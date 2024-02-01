@@ -21,6 +21,23 @@ data class BibleBook(private val b: String? = null, private val n: String? = nul
     val name = (if (isLongName) n?.take(7) else n) ?: "Genesis"
 }
 
+@Serializable
+data class BibleChapter(
+    val id: String? = null,
+    val b: String? = null,
+    val c: String? = null,
+    val v: String? = null,
+    val t: String? = null
+)
+
+data class BibleChapterUIState(
+    val id: String? = null,
+    val bookId: Int = 1,
+    val chapterId: Int? = 1,
+    val text: String? = null,
+    val chapterList: List<Int>? = null,
+)
+
 val bibleBooks = listOf(
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
     "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chron", "2 Chron", "Ezra",

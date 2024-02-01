@@ -2,12 +2,12 @@ package data.apiBible
 
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
-import data.httpClient
+import data.bibleIQ.getChapterBibleIQ
+import data.httpClientBibleAPI
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -16,13 +16,14 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 10L
+const val USE_BIBLE_API = false
 
 internal suspend fun getBiblesBibleAPI() {
     try {
         BibleAPIDataModel.bibleVersions.value = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBibles>(JSON_BIBLES_API_BIBLE_SELECT)
         } else {
-            httpClient.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
+            httpClientBibleAPI.get<GetBiblesAPIBible>(GetBiblesAPIBible()).body<BibleAPIBibles>()
         }
     } catch (e: Exception) {
         println("Error: ${e.message}")
@@ -36,7 +37,7 @@ internal suspend fun getBooksBibleAPI() {
         val getBooksAPIBible = if (LOCAL_DATA) {
             Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
         } else {
-            httpClient.get(GetBooksAPIBible()).body<BibleAPIBook>()
+            httpClientBibleAPI.get(GetBooksAPIBible()).body<BibleAPIBook>()
         }
         BibleAPIDataModel.updateBooks(getBooksAPIBible)
     } catch (e: Exception) {
@@ -78,51 +79,55 @@ internal suspend fun checkDatabaseSize() {
 
 
 internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
-    try {
-        Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
-        Napier.d("start load", tag = "BB2452")
-        val cachedData = loadVerseData(chapterNumber, bibleId)
-        Napier.d("end load", tag = "BB2452")
-        Napier.v("cachedData value ${cachedData?.data?.databaseKey}", tag = "BB2452")
+    if (USE_BIBLE_API) {
+        try {
+            Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
+            Napier.d("start load", tag = "BB2452")
+            val cachedData = loadVerseData(chapterNumber, bibleId)
+            Napier.d("end load", tag = "BB2452")
+            Napier.v("cachedData value ${cachedData?.data?.databaseKey}", tag = "BB2452")
 
-        if (cachedData == null || cachedData.data?.verseCount == 0) {
-            Napier.d("remote api: $chapterNumber", tag = "BB2452")
-            fetchChapter(chapterNumber, bibleId)?.let {
-                withContext(Dispatchers.Main) {
-                    BibleAPIDataModel.updateChapterContent(it)
-                    Napier.d("end fetch ui updated", tag = "BB2452")
-                }
-                Napier.d("start delay", tag = "BB2452")
+            if (cachedData == null || cachedData.data?.verseCount == 0) {
+                Napier.d("remote api: $chapterNumber", tag = "BB2452")
+                fetchChapter(chapterNumber, bibleId)?.let {
+                    withContext(Dispatchers.Main) {
+                        BibleAPIDataModel.updateChapterContent(it)
+                        Napier.d("end fetch ui updated", tag = "BB2452")
+                    }
+                    Napier.d("start delay", tag = "BB2452")
 //            delay(3000)
-                Napier.d("end delay", tag = "BB2452")
-                Napier.d("start insertVerse", tag = "BB2452")
-                insertBibleVerses(it)
-                Napier.d("end insertVerse", tag = "BB2452")
-            }
-        } else {
-            Napier.v("enter DB query", tag = "BB2452")
-            withContext(Dispatchers.Main) {
-                Napier.v(
-                    "update UI main thread cachedData :: ${
-                        cachedData.data?.cleanedContent?.take(
-                            100
-                        )
+                    Napier.d("end delay", tag = "BB2452")
+                    Napier.d("start insertVerse", tag = "BB2452")
+                    insertBibleVerses(it)
+                    Napier.d("end insertVerse", tag = "BB2452")
+                }
+            } else {
+                Napier.v("enter DB query", tag = "BB2452")
+                withContext(Dispatchers.Main) {
+                    Napier.v(
+                        "update UI main thread cachedData :: ${
+                            cachedData.data?.cleanedContent?.take(
+                                100
+                            )
+                        }", tag = "BB2452"
+                    )
+                    BibleAPIDataModel.updateChapterContent(cachedData)
+                }
+                Napier.d(
+                    "db query ui update: ${BibleAPIDataModel.chapterContent.data?.id} :: ${
+                        BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(100)
                     }", tag = "BB2452"
                 )
-                BibleAPIDataModel.updateChapterContent(cachedData)
             }
-            Napier.d(
-                "db query ui update: ${BibleAPIDataModel.chapterContent.data?.id} :: ${
-                    BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(100)
-                }", tag = "BB2452"
-            )
-        }
 
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    } finally {
-        Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
-        // httpClient.close()
+        } catch (e: Exception) {
+            Napier.e("Error: ${e.message}", tag = "BB2452")
+        } finally {
+            Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
+            // httpClient.close()
+        }
+    } else {
+        getChapterBibleIQ(book = chapterNumber, version = bibleId)
     }
 }
 
@@ -130,7 +135,7 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
     return try {
         Napier.d("start fetch :: $chapter", tag = "BB2452")
         withContext(Dispatchers.IO) {
-            httpClient.get<GetChapterAPIBible>(
+            httpClientBibleAPI.get<GetChapterAPIBible>(
                 GetChapterAPIBible(
                     chapter = chapter,
                     bibleId = bibleId
