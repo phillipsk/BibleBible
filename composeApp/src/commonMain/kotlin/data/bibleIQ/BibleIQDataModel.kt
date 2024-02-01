@@ -11,13 +11,12 @@ object BibleIQDataModel {
         private set
 
     fun updateBibleChapter(newChapter: List<BibleChapter>) {
-
         bibleChapter = newChapter.firstOrNull()?.b?.toInt()?.let { bookId ->
             BibleChapterUIState(
                 id = newChapter.firstOrNull()?.id,
                 bookId = bookId,
                 chapterId = newChapter.firstOrNull()?.c?.toInt(),
-                text = newChapter.map { it.t }.joinToString(),
+                text = newChapter.joinToString(" ") { "[${it.v}] ${it.t}" },
                 chapterList = newChapter.mapNotNull { it.v?.toInt() }
             )
         }
