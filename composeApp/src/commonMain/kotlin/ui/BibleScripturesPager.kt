@@ -1,4 +1,3 @@
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -42,8 +41,10 @@ internal fun BibleScripturesPager(
     val pagerColumnScrollState = rememberScrollState()
     var selectedChapter by remember(chapters.bookId) { mutableStateOf<Chapter?>(null) }
     var selectedTabIndex by remember() { mutableStateOf(0) }
-    Napier.v("params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
-            " :: selectedTabIndex $selectedTabIndex", tag = "BB2460")
+    Napier.v(
+        "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
+                " :: selectedTabIndex $selectedTabIndex", tag = "BB2460"
+    )
     val pagerState = rememberPagerState(0, 0f) {
         chapters.chapterList?.size ?: 0
     }
@@ -54,11 +55,13 @@ internal fun BibleScripturesPager(
     // Fetch chapter content when selectedTabIndex changes
     LaunchedEffect(selectedTabIndex) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
-            Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
+        Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
+        if (selectedTabIndex != 0) {
             scope.launch {
-                getChapterBibleIQ(book = selectedTabIndex)
+                getChapterBibleIQ(book = chapters.bookId, chapter = selectedTabIndex)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
+        }
     }
     LaunchedEffect(chapters.bookId) {
         selectedTabIndex = 0
@@ -93,22 +96,22 @@ internal fun BibleScripturesPager(
                 }
             ) {
                 chapters.chapterList?.forEach { index ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                Napier.v("Tab onClick: $index", tag = "BB2460")
-                                if (index != selectedTabIndex) {
-                                    isPageChangeFromTabClick = true
-                                    lastTabClickTime = Clock.System.now().toEpochMilliseconds()
-                                    selectedTabIndex = index
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(index)
-                                    }
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            Napier.v("Tab onClick: $index", tag = "BB2460")
+                            if (index != selectedTabIndex) {
+                                isPageChangeFromTabClick = true
+                                lastTabClickTime = Clock.System.now().toEpochMilliseconds()
+                                selectedTabIndex = index
+                                scope.launch {
+                                    pagerState.animateScrollToPage(index)
                                 }
+                            }
 //                                selectedChapter = chapter
-                            },
-                            text = { Text(index.toString()) }
-                        )
+                        },
+                        text = { Text(index.toString()) }
+                    )
                 }
             }
 

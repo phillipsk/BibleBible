@@ -32,8 +32,8 @@ data class BibleChapter(
 
 data class BibleChapterUIState(
     val id: String? = null,
-    val bookId: String? = null,
-    val chapterId: String? = null,
+    val bookId: Int = 1,
+    val chapterId: Int? = 1,
     val text: String? = null,
     val chapterList: List<Int>? = null,
 )

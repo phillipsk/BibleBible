@@ -57,10 +57,12 @@ internal fun BibleHomeScreen() {
                 selectedChapter = BibleAPIDataModel.selectedChapter,
                 bibleId = BibleAPIDataModel.selectedBibleId
             )
-            BibleScripturesPager(
-                chapters = BibleIQDataModel.bibleChapter,
-                bibleId = BibleAPIDataModel.selectedBibleId
-            )
+            BibleIQDataModel.bibleChapter?.let { it1 ->
+                BibleScripturesPager(
+                    chapters = it1,
+                    bibleId = BibleAPIDataModel.selectedBibleId
+                )
+            }
         }
         if (errorMsg.isNotEmpty()) {
             scope.launch {

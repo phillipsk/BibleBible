@@ -127,7 +127,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
             // httpClient.close()
         }
     } else {
-        getChapterBibleIQ(chapterNumber, bibleId)
+        getChapterBibleIQ(book = chapterNumber, version = bibleId)
     }
 }
 
