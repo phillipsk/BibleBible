@@ -8,14 +8,14 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import data.apiBible.ChapterContent
+import data.bibleIQ.BibleChapterUIState
 
 @Composable
-internal fun BibleScriptures(chapters: ChapterContent, scrollState: ScrollState) {
+internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState) {
     Column(modifier = Modifier.verticalScroll(scrollState)) {
-        chapters.data?.let {
+        chapters.text?.let {
             Text(
-                text = it.uiContent,
+                text = it,
                 modifier = Modifier.padding(4.dp)
             )
         }

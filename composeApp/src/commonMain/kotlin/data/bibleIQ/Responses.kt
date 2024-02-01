@@ -30,6 +30,14 @@ data class BibleChapter(
     val t: String? = null
 )
 
+data class BibleChapterUIState(
+    val id: String? = null,
+    val bookId: String? = null,
+    val chapterId: String? = null,
+    val text: String? = null,
+    val chapterList: List<Int>? = null,
+)
+
 val bibleBooks = listOf(
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
     "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chron", "2 Chron", "Ezra",

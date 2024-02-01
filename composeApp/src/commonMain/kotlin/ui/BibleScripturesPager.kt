@@ -1,3 +1,4 @@
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,8 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.apiBible.Chapter
-import data.apiBible.ChapterContent
-import data.apiBible.getChapterBibleAPI
+import data.bibleIQ.BibleChapterUIState
+import data.bibleIQ.getChapterBibleIQ
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -34,18 +35,17 @@ import ui.BibleScriptures
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun BibleScripturesPager(
-    chapters: ChapterContent,
-    chapterListBookData: List<Chapter>?,
+    chapters: BibleChapterUIState,
     bibleId: String
 ) {
     val scope = rememberCoroutineScope()
     val pagerColumnScrollState = rememberScrollState()
-    var selectedChapter by remember(chapters.data?.bookId) { mutableStateOf<Chapter?>(null) }
+    var selectedChapter by remember(chapters.bookId) { mutableStateOf<Chapter?>(null) }
     var selectedTabIndex by remember() { mutableStateOf(0) }
-    Napier.v("params :: bookId ${chapters.data?.bookId} :: chapterListBookData?.size ${chapterListBookData?.size} " +
+    Napier.v("params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
             " :: selectedTabIndex $selectedTabIndex", tag = "BB2460")
     val pagerState = rememberPagerState(0, 0f) {
-        chapterListBookData?.size ?: 0
+        chapters.chapterList?.size ?: 0
     }
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
@@ -54,21 +54,13 @@ internal fun BibleScripturesPager(
     // Fetch chapter content when selectedTabIndex changes
     LaunchedEffect(selectedTabIndex) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
-        val chapterString = chapterListBookData?.getOrNull(selectedTabIndex)?.let {
-            "${it.bookId}.${it.number}"
-        }
-        chapterString?.let {
-            Napier.v("Fetching chapter: $it", tag = "BB2460")
+            Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
             scope.launch {
-                getChapterBibleAPI(
-                    chapterNumber = it,
-                    bibleId = bibleId
-                )
+                getChapterBibleIQ(book = selectedTabIndex)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
-        }
     }
-    LaunchedEffect(chapters.data?.bookId) {
+    LaunchedEffect(chapters.bookId) {
         selectedTabIndex = 0
         pagerState.animateScrollToPage(0)
     }
@@ -85,7 +77,7 @@ internal fun BibleScripturesPager(
     }
 
     AnimatedVisibility(
-        visible = chapters.data?.cleanedContent != null,
+        visible = chapters.text != null,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 150))
     ) {
@@ -100,8 +92,7 @@ internal fun BibleScripturesPager(
                     )
                 }
             ) {
-                chapterListBookData?.forEachIndexed { index, chapter ->
-                    if (!chapter.number.isNullOrEmpty()) {
+                chapters.chapterList?.forEach { index ->
                         Tab(
                             selected = pagerState.currentPage == index,
                             onClick = {
@@ -116,9 +107,8 @@ internal fun BibleScripturesPager(
                                 }
 //                                selectedChapter = chapter
                             },
-                            text = { Text(chapter.number) }
+                            text = { Text(index.toString()) }
                         )
-                    }
                 }
             }
 

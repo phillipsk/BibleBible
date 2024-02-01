@@ -39,8 +39,8 @@ internal suspend fun getVersionsBibleIQ() {
     }
 }
 
-internal suspend fun getChapterBibleIQ(chapterNumber: String, bibleId: String) {
-    val bookId = BibleIQDataModel.getAPIBibleCardinal(chapterNumber, bibleId)
+internal suspend fun getChapterBibleIQ(book: Any, version: String? = null, chapter: Int = 1) {
+    val bookId = if (book !is Int) BibleIQDataModel.getAPIBibleCardinal(book as String) else book
     try {
         val chapters = httpClientBibleIQ.get(GetChapter(bookId = bookId)).body<List<BibleChapter>>()
         Napier.v("getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}", tag = "BB2452")

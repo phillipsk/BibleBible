@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
+import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -57,8 +58,7 @@ internal fun BibleHomeScreen() {
                 bibleId = BibleAPIDataModel.selectedBibleId
             )
             BibleScripturesPager(
-                chapters = BibleAPIDataModel.chapterContent,
-                chapterListBookData = BibleAPIDataModel.selectedBookData.chapterListBookData,
+                chapters = BibleIQDataModel.bibleChapter,
                 bibleId = BibleAPIDataModel.selectedBibleId
             )
         }
