@@ -13,12 +13,18 @@ import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
 import io.ktor.http.URLProtocol
-import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-val httpClient
-    get() = HttpClient {
+data class HttpClientConfig(
+    val baseUrl: String,
+    val apiKeyHeader: String,
+    val apiKey: String,
+    val path: String? = null
+)
+
+private fun createHttpClient(config: HttpClientConfig): HttpClient {
+    return HttpClient {
         install(Resources)
         install(Logging) {
             level = LogLevel.HEADERS
@@ -37,16 +43,30 @@ val httpClient
             connectTimeoutMillis = 3000 // Connect timeout: 3 seconds
             socketTimeoutMillis = 15000 // Socket timeout: 15 seconds
         }
-//        install(HttpRetry) {
-//            maxAttempts = 3 // Number of retry attempts
-//        }
+
         defaultRequest {
             url {
-                host = "api.scripture.api.bible"
-                path("v1/")
+                host = config.baseUrl
+//                path("v1/")
                 protocol = URLProtocol.HTTPS
             }
-            header("api-key", BuildKonfig.API_KEY_API_BIBLE)
-
+            header(config.apiKeyHeader, config.apiKey)
         }
     }
+}
+
+val httpClientBibleAPI: HttpClient by lazy {
+    val config = HttpClientConfig(
+        baseUrl = "api.scripture.api.bible/v1", apiKeyHeader = "api-key",
+        apiKey = BuildKonfig.API_KEY_API_BIBLE
+    )
+    createHttpClient(config)
+}
+
+val httpClientBibleIQ: HttpClient by lazy {
+    val config = HttpClientConfig(
+        baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
+        apiKey = BuildKonfig.API_KEY
+    )
+    createHttpClient(config)
+}

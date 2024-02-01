@@ -2,18 +2,19 @@ package data.bibleIQ
 
 import JSON_BOOKS
 import JSON_VERSIONS
-import data.httpClient
+import data.httpClientBibleIQ
+import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.serialization.json.Json
 
-const val READ_JSON = true
-internal suspend fun getBooks() {
+const val LOCAL_DATA = true
+internal suspend fun getBooksBibleIQ() {
     try {
-        val getBooks = if (READ_JSON) {
+        val getBooks = if (LOCAL_DATA) {
             Json.decodeFromString<List<BibleBook>>(JSON_BOOKS)
         } else {
-            httpClient.get(GetBooks()).body<List<BibleBook>>()
+            httpClientBibleIQ.get(GetBooks()).body<List<BibleBook>>()
         }
 //        BibleIQ.books.value = getBooks // TODO: uncomment for use
     } catch (e: Exception) {
@@ -23,12 +24,12 @@ internal suspend fun getBooks() {
     }
 }
 
-internal suspend fun getVersions() {
+internal suspend fun getVersionsBibleIQ() {
     try {
-        val versions = if (READ_JSON) {
+        val versions = if (LOCAL_DATA) {
             Json.decodeFromString<List<BibleVersion>>(JSON_VERSIONS)
         } else {
-            httpClient.get(GetVersions()).body<List<BibleVersion>>()
+            httpClientBibleIQ.get(GetVersions()).body<List<BibleVersion>>()
         }
 //        BibleIQ.bibleVersions.value = versions
     } catch (e: Exception) {
@@ -38,9 +39,12 @@ internal suspend fun getVersions() {
     }
 }
 
-internal fun getChapter(bookId: Int) {
+internal suspend fun getChapterBibleIQ(chapterNumber: String, bibleId: String) {
+    val bookId = BibleIQDataModel.getAPIBibleCardinal(chapterNumber, bibleId)
     try {
-//        BibleIQ.chapter.value = httpClient.get(GetChapter(bookId = bookId)).body<List<Chapter>>()
+        val chapters = httpClientBibleIQ.get(GetChapter(bookId = bookId)).body<List<BibleChapter>>()
+        Napier.v("getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}", tag = "BB2452")
+        BibleIQDataModel.updateBibleChapter(chapters)
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
