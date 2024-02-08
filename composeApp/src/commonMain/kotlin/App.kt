@@ -21,6 +21,7 @@ internal fun App() {
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
+//        BibleAPIDataModel.showHomePage = true
     }
 
     BibleBibleTheme {

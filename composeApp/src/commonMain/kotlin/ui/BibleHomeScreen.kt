@@ -78,7 +78,7 @@ internal fun BibleHomeScreen() {
 internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
-        visible = !bookData.isNullOrEmpty() && selectedChapter == "",
+        visible = BibleAPIDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
@@ -102,6 +102,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                             chapterNumber = it.remoteKey,
                                             bibleId = bibleId
                                         )
+                                        BibleAPIDataModel.showHomePage = false
                                     }
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
