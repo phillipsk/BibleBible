@@ -7,7 +7,6 @@ import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -77,8 +76,8 @@ internal suspend fun checkDatabaseSize() {
 }
 
 
-internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
-    try {
+internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String): Result<Boolean> {
+    return try {
         Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
         Napier.d("start load", tag = "BB2452")
         val cachedData = loadVerseData(chapterNumber, bibleId)
@@ -117,38 +116,31 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
                 }", tag = "BB2452"
             )
         }
-
+        return Result.success(true)
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
+        "Error fetching chapter: ${chapterNumber + " :: " + e.message}".also {
+            BibleAPIDataModel.updateErrorSnackBar(it)
+            Napier.e(it, tag = "BB2452")
+        }
+        return Result.failure(e)
     } finally {
         Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
         // httpClient.close()
     }
 }
 
-private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterContent? {
-    return try {
-        Napier.d("start fetch :: $chapter", tag = "BB2452")
-        withContext(Dispatchers.IO) {
-            httpClient.get<GetChapterAPIBible>(
-                GetChapterAPIBible(
-                    chapter = chapter,
-                    bibleId = bibleId
-                )
+private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterContent {
+    return withContext(Dispatchers.IO) {
+        httpClient.get<GetChapterAPIBible>(
+            GetChapterAPIBible(
+                chapter = chapter,
+                bibleId = bibleId
             )
-                .body<ChapterContent>()
-        }.also {
-            Napier.d("end fetch", tag = "BB2452")
-        }
-    } catch (e: Exception) {
-        "Error fetching chapter: ${chapter + " :: " + e.message}".also {
-            BibleAPIDataModel.updateErrorSnackBar(it)
-            Napier.e(it, tag = "BB2452")
-        }
-        null
+        )
+            .body<ChapterContent>()
     }
 }
-
 private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
     return try {
         withContext(Dispatchers.IO) {

@@ -1,3 +1,4 @@
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -23,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.Chapter
 import data.apiBible.ChapterContent
 import data.apiBible.getChapterBibleAPI
@@ -53,6 +55,8 @@ internal fun BibleScripturesPager(
 
     // Fetch chapter content when selectedTabIndex changes
     LaunchedEffect(selectedTabIndex) {
+        Napier.v("selectedChapter selectedTabIndex :: ${selectedChapter?.number}", tag = "BB2461")
+        BibleAPIDataModel.updateSelectedChapter(selectedTabIndex.toString())
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
         val chapterString = chapterListBookData?.getOrNull(selectedTabIndex)?.let {
             "${it.bookId}.${it.number}"
@@ -69,12 +73,15 @@ internal fun BibleScripturesPager(
         }
     }
     LaunchedEffect(chapters.data?.bookId) {
+        Napier.v("selectedChapter chapters.data?.bookId :: ${selectedChapter?.number}", tag = "BB2461")
         selectedTabIndex = 0
         pagerState.animateScrollToPage(0)
     }
 
     // Sync selectedTabIndex with HorizontalPager's currentPage
     LaunchedEffect(pagerState.currentPage) {
+        Napier.v("selectedChapter launchedEffect :: ${selectedChapter?.number}", tag = "BB2461")
+        BibleAPIDataModel.updateSelectedChapter(pagerState.currentPage.toString())
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (!isPageChangeFromTabClick && currentTime - lastTabClickTime > debounceDuration && pagerState.currentPage != selectedTabIndex) {
             Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
@@ -114,6 +121,7 @@ internal fun BibleScripturesPager(
                                         pagerState.animateScrollToPage(index)
                                     }
                                 }
+                                Napier.v("selectedChapter Tab onClick() :: ${selectedChapter?.number}", tag = "BB2461")
 //                                selectedChapter = chapter
                             },
                             text = { Text(chapter.number) }

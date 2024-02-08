@@ -88,11 +88,11 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
-                BookMenu(
+                BibleBookMenu(
                     selectedBookData = BibleAPIDataModel.selectedBookData,
                     bookDataList = BibleAPIDataModel.books.data
                 )
-                BibleMenu(
+                BibleVersionMenu(
                     bibleVersionsList = BibleAPIDataModel.abbreviationList
                 )
             }
@@ -101,7 +101,7 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 }
 
 @Composable
-internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
+internal fun BibleBookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -129,6 +129,11 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
                 expanded = false
                 scope.launch {
                     Napier.v("scope launch", tag = "BB2455")
+                    Napier.v(
+                        "BookMenu() BibleAPIDataModel.selectedChapter :: ${BibleAPIDataModel.selectedChapter}",
+                        tag = "BB2461"
+                    )
+                    Napier.v("BookMenu() it.remoteKey :: ${it.remoteKey}", tag = "BB2461")
                     getChapterBibleAPI(
                         chapterNumber = it.remoteKey,
                         bibleId = BibleAPIDataModel.selectedBibleId
@@ -137,6 +142,14 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
                     BibleAPIDataModel.run {
                         updateBookData(it)
                         updateSelectedChapter(it.remoteKey)
+                        Napier.v(
+                            "BookMenu() updateSelectedChapter(it.remoteKey) :: ${it.remoteKey}",
+                            tag = "BB2461"
+                        )
+                        Napier.v(
+                            "BookMenu() BibleAPIDataModel.selectedChapter :: ${BibleAPIDataModel.selectedChapter}",
+                            tag = "BB2461"
+                        )
                     }
                     Napier.v("scope end", tag = "BB2455")
                 }
@@ -148,7 +161,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
 }
 
 @Composable
-internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
+internal fun BibleVersionMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -174,15 +187,24 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
         bibleVersionsList.forEach {
             if (it.abbreviationLocal != null && it.id != null) {
                 DropdownMenuItem(onClick = {
+                    val previousVersion = BibleAPIDataModel.selectedVersion
+                    val previousBibleId = BibleAPIDataModel.selectedBibleId
                     scope.launch {
-//                        getBooksBibleAPI()
-                        getChapterBibleAPI(
+                        val result = getChapterBibleAPI(
                             chapterNumber = BibleAPIDataModel.selectedChapter,
                             bibleId = it.id
                         )
-                        BibleAPIDataModel.run {
-                            updateSelectedVersion(it.abbreviationLocal)
-                            updateSelectedBibleId(it.id)
+                        if (result.isSuccess) {
+                            BibleAPIDataModel.run {
+                                updateSelectedVersion(it.abbreviationLocal)
+                                updateSelectedBibleId(it.id)
+                            }
+                        } else {
+                            // Revert to previous state on failure
+                            BibleAPIDataModel.run {
+                                updateSelectedVersion(previousVersion)
+                                updateSelectedBibleId(previousBibleId)
+                            }
                         }
                     }
                     expanded = false
