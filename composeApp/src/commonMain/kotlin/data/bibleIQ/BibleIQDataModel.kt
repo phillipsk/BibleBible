@@ -7,6 +7,18 @@ import data.apiBible.BibleAPIDataModel
 
 object BibleIQDataModel {
 
+    var bibleVersions by mutableStateOf(BibleIQVersions())
+        private set
+    fun updateBibleVersions(newVersions: BibleIQVersions) {
+        bibleVersions = newVersions
+    }
+
+    var bibleBooks by mutableStateOf(BibleIQBooks())
+        private set
+    fun updateBibleBooks(newBooks: BibleIQBooks) {
+        bibleBooks = newBooks
+    }
+
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 

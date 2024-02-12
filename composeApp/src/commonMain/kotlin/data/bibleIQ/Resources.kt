@@ -3,11 +3,9 @@ package data.bibleIQ
 import data.apiBible.BibleAPIDataModel
 import io.ktor.resources.Resource
 
-//@Serializable
 @Resource("/GetVersions")
-class GetVersions()
+class GetVersions
 
-//@Serializable
 @Resource("/GetBooks")
 class GetBooks(val language: String = "english")
 

@@ -6,19 +6,22 @@ import data.httpClientBibleIQ
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 internal suspend fun getBooksBibleIQ() {
     try {
-        val getBooks = if (LOCAL_DATA) {
-            Json.decodeFromString<List<BibleBook>>(JSON_BOOKS)
+        val books = if (LOCAL_DATA) {
+            Json.decodeFromString<List<BibleIQBook>>(JSON_BOOKS)
         } else {
-            httpClientBibleIQ.get(GetBooks()).body<List<BibleBook>>()
+            httpClientBibleIQ.get(GetBooks()).body<List<BibleIQBook>>()
         }
-//        BibleIQ.books.value = getBooks // TODO: uncomment for use
+        BibleIQDataModel.updateBibleBooks(BibleIQBooks(books))
     } catch (e: Exception) {
-        println("Error: ${e.message}")
+        Napier.e("Error: ${e.message}", tag = "IQ092")
     } finally {
         // httpClient.close()
     }
@@ -27,13 +30,13 @@ internal suspend fun getBooksBibleIQ() {
 internal suspend fun getVersionsBibleIQ() {
     try {
         val versions = if (LOCAL_DATA) {
-            Json.decodeFromString<List<BibleVersion>>(JSON_VERSIONS)
+            Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
         } else {
-            httpClientBibleIQ.get(GetVersions()).body<List<BibleVersion>>()
+            httpClientBibleIQ.get(GetVersions()).body<List<BibleIQVersion>>()
         }
-//        BibleIQ.bibleVersions.value = versions
+        BibleIQDataModel.updateBibleVersions(BibleIQVersions(versions))
     } catch (e: Exception) {
-        println("Error: ${e.message}")
+        Napier.e("Error: ${e.message}", tag = "IQ092")
     } finally {
         // httpClient.close()
     }
@@ -41,14 +44,20 @@ internal suspend fun getVersionsBibleIQ() {
 
 internal suspend fun getChapterBibleIQ(book: Any, version: String? = null, chapter: Int = 1) {
     val bookId = if (book !is Int) BibleIQDataModel.getAPIBibleCardinal(book as String) else book
-    try {
-        Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "BB2452")
-        val chapters = httpClientBibleIQ.get(GetChapter(bookId = bookId, chapterId = chapter.toString())).body<List<BibleChapter>>()
-        Napier.v("getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}", tag = "BB2452")
+    Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "BB2452")
+    val chapters: List<BibleChapter>
+    withContext(Dispatchers.IO) {
+        chapters =
+            httpClientBibleIQ.get(GetChapter(bookId = bookId, chapterId = chapter.toString()))
+                .body<List<BibleChapter>>()
+        Napier.v(
+            "getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}",
+            tag = "BB2452"
+        )
+
+    }
+    withContext(Dispatchers.Main) {
+        Napier.v("getChapterBibleIQ :: update UI", tag = "BB2452")
         BibleIQDataModel.updateBibleChapter(chapters)
-    } catch (e: Exception) {
-        println("Error: ${e.message}")
-    } finally {
-        // httpClient.close()
     }
 }
