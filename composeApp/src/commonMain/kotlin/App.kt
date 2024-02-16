@@ -1,11 +1,12 @@
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.checkDatabaseSize
-import data.bibleIQ.getBooksBibleIQ
-import data.bibleIQ.getVersionsBibleIQ
+import data.apiBible.getBiblesBibleAPI
+import data.apiBible.getBooksBibleAPI
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme
@@ -16,8 +17,8 @@ internal fun App() {
     initializeNapier()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(true) {
-        getVersionsBibleIQ()
-        getBooksBibleIQ()
+        getBiblesBibleAPI()
+        getBooksBibleAPI()
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()

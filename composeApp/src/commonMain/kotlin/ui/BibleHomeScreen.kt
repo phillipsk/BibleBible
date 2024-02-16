@@ -52,16 +52,19 @@ internal fun BibleHomeScreen() {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BibleBookList(
-                bookData = BibleAPIDataModel.books.data,
-                selectedChapter = BibleAPIDataModel.selectedChapter,
-                bibleId = BibleAPIDataModel.selectedBibleId
-            )
-            BibleIQDataModel.bibleChapter?.let { it1 ->
-                BibleScripturesPager(
-                    chapters = it1,
+            if (BibleAPIDataModel.showHomePage) {
+                BibleBookList(
+                    bookData = BibleAPIDataModel.books.data,
+                    selectedChapter = BibleAPIDataModel.selectedChapter,
                     bibleId = BibleAPIDataModel.selectedBibleId
                 )
+            } else {
+                BibleIQDataModel.bibleChapter?.let { it1 ->
+                    BibleScripturesPager(
+                        chapters = it1,
+                        bibleId = BibleAPIDataModel.selectedBibleId
+                    )
+                }
             }
         }
         if (errorMsg.isNotEmpty()) {
