@@ -61,7 +61,7 @@ internal fun BibleHomeScreen() {
                 BibleIQDataModel.bibleChapter?.let { it1 ->
                     BibleScripturesPager(
                         chapters = it1,
-                        bibleId = BibleIQDataModel.selectedVersion
+                        bibleVersion = BibleIQDataModel.selectedVersion
                     )
                 }
             }

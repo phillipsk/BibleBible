@@ -177,10 +177,6 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
                 DropdownMenuItem(onClick = {
                     scope.launch {
 //                        getBooksBibleAPI()
-                        getChapterBibleAPI(
-                            chapterNumber = BibleAPIDataModel.selectedChapter,
-                            bibleId = it.abbreviation.lowercase()
-                        )
                         BibleIQDataModel.run {
                             updateSelectedVersion(it.abbreviation)
                         }

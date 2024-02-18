@@ -35,7 +35,7 @@ import ui.BibleScriptures
 @Composable
 internal fun BibleScripturesPager(
     chapters: BibleChapterUIState,
-    bibleId: String
+    bibleVersion: String
 ) {
     val scope = rememberCoroutineScope()
     val pagerColumnScrollState = rememberScrollState()
@@ -53,7 +53,7 @@ internal fun BibleScripturesPager(
     val debounceDuration = 300L  // 300 ms for debounce duration
 
     // Fetch chapter content when selectedTabIndex changes
-    LaunchedEffect(selectedTabIndex) {
+    LaunchedEffect(selectedTabIndex, bibleVersion) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
         Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
         val chapter = selectedTabIndex.plus(1)
