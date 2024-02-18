@@ -38,10 +38,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.apiBible.BibleAPIBibles
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.getChapterBibleAPI
+import data.bibleIQ.BibleIQDataModel
+import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
@@ -93,7 +94,7 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                     bookDataList = BibleAPIDataModel.books.data
                 )
                 BibleMenu(
-                    bibleVersionsList = BibleAPIDataModel.abbreviationList
+                    bibleVersionsList = BibleIQDataModel.bibleVersions
                 )
             }
         }
@@ -148,7 +149,7 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
 }
 
 @Composable
-internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
+internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
@@ -171,23 +172,22 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        bibleVersionsList.forEach {
-            if (it.abbreviationLocal != null && it.id != null) {
+        bibleVersionsList.data.forEach {
+            if (it.abbreviation != null) {
                 DropdownMenuItem(onClick = {
                     scope.launch {
 //                        getBooksBibleAPI()
                         getChapterBibleAPI(
                             chapterNumber = BibleAPIDataModel.selectedChapter,
-                            bibleId = it.id
+                            bibleId = it.abbreviation.lowercase()
                         )
-                        BibleAPIDataModel.run {
-                            updateSelectedVersion(it.abbreviationLocal)
-                            updateSelectedBibleId(it.id)
+                        BibleIQDataModel.run {
+                            updateSelectedVersion(it.abbreviation)
                         }
                     }
                     expanded = false
                 }) {
-                    Text("${it.nameLocalCleaned} ")
+                    Text("${it.abbreviation} ")
                 }
             }
         }
