@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
-import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
@@ -100,13 +99,8 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                         updateBookData(it)
                                         updateSelectedChapter(it.remoteKey)
                                     }
-                                    scope.launch {
-                                        getChapterBibleAPI(
-                                            chapterNumber = it.remoteKey,
-                                            bibleId = bibleId
-                                        )
-                                        BibleAPIDataModel.showHomePage = false
-                                    }
+                                    BibleIQDataModel.updateSelectedBook(it)
+                                    BibleAPIDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),

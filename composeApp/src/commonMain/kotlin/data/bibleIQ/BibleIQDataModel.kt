@@ -40,6 +40,13 @@ object BibleIQDataModel {
         bibleBooks = newBooks
     }
 
+    var selectedBook by mutableStateOf(BookData())
+        private set
+
+    fun updateSelectedBook(newBook: BookData) {
+        selectedBook = newBook
+    }
+
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
