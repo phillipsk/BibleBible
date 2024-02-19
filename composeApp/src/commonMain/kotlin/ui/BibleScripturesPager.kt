@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.apiBible.Chapter
 import data.bibleIQ.BibleChapterUIState
+import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -58,7 +59,7 @@ internal fun BibleScripturesPager(
         Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
         val chapter = selectedTabIndex.plus(1)
             scope.launch {
-                getChapterBibleIQ(book = chapters.bookId, chapter = chapter)
+                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
     }

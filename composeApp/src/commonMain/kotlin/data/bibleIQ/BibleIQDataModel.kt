@@ -14,6 +14,7 @@ object BibleIQDataModel {
 
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
+
     fun updateBibleVersions(newVersions: BibleIQVersions) {
         bibleVersions = newVersions
     }
@@ -33,9 +34,9 @@ object BibleIQDataModel {
         _selectedVersion.value = version ?: (selectedVersion)
     }
 
-
     var bibleBooks by mutableStateOf(BibleIQBooks())
         private set
+
     fun updateBibleBooks(newBooks: BibleIQBooks) {
         bibleBooks = newBooks
     }
