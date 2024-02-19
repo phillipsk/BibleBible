@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import data.apiBible.BookData
 import data.apiBible.Chapter
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
@@ -36,7 +37,8 @@ import ui.BibleScriptures
 @Composable
 internal fun BibleScripturesPager(
     chapters: BibleChapterUIState,
-    bibleVersion: String
+    bibleVersion: String,
+    selectedBook: BookData,
 ) {
     val scope = rememberCoroutineScope()
     val pagerColumnScrollState = rememberScrollState()
@@ -54,7 +56,7 @@ internal fun BibleScripturesPager(
     val debounceDuration = 300L  // 300 ms for debounce duration
 
     // Fetch chapter content when selectedTabIndex changes
-    LaunchedEffect(selectedTabIndex, bibleVersion) {
+    LaunchedEffect(selectedTabIndex, bibleVersion, selectedBook) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
         Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
         val chapter = selectedTabIndex.plus(1)
@@ -62,11 +64,6 @@ internal fun BibleScripturesPager(
                 getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
                 pagerColumnScrollState.scrollTo(0) // Scroll to the top
             }
-    }
-    LaunchedEffect(chapters.bookId) {
-        Napier.v("LaunchedEffect: bookId: ${chapters.bookId}", tag = "BB2460")
-        selectedTabIndex = 0
-        pagerState.animateScrollToPage(0)
     }
 
     // Sync selectedTabIndex with HorizontalPager's currentPage

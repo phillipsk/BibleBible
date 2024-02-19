@@ -41,11 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
-import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
@@ -103,7 +101,6 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 
 @Composable
 internal fun BookMenu(bookDataList: List<BookData>?) {
-    val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     var selectedBookData by remember { mutableStateOf(BibleIQDataModel.selectedBook) }
     val rotationAngle by animateFloatAsState(
@@ -129,19 +126,10 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
         bookDataList?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                scope.launch {
-                    Napier.v("scope launch", tag = "BB2455")
-                    getChapterBibleAPI(
-                        chapterNumber = it.remoteKey,
-                        bibleId = BibleIQDataModel.selectedVersion
-                    )
-                    Napier.v("scope middle", tag = "BB2455")
-                    BibleIQDataModel.run {
-                        updateSelectedBook(it)
-                    }
-                    Napier.v("scope end", tag = "BB2455")
-                    selectedBookData = it
+                BibleIQDataModel.run {
+                    updateSelectedBook(it)
                 }
+                selectedBookData = it
             }) {
                 Text("${it.abbreviation} ")
             }
