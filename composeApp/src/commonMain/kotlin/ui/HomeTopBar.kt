@@ -22,6 +22,7 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -156,8 +157,12 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
+    var selectedBibleVersion by remember { mutableStateOf(BibleIQDataModel.selectedVersion) }
+    LaunchedEffect(true) {
+        Napier.v("LaunchedEffect :: BibleMenu", tag = "IQ2455")
+    }
     ClickableText(
-        text = AnnotatedString(BibleAPIDataModel.selectedVersion),
+        text = AnnotatedString(selectedBibleVersion),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
@@ -175,12 +180,10 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
         bibleVersionsList.data.forEach {
             if (it.abbreviation != null) {
                 DropdownMenuItem(onClick = {
-                    scope.launch {
-//                        getBooksBibleAPI()
                         BibleIQDataModel.run {
                             updateSelectedVersion(it.abbreviation)
                         }
-                    }
+                    selectedBibleVersion = it.abbreviation ?: ""
                     expanded = false
                 }) {
                     Text("${it.abbreviation} ")
