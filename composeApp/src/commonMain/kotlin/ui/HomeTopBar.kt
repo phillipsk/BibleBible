@@ -91,7 +91,6 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
                 BookMenu(
-                    selectedBookData = BibleAPIDataModel.selectedBookData,
                     bookDataList = BibleAPIDataModel.books.data
                 )
                 BibleMenu(
@@ -103,9 +102,10 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 }
 
 @Composable
-internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
+internal fun BookMenu(bookDataList: List<BookData>?) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
+    var selectedBookData by remember { mutableStateOf(BibleIQDataModel.selectedBook) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
@@ -133,14 +133,14 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
                     Napier.v("scope launch", tag = "BB2455")
                     getChapterBibleAPI(
                         chapterNumber = it.remoteKey,
-                        bibleId = BibleAPIDataModel.selectedBibleId
+                        bibleId = BibleIQDataModel.selectedVersion
                     )
                     Napier.v("scope middle", tag = "BB2455")
-                    BibleAPIDataModel.run {
-                        updateBookData(it)
-                        updateSelectedChapter(it.remoteKey)
+                    BibleIQDataModel.run {
+                        updateSelectedBook(it)
                     }
                     Napier.v("scope end", tag = "BB2455")
+                    selectedBookData = it
                 }
             }) {
                 Text("${it.abbreviation} ")
@@ -180,9 +180,9 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
         bibleVersionsList.data.forEach {
             if (it.abbreviation != null) {
                 DropdownMenuItem(onClick = {
-                        BibleIQDataModel.run {
-                            updateSelectedVersion(it.abbreviation)
-                        }
+                    BibleIQDataModel.run {
+                        updateSelectedVersion(it.abbreviation)
+                    }
                     selectedBibleVersion = it.abbreviation ?: ""
                     expanded = false
                 }) {
