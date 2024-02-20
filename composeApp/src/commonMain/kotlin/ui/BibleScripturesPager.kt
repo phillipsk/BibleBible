@@ -56,13 +56,14 @@ internal fun BibleScripturesPager(
     val debounceDuration = 300L  // 300 ms for debounce duration
 
     // Fetch chapter content when selectedTabIndex changes
-    LaunchedEffect(selectedTabIndex, bibleVersion, selectedBook) {
+    LaunchedEffect(bibleVersion, selectedBook) {
         Napier.v("LaunchedEffect: selectedTabIndex: $selectedTabIndex", tag = "BB2460")
         Napier.v("Fetching chapter: $selectedTabIndex", tag = "BB2460")
-        val chapter = selectedTabIndex.plus(1)
+        val chapter = 1 //selectedTabIndex.plus(1)
             scope.launch {
                 getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
-                pagerColumnScrollState.scrollTo(0) // Scroll to the top
+                selectedTabIndex = 0
+                pagerState.animateScrollToPage(0)
             }
     }
 
