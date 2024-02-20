@@ -46,7 +46,7 @@ data class ChapterCount(val chapterCount: Int? = null)
 
 data class BibleChapterUIState(
     val id: String? = null,
-    val bookId: Int = 1,
+    val bookId: Int? = null,
     val chapterId: Int? = 1,
     val text: String? = null,
     val chapterList: List<Int>? = null,

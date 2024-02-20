@@ -80,7 +80,7 @@ internal fun BibleScripturesPager(
     }
 
     AnimatedVisibility(
-        visible = chapters.text != null,
+        visible = chapters.bookId != null,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 150))
     ) {
