@@ -3,13 +3,14 @@ package data.bibleIQ
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-val longBookNamesSet = setOf(13,14,46,47,52,53)
+val longBookNamesSet = setOf(13, 14, 46, 47, 52, 53)
 
 
 @Serializable
 data class BibleIQVersions(
     val data: List<BibleIQVersion> = listOf(),
 )
+
 @Serializable
 data class BibleIQVersion(
     val table: String? = null,
@@ -23,6 +24,7 @@ data class BibleIQVersion(
 data class BibleIQBooks(
     val data: List<BibleIQBook> = listOf(),
 )
+
 @Serializable
 data class BibleIQBook(private val b: String? = null, private val n: String? = null) {
     val bookId = b?.toInt() ?: 1
@@ -38,6 +40,9 @@ data class BibleChapter(
     val v: String? = null,
     val t: String? = null
 )
+
+@Serializable
+data class ChapterCount(val chapterCount: Int? = null)
 
 data class BibleChapterUIState(
     val id: String? = null,

@@ -14,3 +14,6 @@ class GetChapter(
     private val chapterId: String? = "1",
     private val versionId: String? = BibleIQDataModel.selectedVersion.lowercase()
 )
+
+@Resource("/GetChapterCount")
+class GetChapterCount(val bookId: Int)

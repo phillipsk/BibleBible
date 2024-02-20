@@ -8,6 +8,8 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -50,6 +52,7 @@ internal suspend fun getChapterBibleIQ(
     val bookId = if (book !is Int) BibleIQDataModel.getAPIBibleCardinal(book as String) else book
     Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "BB2452")
     val chapters: List<BibleChapter>
+    var chapterCount: ChapterCount?
     withContext(Dispatchers.IO) {
         chapters =
             httpClientBibleIQ.get(
@@ -63,10 +66,17 @@ internal suspend fun getChapterBibleIQ(
             "getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}",
             tag = "BB2452"
         )
+        chapterCount = getChapterCountBibleIQ(bookId).await()
 
     }
     withContext(Dispatchers.Main) {
         Napier.v("getChapterBibleIQ :: update UI", tag = "BB2452")
-        BibleIQDataModel.updateBibleChapter(chapters)
+        BibleIQDataModel.updateBibleChapter(chapters, chapterCount)
+    }
+}
+
+private suspend fun getChapterCountBibleIQ(bookId: Int) = coroutineScope {
+    async(Dispatchers.IO) {
+        httpClientBibleIQ.get(GetChapterCount(bookId)).body<ChapterCount>()
     }
 }

@@ -51,14 +51,16 @@ object BibleIQDataModel {
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
-    fun updateBibleChapter(newChapter: List<BibleChapter>) {
+    fun updateBibleChapter(newChapter: List<BibleChapter>, chapterCount: ChapterCount?) {
         bibleChapter = newChapter.firstOrNull()?.b?.toInt()?.let { bookId ->
             BibleChapterUIState(
                 id = newChapter.firstOrNull()?.id,
                 bookId = bookId,
                 chapterId = newChapter.firstOrNull()?.c?.toInt(),
                 text = newChapter.joinToString(" ") { "[${it.v}] ${it.t}" },
-                chapterList = newChapter.mapNotNull { it.v?.toInt() }
+                chapterList = chapterCount?.chapterCount?.let { count ->
+                    (1..count).toList()
+                }
             )
         }
     }
