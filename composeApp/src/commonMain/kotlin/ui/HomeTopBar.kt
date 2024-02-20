@@ -102,11 +102,13 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 @Composable
 internal fun BookMenu(bookDataList: List<BookData>?) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedBookData by remember { mutableStateOf(BibleIQDataModel.selectedBook) }
+    var selectedBookData by remember(BibleIQDataModel.selectedBook.abbreviation) { mutableStateOf(BibleIQDataModel.selectedBook) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
+    Napier.v("BookMenu: selectedBookData: ${selectedBookData.abbreviation}", tag = "IQ2455")
+    Napier.v("BookMenu: BibleIQDataModel selectedBookData: ${BibleIQDataModel.selectedBook.abbreviation}", tag = "IQ2455")
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
