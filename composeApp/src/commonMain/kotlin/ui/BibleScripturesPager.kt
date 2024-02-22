@@ -54,22 +54,36 @@ internal fun BibleScripturesPager(
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 300L  // 300 ms for debounce duration
+    var apiCallMade by remember(selectedBook) { mutableStateOf(false) }
 
     // Fetch chapter content when selectedTabIndex changes
     LaunchedEffect(selectedTabIndex) {
-        Napier.v("LaunchedEffect: selectedTabIndex: $bibleVersion $selectedBook $selectedTabIndex", tag = "BB2460")
-        val chapter = selectedTabIndex.plus(1)
+        Napier.v(
+            "LaunchedEffect: selectedTabIndex: $bibleVersion $selectedBook $selectedTabIndex",
+            tag = "BB2460"
+        )
+        if (!apiCallMade) {
+            val chapter = selectedTabIndex.plus(1)
             scope.launch {
                 getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
-//                selectedTabIndex = 0
-//                pagerState.animateScrollToPage(0)
             }
+        }
     }
 
     LaunchedEffect(bibleVersion, selectedBook) {
-        Napier.v("LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex", tag = "BB2460")
-        selectedTabIndex = 0
-        pagerState.animateScrollToPage(0)
+        if (selectedTabIndex != 0) {
+            Napier.v(
+                "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex",
+                tag = "BB2460"
+            )
+            scope.launch {
+                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
+                apiCallMade = true
+                selectedTabIndex = 0
+                pagerState.animateScrollToPage(0)
+                apiCallMade = false
+            }
+        }
     }
 
     // Sync selectedTabIndex with HorizontalPager's currentPage
