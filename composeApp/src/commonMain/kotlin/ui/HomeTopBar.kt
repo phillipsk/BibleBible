@@ -22,6 +22,7 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,12 +39,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.apiBible.BibleAPIBibles
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
-import data.apiBible.getChapterBibleAPI
+import data.bibleIQ.BibleIQDataModel
+import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
@@ -89,11 +89,10 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
                 BookMenu(
-                    selectedBookData = BibleAPIDataModel.selectedBookData,
                     bookDataList = BibleAPIDataModel.books.data
                 )
                 BibleMenu(
-                    bibleVersionsList = BibleAPIDataModel.abbreviationList
+                    bibleVersionsList = BibleIQDataModel.bibleVersions
                 )
             }
         }
@@ -101,13 +100,15 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 }
 
 @Composable
-internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?) {
-    val scope = rememberCoroutineScope()
+internal fun BookMenu(bookDataList: List<BookData>?) {
     var expanded by remember { mutableStateOf(false) }
+    var selectedBookData by remember(BibleIQDataModel.selectedBook.abbreviation) { mutableStateOf(BibleIQDataModel.selectedBook) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
+    Napier.v("BookMenu: selectedBookData: ${selectedBookData.abbreviation}", tag = "IQ2455")
+    Napier.v("BookMenu: BibleIQDataModel selectedBookData: ${BibleIQDataModel.selectedBook.abbreviation}", tag = "IQ2455")
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
@@ -127,19 +128,10 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
         bookDataList?.forEach {
             DropdownMenuItem(onClick = {
                 expanded = false
-                scope.launch {
-                    Napier.v("scope launch", tag = "BB2455")
-                    getChapterBibleAPI(
-                        chapterNumber = it.remoteKey,
-                        bibleId = BibleAPIDataModel.selectedBibleId
-                    )
-                    Napier.v("scope middle", tag = "BB2455")
-                    BibleAPIDataModel.run {
-                        updateBookData(it)
-                        updateSelectedChapter(it.remoteKey)
-                    }
-                    Napier.v("scope end", tag = "BB2455")
+                BibleIQDataModel.run {
+                    updateSelectedBook(it)
                 }
+                selectedBookData = it
             }) {
                 Text("${it.abbreviation} ")
             }
@@ -148,15 +140,19 @@ internal fun BookMenu(selectedBookData: BookData, bookDataList: List<BookData>?)
 }
 
 @Composable
-internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) {
+internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
+    var selectedBibleVersion by remember { mutableStateOf(BibleIQDataModel.selectedVersion) }
+    LaunchedEffect(true) {
+        Napier.v("LaunchedEffect :: BibleMenu", tag = "IQ2455")
+    }
     ClickableText(
-        text = AnnotatedString(BibleAPIDataModel.selectedVersion),
+        text = AnnotatedString(selectedBibleVersion),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
         onClick = { expanded = !expanded }
     )
@@ -171,23 +167,16 @@ internal fun BibleMenu(bibleVersionsList: List<BibleAPIBibles.BibleAPIVersion>) 
         expanded = expanded,
         onDismissRequest = { expanded = false }
     ) {
-        bibleVersionsList.forEach {
-            if (it.abbreviationLocal != null && it.id != null) {
+        bibleVersionsList.data.forEach {
+            if (it.abbreviation != null) {
                 DropdownMenuItem(onClick = {
-                    scope.launch {
-//                        getBooksBibleAPI()
-                        getChapterBibleAPI(
-                            chapterNumber = BibleAPIDataModel.selectedChapter,
-                            bibleId = it.id
-                        )
-                        BibleAPIDataModel.run {
-                            updateSelectedVersion(it.abbreviationLocal)
-                            updateSelectedBibleId(it.id)
-                        }
+                    BibleIQDataModel.run {
+                        updateSelectedVersion(it.abbreviation)
                     }
+                    selectedBibleVersion = it.abbreviation ?: ""
                     expanded = false
                 }) {
-                    Text("${it.nameLocalCleaned} ")
+                    Text("${it.abbreviation} ")
                 }
             }
         }

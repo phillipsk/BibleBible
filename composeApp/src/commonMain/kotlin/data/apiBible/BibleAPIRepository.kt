@@ -189,6 +189,7 @@ private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
 }
 
 private suspend fun loadVerseData(selectedChapter: String, bibleId: String): ChapterContent? {
+    return null
     return try {
         withContext(Dispatchers.IO) {
             Napier.d("inside start load before delay", tag = "BB2452")

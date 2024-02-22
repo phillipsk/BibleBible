@@ -3,10 +3,16 @@ package data.bibleIQ
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-val longBookNamesSet = setOf(13,14,46,47,52,53)
+val longBookNamesSet = setOf(13, 14, 46, 47, 52, 53)
+
 
 @Serializable
-data class BibleVersion(
+data class BibleIQVersions(
+    val data: List<BibleIQVersion> = listOf(),
+)
+
+@Serializable
+data class BibleIQVersion(
     val table: String? = null,
     @SerialName("version_id") val versionId: String? = null,
     val abbreviation: String? = null,
@@ -15,7 +21,12 @@ data class BibleVersion(
 )
 
 @Serializable
-data class BibleBook(private val b: String? = null, private val n: String? = null) {
+data class BibleIQBooks(
+    val data: List<BibleIQBook> = listOf(),
+)
+
+@Serializable
+data class BibleIQBook(private val b: String? = null, private val n: String? = null) {
     val bookId = b?.toInt() ?: 1
     private val isLongName = bookId in longBookNamesSet
     val name = (if (isLongName) n?.take(7) else n) ?: "Genesis"
@@ -30,9 +41,12 @@ data class BibleChapter(
     val t: String? = null
 )
 
+@Serializable
+data class ChapterCount(val chapterCount: Int? = null)
+
 data class BibleChapterUIState(
     val id: String? = null,
-    val bookId: Int = 1,
+    val bookId: Int? = null,
     val chapterId: Int? = 1,
     val text: String? = null,
     val chapterList: List<Int>? = null,
@@ -61,7 +75,4 @@ val bibleBooksFull = listOf(
     "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
     "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
 )
-
-// You can access and use the 'bibleBooks' list in your Kotlin code as needed.
-
 

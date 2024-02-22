@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
-import data.apiBible.getChapterBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
@@ -52,16 +51,20 @@ internal fun BibleHomeScreen() {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BibleBookList(
-                bookData = BibleAPIDataModel.books.data,
-                selectedChapter = BibleAPIDataModel.selectedChapter,
-                bibleId = BibleAPIDataModel.selectedBibleId
-            )
-            BibleIQDataModel.bibleChapter?.let { it1 ->
-                BibleScripturesPager(
-                    chapters = it1,
-                    bibleId = BibleAPIDataModel.selectedBibleId
+            if (BibleAPIDataModel.showHomePage) {
+                BibleBookList(
+                    bookData = BibleAPIDataModel.books.data,
+                    selectedChapter = BibleAPIDataModel.selectedChapter,
+                    bibleId = BibleIQDataModel.selectedVersion
                 )
+            } else {
+                BibleIQDataModel.bibleChapter?.let { it1 ->
+                    BibleScripturesPager(
+                        chapters = it1,
+                        bibleVersion = BibleIQDataModel.selectedVersion,
+                        selectedBook = BibleIQDataModel.selectedBook
+                    )
+                }
             }
         }
         if (errorMsg.isNotEmpty()) {
@@ -78,7 +81,7 @@ internal fun BibleHomeScreen() {
 internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
-        visible = !bookData.isNullOrEmpty() && selectedChapter == "",
+        visible = BibleAPIDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
@@ -97,12 +100,8 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                         updateBookData(it)
                                         updateSelectedChapter(it.remoteKey)
                                     }
-                                    scope.launch {
-                                        getChapterBibleAPI(
-                                            chapterNumber = it.remoteKey,
-                                            bibleId = bibleId
-                                        )
-                                    }
+                                    BibleIQDataModel.updateSelectedBook(it)
+                                    BibleAPIDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
