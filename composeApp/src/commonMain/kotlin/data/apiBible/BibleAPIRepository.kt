@@ -2,7 +2,6 @@ package data.apiBible
 
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
-import data.bibleIQ.getChapterBibleIQ
 import data.httpClientBibleAPI
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
@@ -127,7 +126,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
             // httpClient.close()
         }
     } else {
-        getChapterBibleIQ(book = chapterNumber, version = bibleId)
+//        getChapterBibleIQ(book = chapterNumber, version = bibleId)
     }
 }
 

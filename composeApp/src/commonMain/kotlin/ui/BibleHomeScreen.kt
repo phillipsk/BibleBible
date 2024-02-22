@@ -60,9 +60,9 @@ internal fun BibleHomeScreen() {
             } else {
                 BibleIQDataModel.bibleChapter?.let { it1 ->
                     BibleScripturesPager(
-                        chapters = it1,
                         bibleVersion = BibleIQDataModel.selectedVersion,
-                        selectedBook = BibleIQDataModel.selectedBook
+                        selectedBook = BibleIQDataModel.selectedBook,
+                        biblePagerUiState = BibleIQDataModel.biblePagerUiState
                     )
                 }
             }
