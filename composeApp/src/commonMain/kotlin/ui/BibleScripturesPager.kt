@@ -71,18 +71,18 @@ internal fun BibleScripturesPager(
     }
 
     LaunchedEffect(bibleVersion, selectedBook) {
-        if (selectedTabIndex != 0) {
-            Napier.v(
-                "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex",
-                tag = "BB2460"
-            )
-            scope.launch {
-                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
-                apiCallMade = true
+        Napier.v(
+            "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex",
+            tag = "BB2460"
+        )
+        scope.launch {
+            getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
+            apiCallMade = true
+            if (selectedTabIndex != 0) {
                 selectedTabIndex = 0
                 pagerState.animateScrollToPage(0)
-                apiCallMade = false
             }
+            apiCallMade = false
         }
     }
 
