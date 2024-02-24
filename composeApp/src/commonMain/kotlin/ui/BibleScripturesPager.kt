@@ -93,6 +93,7 @@ internal fun BibleScripturesPager(
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         }
+        pagerColumnScrollState.scrollTo(0)
     }
 
     if (chapters.bookId != null) {
