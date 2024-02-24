@@ -56,7 +56,10 @@ internal fun BibleScripturesPager(
     var manualResetInProgress by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedBook) {
-        Napier.v("LaunchedEffect: selectedBook: ${selectedBook.bookId}", tag = "BB2460")
+        Napier.v(
+            "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
+            tag = "BB2460"
+        )
         manualResetInProgress = true // Indicate start of manual reset
         selectedTabIndex = 0
         pagerState.scrollToPage(0)
@@ -65,7 +68,10 @@ internal fun BibleScripturesPager(
     }
 
     LaunchedEffect(bibleVersion) {
-        Napier.v("LaunchedEffect: bibleVersion: $bibleVersion", tag = "BB2460")
+        Napier.v(
+            "LaunchedEffect: bibleVersion: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
+            tag = "BB2460"
+        )
         getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
     }
 
@@ -74,7 +80,6 @@ internal fun BibleScripturesPager(
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (isPageChangeFromTabClick) {
             if (currentTime - lastTabClickTime > debounceDuration) {
-                Napier.v("LaunchedEffect: currentTime: ${currentTime}", tag = "BB2460")
                 selectedTabIndex = pagerState.currentPage
                 getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
             }
