@@ -55,58 +55,31 @@ internal fun BibleScripturesPager(
     val debounceDuration = 100L  // 300 ms for debounce duration
     var manualResetInProgress by remember { mutableStateOf(false) }
 
-    // Adjust LaunchedEffect for selectedBook to manage reset state correctly.
     LaunchedEffect(selectedBook) {
         Napier.v("LaunchedEffect: selectedBook: ${selectedBook.bookId}", tag = "BB2460")
         manualResetInProgress = true // Indicate start of manual reset
         selectedTabIndex = 0
         pagerState.scrollToPage(0)
-        // Perform API call as needed after resetting state
         getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         manualResetInProgress = false // Reset complete
     }
 
-    // React to changes in bibleVersion.
     LaunchedEffect(bibleVersion) {
         Napier.v("LaunchedEffect: bibleVersion: $bibleVersion", tag = "BB2460")
-        // Perform API call when bibleVersion changes.
         getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
     }
 
-//    // Handle page changes and distinguish between user-initiated actions and programmatic changes.
-//    LaunchedEffect(pagerState.currentPage) {
-//        Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
-//        if (!manualResetInProgress && pagerState.currentPage != selectedTabIndex) {
-//            selectedTabIndex = pagerState.currentPage
-//            // Perform API call only if the change is user-initiated and not during manual reset
-//            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
-//        }
-//    }
-
-    // Sync selectedTabIndex with HorizontalPager's currentPage // 1708754388111
     LaunchedEffect(pagerState.currentPage) {
         Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (isPageChangeFromTabClick) {
-            Napier.v(
-                "LaunchedEffect: isPageChangeFromTabClick: $currentTime $lastTabClickTime ${currentTime - lastTabClickTime}",
-                tag = "BB2460"
-            )
             if (currentTime - lastTabClickTime > debounceDuration) {
                 Napier.v("LaunchedEffect: currentTime: ${currentTime}", tag = "BB2460")
                 selectedTabIndex = pagerState.currentPage
                 getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
-            Napier.v(
-                "LaunchedEffect: isPageChangeFromTabClick: ${isPageChangeFromTabClick}",
-                tag = "BB2460"
-            )
         } else if (!manualResetInProgress) {
-            Napier.v(
-                "LaunchedEffect: manualResetInProgress: ${manualResetInProgress}",
-                tag = "BB2460"
-            )
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         }
