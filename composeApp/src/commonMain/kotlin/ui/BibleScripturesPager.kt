@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.apiBible.BookData
-import data.apiBible.Chapter
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
@@ -32,6 +31,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import ui.BibleScriptures
+import ui.LoadingScreen
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -42,8 +42,7 @@ internal fun BibleScripturesPager(
 ) {
     val scope = rememberCoroutineScope()
     val pagerColumnScrollState = rememberScrollState()
-    var selectedChapter by remember(chapters.bookId) { mutableStateOf<Chapter?>(null) }
-    var selectedTabIndex by remember(chapters.bookId) { mutableStateOf(0) }
+    var selectedTabIndex by remember(selectedBook) { mutableStateOf(0) }
     Napier.v(
         "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
                 " :: selectedTabIndex $selectedTabIndex", tag = "BB2460"
@@ -53,94 +52,100 @@ internal fun BibleScripturesPager(
     }
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
-    val debounceDuration = 300L  // 300 ms for debounce duration
-    var apiCallMade by remember(selectedBook) { mutableStateOf(false) }
+    val debounceDuration = 100L  // 300 ms for debounce duration
+    var initialLoadDone by remember { mutableStateOf(false) }
+    val uiStateReady =
+        BibleIQDataModel.getAPIBibleCardinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
-    // Fetch chapter content when selectedTabIndex changes
-    LaunchedEffect(selectedTabIndex) {
+    LaunchedEffect(selectedBook) {
+//    TODO: calling and updating BibleChapterUIState on selectedBook change
         Napier.v(
-            "LaunchedEffect: selectedTabIndex: $bibleVersion $selectedBook $selectedTabIndex",
+            "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
             tag = "BB2460"
         )
-        if (!apiCallMade) {
-            val chapter = selectedTabIndex.plus(1)
-            scope.launch {
-                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
-            }
+        initialLoadDone = true
+        getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        pagerState.scrollToPage(0)
+        selectedTabIndex = 0
+        initialLoadDone = false
+    }
+
+    LaunchedEffect(bibleVersion) {
+        Napier.v(
+            "LaunchedEffect: bibleVersion: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
+            tag = "BB2460"
+        )
+        if (uiStateReady) {
+            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         }
     }
 
-    LaunchedEffect(bibleVersion, selectedBook) {
-        Napier.v(
-            "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex",
-            tag = "BB2460"
-        )
-        scope.launch {
-            getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
-            apiCallMade = true
-            if (selectedTabIndex != 0) {
-                selectedTabIndex = 0
-                pagerState.animateScrollToPage(0)
-            }
-            apiCallMade = false
-        }
-    }
-
-    // Sync selectedTabIndex with HorizontalPager's currentPage
     LaunchedEffect(pagerState.currentPage) {
         Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
         val currentTime = Clock.System.now().toEpochMilliseconds()
-        if (!isPageChangeFromTabClick && currentTime - lastTabClickTime > debounceDuration && pagerState.currentPage != selectedTabIndex) {
+        if (isPageChangeFromTabClick) {
+            if (currentTime - lastTabClickTime > debounceDuration) {
+                selectedTabIndex = pagerState.currentPage
+                getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+            }
+            isPageChangeFromTabClick = false
+        } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
+            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         }
-        // Reset the flag after handling the page change
-        isPageChangeFromTabClick = false
     }
 
-    AnimatedVisibility(
-        visible = chapters.bookId != null,
-        enter = fadeIn(initialAlpha = 0.4f),
-        exit = fadeOut(animationSpec = tween(durationMillis = 150))
-    ) {
-        Column {
-            ScrollableTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                edgePadding = 16.dp,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                        color = MaterialTheme.colors.primary
-                    )
-                }
-            ) {
-                Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
-                chapters.chapterList?.forEachIndexed { index, e ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            Napier.v("Tab onClick: $index", tag = "BB2460")
-                            if (index != selectedTabIndex) {
-                                isPageChangeFromTabClick = true
-                                lastTabClickTime = Clock.System.now().toEpochMilliseconds()
-                                selectedTabIndex = index
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
+    if (chapters.bookId != null) {
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(initialAlpha = 0.4f),
+            exit = fadeOut(animationSpec = tween(durationMillis = 150))
+        ) {
+            Column {
+                ScrollableTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    edgePadding = 16.dp,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                            color = MaterialTheme.colors.primary
+                        )
+                    }
+                ) {
+                    Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
+                    chapters.chapterList?.forEachIndexed { index, e ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                Napier.v("Tab onClick: $index", tag = "BB2460")
+                                if (index != selectedTabIndex) {
+                                    isPageChangeFromTabClick = true
+                                    lastTabClickTime = Clock.System.now().toEpochMilliseconds()
+                                    selectedTabIndex = index
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
                                 }
-                            }
-                        },
-                        text = { Text(e.toString()) }
-                    )
+                            },
+                            text = { Text(e.toString()) }
+                        )
+                    }
                 }
-            }
 
-            HorizontalPager(
-                state = pagerState,
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.weight(1f)
-            ) { page ->
-                Napier.v("HorizontalPager: currentPage: ${pagerState.currentPage}", tag = "BB2460")
-                BibleScriptures(chapters, pagerColumnScrollState)
+                HorizontalPager(
+                    state = pagerState,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.weight(1f)
+                ) { page ->
+                    Napier.v(
+                        "HorizontalPager: currentPage: ${pagerState.currentPage}",
+                        tag = "BB2460"
+                    )
+                    BibleScriptures(chapters, pagerColumnScrollState)
+                }
             }
         }
+    } else {
+        LoadingScreen()
     }
 }
