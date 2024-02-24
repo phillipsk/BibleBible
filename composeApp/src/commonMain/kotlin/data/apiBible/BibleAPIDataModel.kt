@@ -65,12 +65,10 @@ object BibleAPIDataModel {
     internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
-//        _selectedChapter.value = selectedBookData.value.bookId + "." + (chapter ?: "1")
     }
 
     val onHomeClick: () -> Unit = {
         Napier.v("onHomeClick", tag = "BB2452")
-//        _selectedChapter.value = ""
         showHomePage = true
     }
 
