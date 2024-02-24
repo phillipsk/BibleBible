@@ -31,6 +31,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import ui.BibleScriptures
+import ui.LoadingScreen
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,8 +63,10 @@ internal fun BibleScripturesPager(
         )
         manualResetInProgress = true // Indicate start of manual reset
         selectedTabIndex = 0
-        pagerState.scrollToPage(0)
         getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        scope.launch {
+            pagerState.scrollToPage(0)
+        }
         manualResetInProgress = false // Reset complete
     }
 
@@ -72,7 +75,9 @@ internal fun BibleScripturesPager(
             "LaunchedEffect: bibleVersion: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
             tag = "BB2460"
         )
-        getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        if (chapters.bookId != null) {
+            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        }
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -90,51 +95,57 @@ internal fun BibleScripturesPager(
         }
     }
 
-
-    AnimatedVisibility(
-        visible = chapters.bookId != null,
-        enter = fadeIn(initialAlpha = 0.4f),
-        exit = fadeOut(animationSpec = tween(durationMillis = 150))
-    ) {
-        Column {
-            ScrollableTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                edgePadding = 16.dp,
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                        color = MaterialTheme.colors.primary
-                    )
-                }
-            ) {
-                Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
-                chapters.chapterList?.forEachIndexed { index, e ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = {
-                            Napier.v("Tab onClick: $index", tag = "BB2460")
-                            if (index != selectedTabIndex) {
-                                isPageChangeFromTabClick = true
-                                lastTabClickTime = Clock.System.now().toEpochMilliseconds()
-                                selectedTabIndex = index
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
+    if (chapters.bookId != null) {
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(initialAlpha = 0.4f),
+            exit = fadeOut(animationSpec = tween(durationMillis = 150))
+        ) {
+            Column {
+                ScrollableTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    edgePadding = 16.dp,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.Indicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                            color = MaterialTheme.colors.primary
+                        )
+                    }
+                ) {
+                    Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
+                    chapters.chapterList?.forEachIndexed { index, e ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                Napier.v("Tab onClick: $index", tag = "BB2460")
+                                if (index != selectedTabIndex) {
+                                    isPageChangeFromTabClick = true
+                                    lastTabClickTime = Clock.System.now().toEpochMilliseconds()
+                                    selectedTabIndex = index
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(index)
+                                    }
                                 }
-                            }
-                        },
-                        text = { Text(e.toString()) }
-                    )
+                            },
+                            text = { Text(e.toString()) }
+                        )
+                    }
                 }
-            }
 
-            HorizontalPager(
-                state = pagerState,
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.weight(1f)
-            ) { page ->
-                Napier.v("HorizontalPager: currentPage: ${pagerState.currentPage}", tag = "BB2460")
-                BibleScriptures(chapters, pagerColumnScrollState)
+                HorizontalPager(
+                    state = pagerState,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.weight(1f)
+                ) { page ->
+                    Napier.v(
+                        "HorizontalPager: currentPage: ${pagerState.currentPage}",
+                        tag = "BB2460"
+                    )
+                    BibleScriptures(chapters, pagerColumnScrollState)
+                }
             }
         }
+    } else {
+        LoadingScreen()
     }
 }
