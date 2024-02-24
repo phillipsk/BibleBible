@@ -17,13 +17,11 @@ internal fun App() {
     initializeNapier()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(true) {
-//        getBiblesBibleAPI()
         getVersionsBibleIQ()
         getBooksBibleAPI()
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
-//        BibleAPIDataModel.showHomePage = true
     }
 
     BibleBibleTheme {

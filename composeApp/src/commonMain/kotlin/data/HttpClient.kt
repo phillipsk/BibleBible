@@ -35,16 +35,9 @@ private fun createHttpClient(config: HttpClientConfig): HttpClient {
                 ignoreUnknownKeys = true
             })
         }
-//        install(HttpTimeout) {
-//            requestTimeoutMillis = 5000 // Request timeout: 5 seconds
-//            connectTimeoutMillis = 3000 // Connect timeout: 3 seconds
-//            socketTimeoutMillis = 15000 // Socket timeout: 15 seconds
-//        }
-
         defaultRequest {
             url {
                 host = config.baseUrl
-//                path("v1/")
                 protocol = URLProtocol.HTTPS
             }
             header(config.apiKeyHeader, config.apiKey)
