@@ -40,11 +40,8 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 ![iOS demo](previews/demo_ios.gif)
 
 ## Backlog
-*   add screenshots to README.md
 *   socket timeout and api/db retries
-*   UI chapter load on iOS
 *   handle UI when chapter is not cached and remote call fails
-*   add UI spinner for chapter loading
 *   Context Switching: Remember, switching between dispatchers involves context switching, 
 *   which can have a slight performance overhead. Minimize unnecessary switching for optimal performance.
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
@@ -54,44 +51,31 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   style UI
 *   control size of BookMenu() drop down menu and fix spacing of toolbar menus
 *   crashlytics with touchlab CrashKiOS and kermit
-*   socket retry
-*   viewpager horizontal scroll with verses
 *   back handler
 *   read JSON files with library
 *   remove material library in favor of material3
-*   reduce animation tween duration
-*   refactor model mutableState getters to private set
 *   background color on ScrollableTabRow material3
-*   delay swipe scripture load until user settles on a chapter 
 *   add shimmer effect to scripture load
 *   merge socket timeout branch, revisit snackbar functionality
-*   review commented code,
 *   A-z, OT-NT, sorted comparator
-*   Mutable State Flow
 *   API success state
-*   am I recomposing the view unnecessarily? due to no navigation 
-*   use conditionals to avoid recomposing views
-*   compile release build on real device
 *   buy iPhone
-*   remove try catch blocks
 *   UI TESTS
 *   mock errors; add Result type to API calls
 *   use immutable state with compose
 *   Fix bible book abbreviation on home screen, change sort order
 *   handle empty list and 200 error response from Rapid API
-*   when bibleVersion changes, does a call to Chapter count need to be made?
-    review duplicate API call on launch effect
+*   when bibleVersion changes, does a call to Chapter count need to be made
+*   review duplicate API call on launch effect
 
 ## Nice to have
-*  encapsulate BibleVersions to _bibleVersions
 *   add some UI home screen uniform design
 *   only need to query database by newly created databaseKey
 *   obfuscation, R8, Proguard
-*   log api call stats
+*   log api call stats, analytics
 *   refactor database object model
 *   review HTML, JSON, Text api queries
 *   pinch to zoom scriptures
-*   UI tests
 *   increase font size dynamically
 *   Fill white space in the book of Psalms
 
