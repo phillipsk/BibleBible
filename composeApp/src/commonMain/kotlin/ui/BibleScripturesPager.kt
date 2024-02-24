@@ -1,4 +1,3 @@
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -54,7 +53,7 @@ internal fun BibleScripturesPager(
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 100L  // 300 ms for debounce duration
-    var manualResetInProgress by remember { mutableStateOf(false) }
+    var initialLoadDone by remember { mutableStateOf(false) }
     val uiStateReady =
         BibleIQDataModel.getAPIBibleCardinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
@@ -64,13 +63,11 @@ internal fun BibleScripturesPager(
             "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
             tag = "BB2460"
         )
-        manualResetInProgress = true // Indicate start of manual reset
-        selectedTabIndex = 0
+        initialLoadDone = true
         getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
-        scope.launch {
-            pagerState.scrollToPage(0)
-        }
-        manualResetInProgress = false // Reset complete
+        pagerState.scrollToPage(0)
+        selectedTabIndex = 0
+        initialLoadDone = false
     }
 
     LaunchedEffect(bibleVersion) {
@@ -92,7 +89,7 @@ internal fun BibleScripturesPager(
                 getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
-        } else if (!manualResetInProgress) {
+        } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
         }
