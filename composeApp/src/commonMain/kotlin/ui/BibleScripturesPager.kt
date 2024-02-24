@@ -54,7 +54,9 @@ internal fun BibleScripturesPager(
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 300L  // 300 ms for debounce duration
-    var apiCallMade by remember(selectedBook) { mutableStateOf(false) }
+    var onLaunch by remember(selectedBook) { mutableStateOf(true) }
+    var onBibleVersion by remember(selectedBook) { mutableStateOf(false) }
+    var onBibleBook by remember(selectedBook) { mutableStateOf(false) }
 
     // Fetch chapter content when selectedTabIndex changes
     LaunchedEffect(selectedTabIndex) {
@@ -62,27 +64,48 @@ internal fun BibleScripturesPager(
             "LaunchedEffect: selectedTabIndex: $bibleVersion $selectedBook $selectedTabIndex",
             tag = "BB2460"
         )
-        if (!apiCallMade) {
+//        if (!apiCallMade) {
             val chapter = selectedTabIndex.plus(1)
             scope.launch {
                 getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
+//                if (onLaunch) {
+//                    selectedTabIndex = 0
+//                    pagerState.animateScrollToPage(0)
+//                }
+                onLaunch = false
+            }
+//        }
+    }
+
+    LaunchedEffect(selectedBook) {
+        if (!onLaunch && !onBibleVersion) {
+            Napier.v(
+                "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion ${selectedBook.bookId} $selectedTabIndex",
+                tag = "BB2460"
+            )
+            scope.launch {
+                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
+//                apiCallMade = true
+//                if (selectedTabIndex != 0) {
+//                    selectedTabIndex = 0
+//                    pagerState.animateScrollToPage(0)
+//                }
+                onBibleBook = true
             }
         }
     }
-
-    LaunchedEffect(bibleVersion, selectedBook) {
+    LaunchedEffect(bibleVersion) {
         Napier.v(
-            "LaunchedEffect: bibleVersion selectedBook :: $bibleVersion $selectedBook $selectedTabIndex",
-            tag = "BB2460"
+            "LaunchedEffect bibleVersion :: $bibleVersion $selectedTabIndex $onLaunch $onBibleBook $onBibleVersion",
+            tag = "IQ092"
         )
-        scope.launch {
-            getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = 1)
-            apiCallMade = true
-            if (selectedTabIndex != 0) {
-                selectedTabIndex = 0
-                pagerState.animateScrollToPage(0)
+        if (!onLaunch && !onBibleBook) {
+            scope.launch {
+                val chapter = selectedTabIndex.plus(1)
+                getChapterBibleIQ(book = BibleIQDataModel.selectedBook.remoteKey, chapter = chapter)
+//                apiCallMade = true
+                onBibleVersion = false
             }
-            apiCallMade = false
         }
     }
 
