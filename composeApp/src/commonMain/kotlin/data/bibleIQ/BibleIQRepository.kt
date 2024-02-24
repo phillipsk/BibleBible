@@ -23,8 +23,6 @@ internal suspend fun getBooksBibleIQ() {
         BibleIQDataModel.updateBibleBooks(BibleIQBooks(books))
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ092")
-    } finally {
-        // httpClient.close()
     }
 }
 
@@ -38,8 +36,6 @@ internal suspend fun getVersionsBibleIQ() {
         BibleIQDataModel.updateBibleVersions(BibleIQVersions(versions))
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ092")
-    } finally {
-        // httpClient.close()
     }
 }
 

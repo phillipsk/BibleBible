@@ -123,7 +123,6 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
             Napier.e("Error: ${e.message}", tag = "BB2452")
         } finally {
             Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
-            // httpClient.close()
         }
     } else {
 //        getChapterBibleIQ(book = chapterNumber, version = bibleId)
@@ -157,7 +156,6 @@ private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
     return try {
         withContext(Dispatchers.IO) {
             Napier.d("inside insert load before delay", tag = "BB2452")
-//            delay(3000)
             Napier.d("inside insert load end delay", tag = "BB2452")
             Napier.v("insertVerse chapterContent  :: ${chapterContent.data?.id}", tag = "BB2452")
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
@@ -188,6 +186,7 @@ private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
 }
 
 private suspend fun loadVerseData(selectedChapter: String, bibleId: String): ChapterContent? {
+    return null
     return try {
         withContext(Dispatchers.IO) {
             Napier.d("inside start load before delay", tag = "BB2452")

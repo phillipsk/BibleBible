@@ -3,7 +3,6 @@ package data
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.Logger
@@ -36,16 +35,9 @@ private fun createHttpClient(config: HttpClientConfig): HttpClient {
                 ignoreUnknownKeys = true
             })
         }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 5000 // Request timeout: 5 seconds
-            connectTimeoutMillis = 3000 // Connect timeout: 3 seconds
-            socketTimeoutMillis = 15000 // Socket timeout: 15 seconds
-        }
-
         defaultRequest {
             url {
                 host = config.baseUrl
-//                path("v1/")
                 protocol = URLProtocol.HTTPS
             }
             header(config.apiKeyHeader, config.apiKey)
