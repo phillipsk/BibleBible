@@ -34,6 +34,10 @@ Despite these considerations, I am excited about the potential of this app. As I
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
 
+## Previews
+### Android (left) and iOS (right)
+![Android demo](previews/demo_android.gif)
+![iOS demo](previews/demo_ios.gif)
 
 ## Backlog
 *   add screenshots to README.md
