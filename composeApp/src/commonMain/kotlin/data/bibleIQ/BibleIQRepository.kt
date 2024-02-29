@@ -8,6 +8,7 @@ import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
+import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
@@ -49,50 +50,56 @@ internal suspend fun getChapterBibleIQ(
     chapter: Int = 1,
     version: String = BibleIQDataModel.selectedVersion
 ) {
-    val bookId = if (book !is Int) BibleIQDataModel.getAPIBibleCardinal(book as String) else book
-    Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
-    val chapters: List<BibleChapter>
-    var chapterCount: ChapterCount?
+    try {
+        val bookId =
+            if (book !is Int) BibleIQDataModel.getAPIBibleCardinal(book as String) else book
+        Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
+        val chapters: List<BibleChapter>
+        var chapterCount: ChapterCount?
 
-    Napier.i("getChapterBibleAPI: $chapter :: version $version", tag = "IQ093")
-    Napier.d("start load", tag = "IQ093")
-    val cachedData = loadVerseData(chapter.toString(), version)
-    Napier.d("end load", tag = "IQ093")
-    Napier.v("cachedData value ${cachedData?.firstOrNull()?.v?.take(100)}", tag = "IQ093")
+        Napier.i("getChapterBibleAPI: $chapter :: version $version", tag = "IQ093")
+        Napier.d("start load", tag = "IQ093")
+        val cachedData = loadVerseData(chapter.toString(), version)
+        Napier.d("end load", tag = "IQ093")
+        Napier.v("cachedData value ${cachedData?.firstOrNull()?.v?.take(100)}", tag = "IQ093")
 
-    if (cachedData == null || cachedData.firstOrNull()?.v.isNullOrEmpty()) {
-        withContext(Dispatchers.IO) {
-            chapters =
-                httpClientBibleIQ.get(
-                    GetChapter(
-                        bookId = bookId,
-                        chapterId = chapter.toString(),
-                        versionId = version?.lowercase()
-                    )
-                ).body<List<BibleChapter>>()
-            Napier.v(
-                "getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}",
-                tag = "IQ093"
-            )
+        if (cachedData == null || cachedData.firstOrNull()?.v.isNullOrEmpty()) {
+            withContext(Dispatchers.IO) {
+                chapters =
+                    httpClientBibleIQ.get(
+                        GetChapter(
+                            bookId = bookId,
+                            chapterId = chapter.toString(),
+                            versionId = version.lowercase()
+                        )
+                    ).body<List<BibleChapter>>()
+                Napier.v(
+                    "getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}",
+                    tag = "IQ093"
+                )
+                chapterCount = getChapterCountBibleIQ(bookId).await()
+
+                withContext(Dispatchers.Main) {
+                    Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
+                    BibleIQDataModel.updateBibleChapter(chapters, chapterCount)
+                }
+                chapters.forEach {
+                    insertBibleVerses(it, version)
+                }
+            }
+        } else {
             chapterCount = getChapterCountBibleIQ(bookId).await()
 
             withContext(Dispatchers.Main) {
                 Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                BibleIQDataModel.updateBibleChapter(chapters, chapterCount)
-            }
-            chapters.forEach {
-                insertBibleVerses(it, version)
+                BibleIQDataModel.updateBibleChapter(cachedData, chapterCount)
             }
         }
-    } else {
-        chapterCount = getChapterCountBibleIQ(bookId).await()
-
-        withContext(Dispatchers.Main) {
-            Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-            BibleIQDataModel.updateBibleChapter(cachedData, chapterCount)
-        }
+    } catch (e: IOException) {
+        BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
     }
-
 }
 
 private suspend fun getChapterCountBibleIQ(bookId: Int) = coroutineScope {
@@ -110,7 +117,7 @@ private suspend fun insertBibleVerses(chapterContent: BibleChapter, version: Str
             val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
             chapterContent.let {
                 database.bibleBibleDatabaseQueries.insertVerse(
-                    uuid = it.id + version.lowercase(),
+                    uuid = it.id + "-" + version.lowercase(),
                     id = it.id ?: "",
                     b = it.b ?: "",
                     c = it.c ?: "",

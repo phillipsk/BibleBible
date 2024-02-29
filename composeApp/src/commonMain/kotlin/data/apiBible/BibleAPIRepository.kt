@@ -91,7 +91,7 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
         }
     } catch (e: Exception) {
         "Error fetching chapter: ${chapter + " :: " + e.message}".also {
-            BibleAPIDataModel.updateErrorSnackBar(it)
+//            BibleAPIDataModel.updateErrorSnackBar(it)
             Napier.e(it, tag = "BB2452")
         }
         null

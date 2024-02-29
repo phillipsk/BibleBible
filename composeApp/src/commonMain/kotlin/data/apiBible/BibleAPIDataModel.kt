@@ -66,18 +66,5 @@ object BibleAPIDataModel {
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
     }
 
-    val onHomeClick: () -> Unit = {
-        Napier.v("onHomeClick", tag = "BB2452")
-        showHomePage = true
-    }
 
-    private var _errorSnackBar = mutableStateOf("")
-    val errorSnackBar: String by _errorSnackBar
-    internal fun updateErrorSnackBar(error: String) {
-        Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
-        _errorSnackBar.value = error
-    }
-    internal fun clearErrorSnackBar() {
-        _errorSnackBar.value = ""
-    }
 }
