@@ -11,6 +11,7 @@ import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleIQDataModel {
+    const val RELEASE_BUILD = false
 
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set

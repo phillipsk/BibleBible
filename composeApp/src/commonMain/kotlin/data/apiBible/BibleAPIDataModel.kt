@@ -10,7 +10,6 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleAPIDataModel {
     const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
-    const val RELEASE_BUILD = false
     private var _selectedLanguage: MutableState<String> = mutableStateOf("eng")
     val selectedLanguage by _selectedLanguage
 

@@ -3,9 +3,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.checkDatabaseSize
 import data.apiBible.getBooksBibleAPI
+import data.bibleIQ.BibleIQDataModel
+import data.bibleIQ.checkDatabaseSize
 import data.bibleIQ.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -39,8 +39,8 @@ private val napierInitialized: Boolean by lazy {
 }
 
 internal fun initializeNapier() {
-    if (BibleAPIDataModel.RELEASE_BUILD) {
-        println("Release build :: ${BibleAPIDataModel.RELEASE_BUILD} :: BB2452")
+    if (BibleIQDataModel.RELEASE_BUILD) {
+        println("Release build :: ${BibleIQDataModel.RELEASE_BUILD} :: BB2452")
     } else {
         if (!napierInitialized) {
             println("Napier initialization error: Napier is not initialized.")

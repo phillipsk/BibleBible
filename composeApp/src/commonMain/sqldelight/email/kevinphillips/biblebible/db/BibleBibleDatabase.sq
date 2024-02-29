@@ -1,19 +1,11 @@
 CREATE TABLE IF NOT EXISTS BibleVerses (
     uuid TEXT PRIMARY KEY,
     id TEXT,
-    bibleId TEXT,
-    number TEXT,
-    bookId TEXT,
-    reference TEXT,
-    copyright TEXT,
-    verseCount INTEGER,
-    content TEXT,
-    nextId TEXT,
-    nextNumber TEXT,
-    nextBookId TEXT,
-    previousId TEXT,
-    previousNumber TEXT,
-    previousBookId TEXT,
+    b TEXT,
+    c TEXT,
+    v TEXT,
+    t TEXT,
+    version TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,30 +13,21 @@ insertVerse:
 INSERT INTO BibleVerses (
                 uuid,
                 id,
-                bibleId,
-                number,
-                bookId,
-                reference,
-                copyright,
-                verseCount,
-                content,
-                nextId,
-                nextNumber,
-                nextBookId,
-                previousId,
-                previousNumber,
-                previousBookId
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
-            );
+                b,
+                c,
+                v,
+                t,
+                version
+            ) VALUES (?,?,?,?,?,?,?);
 
 cleanBibleVerses:
 DELETE FROM BibleVerses WHERE created_at < date('now', '-60 days');
 
 selectVersesById:
 SELECT BibleVerses.*
-FROM BibleVerses WHERE id = ? AND bibleId = ?;
+FROM BibleVerses WHERE id = ? AND version = ?;
 
-CREATE INDEX idx_id_bibleId ON BibleVerses(id, bibleId);
+CREATE INDEX idx_id_bibleId ON BibleVerses(id, version);
 
 countVerses:
 SELECT COUNT(*) FROM BibleVerses;
