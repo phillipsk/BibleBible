@@ -4,8 +4,6 @@ import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.bibleIQ.getChapterBibleIQ
 import data.httpClientBibleAPI
-import email.kevinphillips.biblebible.cache.DriverFactory
-import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -15,7 +13,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
-val DATABASE_RETENTION = if (BibleAPIDataModel.RELEASE_BUILD) 30_000L else 10L
 const val USE_BIBLE_API = false
 
 internal suspend fun getBiblesBibleAPI() {
@@ -46,37 +43,6 @@ internal suspend fun getBooksBibleAPI() {
         // httpClient.close()
     }
 }
-
-internal suspend fun checkDatabaseRetention() {
-    try {
-        withContext(Dispatchers.IO) {
-            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
-            database.bibleBibleDatabaseQueries.cleanBibleVerses()
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    }
-}
-
-internal suspend fun checkDatabaseSize() {
-    try {
-        withContext(Dispatchers.IO) {
-            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
-            val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
-            val max = DATABASE_RETENTION
-            if (count > max) {
-                Napier.d(
-                    "clean database :: count $count :: max $max :: diff ${count - max}",
-                    tag = "BB2452"
-                )
-                database.bibleBibleDatabaseQueries.removeExcessVerses(max)
-            }
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    }
-}
-
 
 internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) {
     if (USE_BIBLE_API) {

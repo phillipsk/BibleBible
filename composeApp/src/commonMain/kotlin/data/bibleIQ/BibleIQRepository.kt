@@ -16,6 +16,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
+val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 10L
+
 internal suspend fun getBooksBibleIQ() {
     try {
         val books = if (LOCAL_DATA) {
@@ -149,5 +151,36 @@ private suspend fun loadVerseData(selectedChapter: String, version: String): Lis
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ093")
         null
+    }
+}
+
+
+internal suspend fun checkDatabaseRetention() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            database.bibleBibleDatabaseQueries.cleanBibleVerses()
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    }
+}
+
+internal suspend fun checkDatabaseSize() {
+    try {
+        withContext(Dispatchers.IO) {
+            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
+            val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
+            val max = DATABASE_RETENTION
+            if (count > max) {
+                Napier.d(
+                    "clean database :: count $count :: max $max :: diff ${count - max}",
+                    tag = "BB2452"
+                )
+                database.bibleBibleDatabaseQueries.removeExcessVerses(max)
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
     }
 }
