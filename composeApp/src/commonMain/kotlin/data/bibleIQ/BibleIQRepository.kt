@@ -54,7 +54,7 @@ internal suspend fun getChapterBibleIQ(
     try {
         val bookId = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey)
         Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
-        val chapters: List<BibleChapter>
+        val chapterVerses: List<BibleChapter>
         var chapterCount: ChapterCount?
 
         Napier.i("getChapterBibleAPI: $chapter :: version $version", tag = "IQ093")
@@ -68,9 +68,9 @@ internal suspend fun getChapterBibleIQ(
             }", tag = "IQ093"
         )
 
-        if (cachedData == null || cachedData.firstOrNull()?.v.isNullOrEmpty()) {
+        if (cachedData.isNullOrEmpty()) {
             withContext(Dispatchers.IO) {
-                chapters =
+                chapterVerses =
                     httpClientBibleIQ.get(
                         GetChapter(
                             bookId = bookId,
@@ -79,21 +79,29 @@ internal suspend fun getChapterBibleIQ(
                         )
                     ).body<List<BibleChapter>>()
                 Napier.v(
-                    "getChapterBibleIQ: ${chapters.firstOrNull()?.t?.take(100)}",
+                    "getChapterBibleIQ: ${chapterVerses.firstOrNull()?.t?.take(100)}",
                     tag = "IQ093"
                 )
-                chapterCount = getChapterCountBibleIQ(bookId).await()
+                if (chapterVerses.isEmpty()) {
+                    throw IOException("Error fetching chapter")
+                }
+                chapterCount = queryBookChapterSize(bookId, version)
+                if (chapterCount?.chapterCount == 0L || chapterCount?.chapterCount == null) {
+                    Napier.v("sql :: insert chapterCount", tag = "IQ093")
+                    chapterCount = getChapterCountBibleIQ(bookId).await()
+                    insertChapterCount(chapterCount, bookId, version)
+                }
 
                 withContext(Dispatchers.Main) {
                     Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                    BibleIQDataModel.updateBibleChapter(chapters, chapterCount)
+                    BibleIQDataModel.updateBibleChapter(chapterVerses, chapterCount)
                 }
-                insertBibleVerses(chapters, version)
+                insertBibleVerses(chapterVerses, version, chapterCount)
             }
         } else {
-//            chapterCount = getChapterCountBibleIQ(bookId).await()
-            chapterCount = ChapterCount(cachedData.size)
-
+            withContext(Dispatchers.IO) {
+                chapterCount = queryBookChapterSize(bookId, version)
+            }
             withContext(Dispatchers.Main) {
                 Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
                 BibleIQDataModel.updateBibleChapter(cachedData, chapterCount)
@@ -106,13 +114,38 @@ internal suspend fun getChapterBibleIQ(
     }
 }
 
+suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int, version: String) {
+    try {
+        chapterCount?.let {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+                withContext(Dispatchers.IO) {
+                    database.bibleBibleDatabaseQueries.insertChapterCount(
+                        uuid = bookId.toString() + "-" + version.lowercase(),
+                        b = bookId.toString(),
+                        version = version.lowercase(),
+                        chapterCount = chapterCount.chapterCount,
+                    )
+                }
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
+
 private suspend fun getChapterCountBibleIQ(bookId: Int) = coroutineScope {
     async(Dispatchers.IO) {
         httpClientBibleIQ.get(GetChapterCount(bookId)).body<ChapterCount>()
     }
 }
 
-private suspend fun insertBibleVerses(chapterContent: List<BibleChapter>, version: String) {
+private suspend fun insertBibleVerses(
+    chapterContent: List<BibleChapter>,
+    version: String,
+    chapterCount: ChapterCount?
+) {
     DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
         try {
             withContext(Dispatchers.IO) {
@@ -129,7 +162,8 @@ private suspend fun insertBibleVerses(chapterContent: List<BibleChapter>, versio
                                 c = it.c ?: "",
                                 v = it.v ?: "",
                                 t = it.t ?: "",
-                                version = version.lowercase()
+                                version = version.lowercase(),
+                                chapterCount = chapterCount?.chapterCount ?: 0
                             )
                         }
                     }
@@ -183,6 +217,20 @@ private suspend fun loadVerseData(
         }
     }
     return null
+}
+
+internal suspend fun queryBookChapterSize(bookId: Int, version: String): ChapterCount? {
+    return try {
+        val count = DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+            ?.bibleBibleDatabaseQueries?.countVersesByBookId(bookId.toString(), version.lowercase())
+            ?.executeAsOneOrNull()?.chapterCount
+        ChapterCount(count)
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+        null
+    } finally {
+        DriverFactory.closeDB()
+    }
 }
 
 

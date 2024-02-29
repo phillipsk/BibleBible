@@ -1,3 +1,4 @@
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -107,10 +108,14 @@ internal fun BibleScripturesPager(
                     selectedTabIndex = pagerState.currentPage,
                     edgePadding = 16.dp,
                     indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                            color = MaterialTheme.colors.primary
-                        )
+                        if (pagerState.currentPage < tabPositions.size) {
+                            TabRowDefaults.Indicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                                color = MaterialTheme.colors.primary
+                            )
+                        } else {
+                            Napier.e("Error: tabPositions: $tabPositions out of bounds", tag = "BB2460")
+                        }
                     }
                 ) {
                     Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
