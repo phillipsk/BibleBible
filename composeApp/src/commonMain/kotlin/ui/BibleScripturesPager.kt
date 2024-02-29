@@ -64,7 +64,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         initialLoadDone = true
-        getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         pagerState.scrollToPage(0)
         selectedTabIndex = 0
         initialLoadDone = false
@@ -76,7 +76,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         if (uiStateReady) {
-            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
     }
 
@@ -86,12 +86,12 @@ internal fun BibleScripturesPager(
         if (isPageChangeFromTabClick) {
             if (currentTime - lastTabClickTime > debounceDuration) {
                 selectedTabIndex = pagerState.currentPage
-                getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
-            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
         pagerColumnScrollState.scrollTo(0)
     }

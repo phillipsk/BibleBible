@@ -27,6 +27,10 @@ selectVersesById:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
 
+selectVersesByBookId:
+SELECT BibleVerses.*
+FROM BibleVerses WHERE b = ? AND c = ? AND version = ?;
+
 CREATE INDEX idx_id_bibleId ON BibleVerses(id, version);
 
 countVerses:
