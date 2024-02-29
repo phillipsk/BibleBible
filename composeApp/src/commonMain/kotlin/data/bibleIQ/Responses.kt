@@ -18,7 +18,15 @@ data class BibleIQVersion(
     val abbreviation: String? = null,
     val version: String? = null,
     val language: String? = null
-)
+) {
+    val uiAbbreviation = when (abbreviation) {
+        "KJV" -> "KJV"
+        "ASV" -> "ASV"
+        "RV1909" -> "Spanish: RV1909"
+        "SVD" -> "Arabic: SVD"
+        else -> "KJV"
+    }
+}
 
 @Serializable
 data class BibleIQBooks(

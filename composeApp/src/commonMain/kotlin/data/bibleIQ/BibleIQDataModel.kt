@@ -12,12 +12,16 @@ import kotlin.native.concurrent.ThreadLocal
 @ThreadLocal
 object BibleIQDataModel {
     const val RELEASE_BUILD = false
-
+    const val DEFAULT_BIBLE_ID = "kjv"
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
 
     fun updateBibleVersions(newVersions: BibleIQVersions) {
-        bibleVersions = newVersions
+        val list = newVersions.data.filter {
+            it.abbreviation == "KJV" || it.abbreviation == "ASV"
+                    || it.abbreviation == "RV1909" || it.abbreviation == "SVD"
+        }
+        bibleVersions = BibleIQVersions(data = list)
     }
 
     private var _selectedVersion: MutableState<String> = mutableStateOf("")

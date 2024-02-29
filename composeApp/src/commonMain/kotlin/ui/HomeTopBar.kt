@@ -176,7 +176,7 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
                     selectedBibleVersion = it.abbreviation ?: ""
                     expanded = false
                 }) {
-                    Text("${it.abbreviation} ")
+                    Text("${it.uiAbbreviation} ")
                 }
             }
         }
