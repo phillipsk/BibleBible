@@ -83,41 +83,20 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
         try {
             Napier.i("getChapterBibleAPI: $chapterNumber :: bibleId $bibleId", tag = "BB2452")
             Napier.d("start load", tag = "BB2452")
-            val cachedData = loadVerseData(chapterNumber, bibleId)
             Napier.d("end load", tag = "BB2452")
-            Napier.v("cachedData value ${cachedData?.data?.databaseKey}", tag = "BB2452")
 
-            if (cachedData == null || cachedData.data?.verseCount == 0) {
-                Napier.d("remote api: $chapterNumber", tag = "BB2452")
-                fetchChapter(chapterNumber, bibleId)?.let {
-                    withContext(Dispatchers.Main) {
-                        BibleAPIDataModel.updateChapterContent(it)
-                        Napier.d("end fetch ui updated", tag = "BB2452")
-                    }
-                    Napier.d("start delay", tag = "BB2452")
-//            delay(3000)
-                    Napier.d("end delay", tag = "BB2452")
-                    Napier.d("start insertVerse", tag = "BB2452")
-                    insertBibleVerses(it)
-                    Napier.d("end insertVerse", tag = "BB2452")
-                }
-            } else {
-                Napier.v("enter DB query", tag = "BB2452")
+            Napier.d("remote api: $chapterNumber", tag = "BB2452")
+            fetchChapter(chapterNumber, bibleId)?.let {
                 withContext(Dispatchers.Main) {
-                    Napier.v(
-                        "update UI main thread cachedData :: ${
-                            cachedData.data?.cleanedContent?.take(
-                                100
-                            )
-                        }", tag = "BB2452"
-                    )
-                    BibleAPIDataModel.updateChapterContent(cachedData)
+                    BibleAPIDataModel.updateChapterContent(it)
+                    Napier.d("end fetch ui updated", tag = "BB2452")
                 }
-                Napier.d(
-                    "db query ui update: ${BibleAPIDataModel.chapterContent.data?.id} :: ${
-                        BibleAPIDataModel.chapterContent.data?.cleanedContent?.take(100)
-                    }", tag = "BB2452"
-                )
+                Napier.d("start delay", tag = "BB2452")
+//            delay(3000)
+                Napier.d("end delay", tag = "BB2452")
+                Napier.d("start insertVerse", tag = "BB2452")
+//                    insertBibleVerses(it)
+                Napier.d("end insertVerse", tag = "BB2452")
             }
 
         } catch (e: Exception) {
@@ -149,87 +128,6 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             BibleAPIDataModel.updateErrorSnackBar(it)
             Napier.e(it, tag = "BB2452")
         }
-        null
-    }
-}
-
-private suspend fun insertBibleVerses(chapterContent: ChapterContent) {
-    return try {
-        withContext(Dispatchers.IO) {
-            Napier.d("inside insert load before delay", tag = "BB2452")
-            Napier.d("inside insert load end delay", tag = "BB2452")
-            Napier.v("insertVerse chapterContent  :: ${chapterContent.data?.id}", tag = "BB2452")
-            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
-            chapterContent.let {
-                database.bibleBibleDatabaseQueries.insertVerse(
-                    uuid = it.data?.databaseKey ?: "",
-                    id = it.data?.id ?: "",
-                    bibleId = it.data?.bibleId ?: "",
-                    number = it.data?.number ?: "",
-                    bookId = it.data?.bookId ?: "",
-                    reference = it.data?.reference ?: "",
-                    copyright = it.data?.copyright ?: "",
-                    verseCount = it.data?.verseCount?.toLong() ?: 0L,
-                    content = it.data?.cleanedContent ?: "",
-                    nextId = it.data?.next?.id ?: "",
-                    nextNumber = it.data?.next?.number ?: "",
-                    nextBookId = it.data?.next?.bookId ?: "",
-                    previousId = it.data?.previous?.id ?: "",
-                    previousNumber = it.data?.previous?.number ?: "",
-                    previousBookId = it.data?.previous?.bookId ?: "",
-                )
-                Napier.v("insertVerse chapterContent  :: finish", tag = "BB2452")
-            }
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    }
-}
-
-private suspend fun loadVerseData(selectedChapter: String, bibleId: String): ChapterContent? {
-    return null
-    return try {
-        withContext(Dispatchers.IO) {
-            Napier.d("inside start load before delay", tag = "BB2452")
-            // delay(3000)
-            Napier.d("inside start load end delay", tag = "BB2452")
-
-            val database = BibleBibleDatabase(driver = DriverFactory.createDriver())
-            val bibleQueries = database.bibleBibleDatabaseQueries
-                .selectVersesById(selectedChapter, bibleId).executeAsOneOrNull()
-
-            Napier.v("bibleQueries selectedChapter $selectedChapter :: hello world", tag = "BB2452")
-            Napier.v("bibleQueries ${bibleQueries?.content?.take(100)}", tag = "BB2452")
-
-            bibleQueries?.let {
-                ChapterContent(
-                    ChapterData(
-                        id = it.id,
-                        bibleId = it.bibleId,
-                        number = it.number,
-                        bookId = it.bookId,
-                        reference = it.reference,
-                        content = it.content,
-                        verseCount = it.verseCount?.toInt(),
-                        next = ChapterReference(
-                            id = it.nextId,
-                            number = it.nextNumber,
-                            bookId = it.nextBookId
-                        ),
-                        previous = ChapterReference(
-                            id = it.previousId,
-                            number = it.previousNumber,
-                            bookId = it.previousBookId
-                        ),
-                        copyright = ""
-                    )
-                )
-            }.also {
-                Napier.d("UI ready to update from DB query end", tag = "BB2452")
-            }
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
         null
     }
 }
