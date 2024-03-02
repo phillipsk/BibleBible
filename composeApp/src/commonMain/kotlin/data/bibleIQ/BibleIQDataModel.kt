@@ -56,13 +56,21 @@ object BibleIQDataModel {
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
-    fun updateBibleChapter(newChapter: List<BibleChapter>, chapterCount: ChapterCount?) {
+    fun updateBibleChapter(
+        newChapter: List<BibleChapter>,
+        chapterCount: ChapterCount?,
+        version: String
+    ) {
         bibleChapter = newChapter.firstOrNull()?.b?.toInt()?.let { bookId ->
             BibleChapterUIState(
                 id = newChapter.firstOrNull()?.id,
                 bookId = bookId,
                 chapterId = newChapter.firstOrNull()?.c?.toInt(),
-                text = newChapter.joinToString(" ") { "[${it.v}] ${it.t}" },
+                text = if (version.uppercase() == "SVD") {
+                    newChapter.joinToString("\n") { "${it.v} ${it.t}" }
+                } else {
+                    newChapter.joinToString(" ") { "[${it.v}] ${it.t}" }
+                },
                 chapterList = chapterCount?.chapterCount?.let { count ->
                     (1..count).toList()
                 }

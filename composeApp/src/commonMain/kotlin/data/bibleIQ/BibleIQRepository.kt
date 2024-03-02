@@ -63,7 +63,7 @@ internal suspend fun getChapterBibleIQ(
         Napier.d("end load", tag = "IQ093")
 //        val bookName = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey).toString()
         Napier.v(
-            "cachedData value: book:: ${
+            "httpclient cachedData value: book:: ${
                 cachedData?.firstOrNull()?.b + " :: verse: " + cachedData?.firstOrNull()?.c
             }", tag = "IQ093"
         )
@@ -94,7 +94,7 @@ internal suspend fun getChapterBibleIQ(
 
                 withContext(Dispatchers.Main) {
                     Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                    BibleIQDataModel.updateBibleChapter(chapterVerses, chapterCount)
+                    BibleIQDataModel.updateBibleChapter(chapterVerses, chapterCount, version)
                 }
                 insertBibleVerses(chapterVerses, version, chapterCount)
             }
@@ -104,7 +104,7 @@ internal suspend fun getChapterBibleIQ(
             }
             withContext(Dispatchers.Main) {
                 Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                BibleIQDataModel.updateBibleChapter(cachedData, chapterCount)
+                BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
             }
         }
     } catch (e: IOException) {
