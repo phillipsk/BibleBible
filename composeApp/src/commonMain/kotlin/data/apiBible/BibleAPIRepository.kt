@@ -2,7 +2,6 @@ package data.apiBible
 
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
-import data.bibleIQ.getChapterBibleIQ
 import data.httpClientBibleAPI
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
@@ -71,7 +70,7 @@ internal suspend fun getChapterBibleAPI(chapterNumber: String, bibleId: String) 
             Napier.v("getChapterBibleAPI() :: finally", tag = "BB2455")
         }
     } else {
-        getChapterBibleIQ(book = chapterNumber, version = bibleId)
+//        getChapterBibleIQ(book = chapterNumber, version = bibleId)
     }
 }
 
@@ -91,7 +90,7 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
         }
     } catch (e: Exception) {
         "Error fetching chapter: ${chapter + " :: " + e.message}".also {
-            BibleAPIDataModel.updateErrorSnackBar(it)
+//            BibleAPIDataModel.updateErrorSnackBar(it)
             Napier.e(it, tag = "BB2452")
         }
         null

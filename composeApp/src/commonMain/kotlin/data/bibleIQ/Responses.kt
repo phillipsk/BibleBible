@@ -50,14 +50,14 @@ data class BibleChapter(
 )
 
 @Serializable
-data class ChapterCount(val chapterCount: Int? = null)
+data class ChapterCount(val chapterCount: Long? = null)
 
 data class BibleChapterUIState(
     val id: String? = null,
     val bookId: Int? = null,
     val chapterId: Int? = 1,
     val text: String? = null,
-    val chapterList: List<Int>? = null,
+    val chapterList: List<Long>? = null,
 )
 
 val bibleBooks = listOf(

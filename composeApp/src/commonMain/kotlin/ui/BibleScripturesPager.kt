@@ -1,3 +1,4 @@
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -64,7 +65,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         initialLoadDone = true
-        getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         pagerState.scrollToPage(0)
         selectedTabIndex = 0
         initialLoadDone = false
@@ -76,7 +77,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         if (uiStateReady) {
-            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
     }
 
@@ -86,12 +87,12 @@ internal fun BibleScripturesPager(
         if (isPageChangeFromTabClick) {
             if (currentTime - lastTabClickTime > debounceDuration) {
                 selectedTabIndex = pagerState.currentPage
-                getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
-            getChapterBibleIQ(book = selectedBook.remoteKey, chapter = selectedTabIndex + 1)
+            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
         pagerColumnScrollState.scrollTo(0)
     }
@@ -107,10 +108,14 @@ internal fun BibleScripturesPager(
                     selectedTabIndex = pagerState.currentPage,
                     edgePadding = 16.dp,
                     indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                            color = MaterialTheme.colors.primary
-                        )
+                        if (pagerState.currentPage < tabPositions.size) {
+                            TabRowDefaults.Indicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                                color = MaterialTheme.colors.primary
+                            )
+                        } else {
+                            Napier.e("Error: tabPositions: $tabPositions out of bounds", tag = "BB2460")
+                        }
                     }
                 ) {
                     Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")

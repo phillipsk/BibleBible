@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS BibleVerses (
     v TEXT,
     t TEXT,
     version TEXT,
+    chapterCount INTEGER,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -17,8 +18,9 @@ INSERT INTO BibleVerses (
                 c,
                 v,
                 t,
-                version
-            ) VALUES (?,?,?,?,?,?,?);
+                version,
+                chapterCount
+            ) VALUES (?,?,?,?,?,?,?,?);
 
 cleanBibleVerses:
 DELETE FROM BibleVerses WHERE created_at < date('now', '-60 days');
@@ -26,6 +28,10 @@ DELETE FROM BibleVerses WHERE created_at < date('now', '-60 days');
 selectVersesById:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
+
+selectVersesByBookId:
+SELECT BibleVerses.*
+FROM BibleVerses WHERE b = ? AND c = ? AND version = ?;
 
 CREATE INDEX idx_id_bibleId ON BibleVerses(id, version);
 
@@ -38,3 +44,22 @@ DELETE FROM BibleVerses WHERE uuid IN (
         SELECT COUNT(*) - ? FROM BibleVerses
     )
 );
+
+countVersesByBookId:
+SELECT ChapterCounts.chapterCount FROM ChapterCounts WHERE b = ? AND version = ?;
+
+CREATE TABLE IF NOT EXISTS ChapterCounts (
+    uuid TEXT PRIMARY KEY,
+    b TEXT,
+    version TEXT,
+    chapterCount INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+insertChapterCount:
+INSERT INTO ChapterCounts (
+                uuid,
+                b,
+                version,
+                chapterCount
+            ) VALUES (?,?,?,?);

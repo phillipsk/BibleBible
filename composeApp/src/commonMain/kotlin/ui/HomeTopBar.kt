@@ -37,6 +37,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
@@ -76,8 +77,10 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.1.sp,
-                        color = Color.White
+                        color = Color.White,
                     ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Visible,
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp, end = 4.dp)
@@ -102,13 +105,20 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 @Composable
 internal fun BookMenu(bookDataList: List<BookData>?) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedBookData by remember(BibleIQDataModel.selectedBook.abbreviation) { mutableStateOf(BibleIQDataModel.selectedBook) }
+    var selectedBookData by remember(BibleIQDataModel.selectedBook.abbreviation) {
+        mutableStateOf(
+            BibleIQDataModel.selectedBook
+        )
+    }
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 90f else 0f,
         animationSpec = tween(300)
     )
     Napier.v("BookMenu: selectedBookData: ${selectedBookData.abbreviation}", tag = "IQ2455")
-    Napier.v("BookMenu: BibleIQDataModel selectedBookData: ${BibleIQDataModel.selectedBook.abbreviation}", tag = "IQ2455")
+    Napier.v(
+        "BookMenu: BibleIQDataModel selectedBookData: ${BibleIQDataModel.selectedBook.abbreviation}",
+        tag = "IQ2455"
+    )
     ClickableText(
         text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
         style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),

@@ -74,4 +74,19 @@ object BibleIQDataModel {
         val name = chapterNumber.substringBefore(".")
         return (BibleAPIDataModel.books.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
     }
+
+    val onHomeClick: () -> Unit = {
+        Napier.v("onHomeClick", tag = "BB2452")
+        BibleAPIDataModel.showHomePage = true
+    }
+
+    var errorSnackBar: String by mutableStateOf("")
+        private set
+    internal fun updateErrorSnackBar(error: String) {
+        Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
+        errorSnackBar = error
+    }
+    internal fun clearErrorSnackBar() {
+        errorSnackBar = ""
+    }
 }

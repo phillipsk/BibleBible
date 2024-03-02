@@ -38,11 +38,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun BibleHomeScreen() {
-    val errorMsg = BibleAPIDataModel.errorSnackBar
+    val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     Scaffold(
-        topBar = { HomeTopBar(onClick = { BibleAPIDataModel.onHomeClick() }) },
+        topBar = { HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
@@ -70,7 +70,7 @@ internal fun BibleHomeScreen() {
         if (errorMsg.isNotEmpty()) {
             scope.launch {
                 snackbarHostState.showSnackbar(errorMsg).also {
-                    BibleAPIDataModel.clearErrorSnackBar()
+                    BibleIQDataModel.clearErrorSnackBar()
                 }
             }
         }
