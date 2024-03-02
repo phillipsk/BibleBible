@@ -20,6 +20,7 @@ import data.bibleIQ.BibleChapterUIState
 @Composable
 internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState) {
     var fontSize by remember { mutableStateOf(16f) }
+    val minTextSize = 16f
     val state = rememberTransformableState { zoomChange, _, _ ->
         fontSize *= zoomChange
     }
@@ -28,7 +29,7 @@ internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollS
         chapters.text?.let {
             Text(
                 text = it,
-                fontSize = fontSize.sp,
+                fontSize = fontSize.coerceAtLeast(minTextSize).sp,
                 modifier = Modifier
                     .padding(4.dp)
                     .transformable(state = state)
