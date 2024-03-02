@@ -41,7 +41,6 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 
 ## Backlog
 *   socket timeout and api/db retries
-*   handle UI when chapter is not cached and remote call fails
 *   Context Switching: Remember, switching between dispatchers involves context switching, 
 *   which can have a slight performance overhead. Minimize unnecessary switching for optimal performance.
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
@@ -59,7 +58,6 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   merge socket timeout branch, revisit snackbar functionality
 *   A-z, OT-NT, sorted comparator
 *   API success state
-*   buy iPhone
 *   UI TESTS
 *   mock errors; add Result type to API calls
 *   use immutable state with compose
@@ -67,6 +65,7 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   handle empty list and 200 error response from Rapid API
 *   when bibleVersion changes, does a call to Chapter count need to be made
 *   review duplicate API call on launch effect
+*   supervisorScope coroutine exception handling
 
 ## Nice to have
 *   add some UI home screen uniform design
@@ -78,6 +77,7 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   pinch to zoom scriptures
 *   increase font size dynamically
 *   Fill white space in the book of Psalms
+*   pinch to zoom font size
 
 ## Checklist
 *   Database retention limit
@@ -91,3 +91,4 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   review light vs. dark mode
 *   cut release branch
 *   set functions to internal modifier
+*   review logs
