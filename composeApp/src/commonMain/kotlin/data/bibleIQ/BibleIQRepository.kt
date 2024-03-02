@@ -70,6 +70,7 @@ internal suspend fun getChapterBibleIQ(
 
         if (cachedData.isNullOrEmpty()) {
             withContext(Dispatchers.IO) {
+//                delay(3000)
                 chapterVerses =
                     httpClientBibleIQ.get(
                         GetChapter(
@@ -153,6 +154,7 @@ private suspend fun insertBibleVerses(
                 Napier.d("inside insert load end delay", tag = "IQ093")
                 Napier.v("insertVerse bookId  :: ${chapterContent.firstOrNull()?.b}", tag = "IQ093")
                 chapterContent.let {
+//                        delay(3000)
                     database.transaction {
                         it.forEach {
                             database.bibleBibleDatabaseQueries.insertVerse(
@@ -187,7 +189,7 @@ private suspend fun loadVerseData(
         return try {
             withContext(Dispatchers.IO) {
                 Napier.d("inside start load before delay", tag = "IQ093")
-                // delay(3000)
+//                 delay(3000)
                 Napier.d("inside start load end delay", tag = "IQ093")
 
                 val bibleQueries = database.bibleBibleDatabaseQueries
