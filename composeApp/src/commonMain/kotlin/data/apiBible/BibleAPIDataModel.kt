@@ -3,6 +3,7 @@ package data.apiBible
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
@@ -26,7 +27,9 @@ object BibleAPIDataModel {
     }
 
     private var _books = mutableStateOf(BibleAPIBook())
-    val books: BibleAPIBook get() = _books.value
+    val books: BibleAPIBook
+        get() = if (!BibleIQDataModel.sortAZ) _books.value else
+            _books.value.copy(data = _books.value.data?.sortedBy { it.name })
     internal fun updateBooks(newBooks: BibleAPIBook) {
         _books.value = newBooks
     }
