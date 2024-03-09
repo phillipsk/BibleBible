@@ -17,6 +17,7 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
@@ -99,10 +100,31 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                         bibleVersionsList = BibleIQDataModel.bibleVersions
                     )
                 } else {
-//                    SortBibleBooksToggle()
+                    SortBibleBooksToggle()
                 }
             }
         }
+    }
+}
+
+@Composable
+internal fun SortBibleBooksToggle() {
+    var checked by remember { mutableStateOf(true) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
+    ) {
+        Switch(
+            checked = checked,
+            onCheckedChange = {
+                BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
+                checked = it
+            }
+        )
+        Text(
+            text = AnnotatedString(BibleIQDataModel.selectedSortType),
+            style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
+        )
     }
 }
 
