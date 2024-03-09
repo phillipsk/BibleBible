@@ -51,7 +51,7 @@ internal fun BibleHomeScreen() {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (BibleAPIDataModel.showHomePage) {
+            if (BibleIQDataModel.showHomePage) {
                 BibleBookList(
                     bookData = BibleAPIDataModel.books.data,
                     selectedChapter = BibleAPIDataModel.selectedChapter,
@@ -81,7 +81,7 @@ internal fun BibleHomeScreen() {
 internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
-        visible = BibleAPIDataModel.showHomePage,
+        visible = BibleIQDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
@@ -101,7 +101,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                         updateSelectedChapter(it.remoteKey)
                                     }
                                     BibleIQDataModel.updateSelectedBook(it)
-                                    BibleAPIDataModel.showHomePage = false
+                                    BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),

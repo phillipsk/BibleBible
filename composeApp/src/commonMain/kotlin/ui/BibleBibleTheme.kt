@@ -22,7 +22,8 @@ internal fun BibleBibleTheme(
     val colorPalette = if (isSystemInDarkTheme()) {
         DarkColorPalette
     } else {
-        LightColorPalette
+//        LightColorPalette
+        DarkColorPalette
     }
 
     MaterialTheme(

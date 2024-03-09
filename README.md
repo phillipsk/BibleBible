@@ -65,7 +65,12 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   handle empty list and 200 error response from Rapid API
 *   when bibleVersion changes, does a call to Chapter count need to be made
 *   review duplicate API call on launch effect
-*   supervisorScope coroutine exception handling
+*   supervisorScope coroutine exception handling 
+*   If on the same chapter, swiping to the next chapter, do not scroll to the top 
+*   Scroll bar on the right 
+*   ~~No light mode only dark mode~~
+*   sort Books A-Z, disable selectedBook on homeScreen
+*   ~~add strikethrough backlog~~
 
 ## Nice to have
 *   add some UI home screen uniform design

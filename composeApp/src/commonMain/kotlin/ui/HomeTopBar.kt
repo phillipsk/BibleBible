@@ -91,12 +91,16 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
-                BookMenu(
-                    bookDataList = BibleAPIDataModel.books.data
-                )
-                BibleMenu(
-                    bibleVersionsList = BibleIQDataModel.bibleVersions
-                )
+                if (!BibleIQDataModel.showHomePage) {
+                    BookMenu(
+                        bookDataList = BibleAPIDataModel.books.data
+                    )
+                    BibleMenu(
+                        bibleVersionsList = BibleIQDataModel.bibleVersions
+                    )
+                } else {
+//                    SortBibleBooksToggle()
+                }
             }
         }
     }

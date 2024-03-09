@@ -13,6 +13,8 @@ import kotlin.native.concurrent.ThreadLocal
 object BibleIQDataModel {
     const val RELEASE_BUILD = false
     const val DEFAULT_BIBLE_ID = "kjv"
+
+    var showHomePage by mutableStateOf(true)
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
 
@@ -85,7 +87,7 @@ object BibleIQDataModel {
 
     val onHomeClick: () -> Unit = {
         Napier.v("onHomeClick", tag = "BB2452")
-        BibleAPIDataModel.showHomePage = true
+        BibleIQDataModel.showHomePage = true
     }
 
     var errorSnackBar: String by mutableStateOf("")
