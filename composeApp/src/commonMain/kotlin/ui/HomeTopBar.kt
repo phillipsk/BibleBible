@@ -94,7 +94,7 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
             ) {
                 if (!BibleIQDataModel.showHomePage) {
                     BookMenu(
-                        bookDataList = BibleAPIDataModel.books.data
+                        bookDataList = BibleAPIDataModel.uiBooks.data
                     )
                     BibleMenu(
                         bibleVersionsList = BibleIQDataModel.bibleVersions
@@ -109,7 +109,7 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 
 @Composable
 internal fun SortBibleBooksToggle() {
-    var checked by remember { mutableStateOf(true) }
+    var checked by remember { mutableStateOf(!BibleIQDataModel.sortAZ) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(end = 2.dp).wrapContentWidth()

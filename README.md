@@ -69,8 +69,9 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   If on the same chapter, swiping to the next chapter, do not scroll to the top 
 *   Scroll bar on the right 
 *   ~~No light mode only dark mode~~
-*   sort Books A-Z, disable selectedBook on homeScreen
+*   ~~sort Books A-Z, disable selectedBook on homeScreen~~
 *   ~~add strikethrough backlog~~
+*   open/close database
 
 ## Nice to have
 *   add some UI home screen uniform design
