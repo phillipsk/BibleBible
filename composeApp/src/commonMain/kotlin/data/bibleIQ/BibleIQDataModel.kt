@@ -48,6 +48,11 @@ object BibleIQDataModel {
         bibleBooks = newBooks
     }
 
+    var sortAZ by mutableStateOf(false)
+        internal set
+
+    val selectedSortType get() = if (sortAZ) "A-Z" else "OT-NT"
+
     var selectedBook by mutableStateOf(BookData())
         private set
 
@@ -82,7 +87,7 @@ object BibleIQDataModel {
 
     fun getAPIBibleCardinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
-        return (BibleAPIDataModel.books.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
+        return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
     }
 
     val onHomeClick: () -> Unit = {

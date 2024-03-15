@@ -53,7 +53,7 @@ internal fun BibleHomeScreen() {
         ) {
             if (BibleIQDataModel.showHomePage) {
                 BibleBookList(
-                    bookData = BibleAPIDataModel.books.data,
+                    bookData = BibleAPIDataModel.uiBooks.data,
                     selectedChapter = BibleAPIDataModel.selectedChapter,
                     bibleId = BibleIQDataModel.selectedVersion
                 )
