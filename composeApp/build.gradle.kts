@@ -79,8 +79,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "2.0" // TODO
+        versionCode = 3
+        versionName = "3.0"
     }
     packaging {
         resources {
@@ -89,7 +89,13 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+//            isMinifyEnabled = true
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro"
+//            )
+            signingConfig = signingConfigs.getByName("debug")
+//            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
