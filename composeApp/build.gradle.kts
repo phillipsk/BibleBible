@@ -62,6 +62,9 @@ kotlin {
             implementation(libs.sqlDelight.driver.native)
         }
     }
+    configurations.all {
+        resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    }
 }
 
 android {
@@ -76,8 +79,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "3.0"
     }
     packaging {
         resources {
@@ -86,7 +89,13 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+//            isMinifyEnabled = true
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro"
+//            )
+            signingConfig = signingConfigs.getByName("debug")
+//            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

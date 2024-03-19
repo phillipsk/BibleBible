@@ -1,5 +1,6 @@
 package data
 
+import data.bibleIQ.BibleIQDataModel
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
@@ -24,8 +25,10 @@ data class HttpClientConfig(
 private fun createHttpClient(config: HttpClientConfig): HttpClient {
     return HttpClient {
         install(Resources)
-        install(Logging) {
-            logger = Logger.SIMPLE
+        if (!BibleIQDataModel.RELEASE_BUILD) {
+            install(Logging) {
+                logger = Logger.SIMPLE
+            }
         }
         install(DefaultRequest)
         install(ContentNegotiation) {
