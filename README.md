@@ -3,6 +3,13 @@ This is a Bible reading compose multiplatform app that demonstrates the power of
 
 Contributions by Kevin Phillips
 
+## Download
+[![App Store](previews/app_store_badge.svg)](https://apps.apple.com/us/app/my-biblebible/id6478799350)
+
+<a href='https://play.google.com/store/apps/details?id=email.kevinphillips.biblebible'>
+<img src="https://play.google.com/intl/en_gb/badges/static/images/badges/en_badge_web_generic.png" width=240 />
+</a>
+
 ## About the App
 I am currently prioritizing the development of a minimal viable product (MVP) for this app. This means that the app's core functionality is the primary focus, and I will be adding additional features over time.
 
