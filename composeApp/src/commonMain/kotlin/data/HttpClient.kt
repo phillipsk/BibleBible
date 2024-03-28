@@ -63,3 +63,11 @@ val httpClientBibleIQ: HttpClient by lazy {
     )
     createHttpClient(config)
 }
+
+val httpClientGemini: HttpClient by lazy {
+    val config = HttpClientConfig(
+        baseUrl = "https://generativelanguage.googleapis.com/", apiKeyHeader = "X-RapidAPI-Key",
+        apiKey = BuildKonfig.GEMINI_API_KEY
+    )
+    createHttpClient(config)
+}

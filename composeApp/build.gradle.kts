@@ -121,6 +121,11 @@ buildkonfig {
             "API_KEY_API_BIBLE",
             gradleLocalProperties(rootDir).getProperty("api_key_api_bible") ?: ""
         )
+        buildConfigField(
+            STRING,
+            "GEMINI_API_KEY",
+            gradleLocalProperties(rootDir).getProperty("GEMINI_API_KEY") ?: ""
+        )
     }
 }
 
