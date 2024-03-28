@@ -5,6 +5,9 @@ import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -18,17 +21,19 @@ suspend fun generateContent(content: String, apiKey: String): GeminiResponseDto 
     parts.add(RequestPart(text = content))
     val requestBody = RequestBody(contents = listOf(ContentItem(parts = parts)))
 
-    return try {
-        val responseText = httpClientGemini.post {
-            url("v1beta/models/${GEMINI_PRO}:generateContent")
-            parameter("key", apiKey)
-            setBody(Json.encodeToString(requestBody))
-        }.body<GeminiResponseDto>()
-        println("API Response: $responseText")
-        responseText
-    } catch (e: Exception) {
-        println("Error during API request: ${e.message}")
-        throw e
+    return withContext(Dispatchers.IO) {
+        try {
+            val responseText = httpClientGemini.post {
+                url("v1beta/models/${GEMINI_PRO}:generateContent")
+                parameter("key", apiKey)
+                setBody(Json.encodeToString(requestBody))
+            }.body<GeminiResponseDto>()
+            println("API Response: $responseText")
+            responseText
+        } catch (e: Exception) {
+            println("Error during API request: ${e.message}")
+            throw e
+        }
     }
 }
 
@@ -52,7 +57,7 @@ data class RequestInlineData(
 
 @Serializable
 data class GeminiResponseDto(
-    val candidates: List<CandidateDto>,
+    val candidates: List<CandidateDto>? = null,
 )
 
 @Serializable

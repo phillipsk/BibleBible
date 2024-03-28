@@ -4,6 +4,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.GeminiResponseDto
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import io.github.aakira.napier.Napier
@@ -104,4 +105,7 @@ object BibleIQDataModel {
     internal fun clearErrorSnackBar() {
         errorSnackBar = ""
     }
+
+    var geminiData by mutableStateOf(GeminiResponseDto())
+        internal set
 }
