@@ -5,7 +5,6 @@ import data.httpClientGemini
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
-import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -34,13 +33,8 @@ suspend fun generateContent(content: String) {
                 setBody(Json.encodeToString(requestBody))
             }.body<GeminiResponseDto>()
         }
-        Napier.d("API Response: $responseText", tag = "GeminiServiceImp")
         BibleIQDataModel.updateGeminiData(responseText)
-    } catch (e: SocketTimeoutException) {
-        Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
-        BibleIQDataModel.updateErrorSnackBar(e.message?.take(100) ?: "Could not connect to the network")
     } catch (e: Exception) {
         Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
-        BibleIQDataModel.updateErrorSnackBar(e.message ?: "Could not connect to the network")
     }
 }

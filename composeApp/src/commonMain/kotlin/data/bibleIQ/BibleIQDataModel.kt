@@ -113,5 +113,6 @@ object BibleIQDataModel {
 
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
+        Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
     }
 }
