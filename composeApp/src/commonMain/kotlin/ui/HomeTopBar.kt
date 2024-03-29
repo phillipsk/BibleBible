@@ -80,7 +80,7 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                     text = if (BibleIQDataModel.showHomePage) {
                         "BibleBible"
                     } else {
-                        BibleIQDataModel.selectedBook.cleanedName.toString()
+                        BibleIQDataModel.selectedBook.abbreviation.toString()
                     },
                     style = TextStyle(
                         fontFamily = FontFamily.Cursive,
