@@ -48,10 +48,14 @@ internal fun BibleHomeScreen() {
                 onClick = { BibleIQDataModel.onHomeClick() },
                 generateAISummary = {
                     GeminiModel.isLoading = true
-                    scope.launch {
-                        GeminiModel.showSummary = true
-                        GeminiModel.generateAISummary()
-                        GeminiModel.isLoading = false
+                    if (!GeminiModel.showSummary) {
+                        scope.launch {
+                            GeminiModel.showSummary = true
+                            GeminiModel.generateAISummary()
+                            GeminiModel.isLoading = false
+                        }
+                    } else {
+                        GeminiModel.showSummary = false
                     }
                 })
         },

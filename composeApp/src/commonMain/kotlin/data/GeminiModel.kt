@@ -35,6 +35,8 @@ object GeminiModel {
                 BibleIQDataModel.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary() {
-        generateContent(geminiQuery)
+        if (showSummary && isLoading) {
+            generateContent(geminiQuery)
+        }
     }
 }
