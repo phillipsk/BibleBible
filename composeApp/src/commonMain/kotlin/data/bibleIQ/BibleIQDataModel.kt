@@ -115,4 +115,11 @@ object BibleIQDataModel {
         geminiData = data
         Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
     }
+
+    var geminiFullResponse by mutableStateOf("")
+        private set
+
+    fun concatGeminiResponse(text: String?) {
+        geminiFullResponse += text ?: ""
+    }
 }

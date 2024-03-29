@@ -31,7 +31,7 @@ import data.bibleIQ.getChapterBibleIQ
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import ui.GeminiSummary
+import ui.BibleScriptures
 import ui.LoadingScreen
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -147,8 +147,7 @@ internal fun BibleScripturesPager(
                         "HorizontalPager: currentPage: ${pagerState.currentPage}",
                         tag = "BB2460"
                     )
-//                    BibleScriptures(chapters, pagerColumnScrollState)
-                    GeminiSummary(pagerColumnScrollState)
+                    BibleScriptures(chapters, pagerColumnScrollState)
                 }
             }
         }

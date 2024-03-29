@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
+            implementation(libs.generativeai)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -60,6 +61,7 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.sqlDelight.driver.native)
+            implementation(libs.generativeai)
         }
     }
     configurations.all {
