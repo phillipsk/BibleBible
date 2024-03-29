@@ -23,7 +23,6 @@ import kotlinx.coroutines.withContext
 fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
     var content by remember { mutableStateOf(GeminiModel.geminiDataText) }
     LaunchedEffect(true) {
-//        generateContent(query)
         withContext(Dispatchers.Main) {
             if (GeminiModel.geminiDataText?.isEmpty() == false) {
                 content = GeminiModel.geminiDataText
@@ -32,9 +31,9 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
                 BibleIQDataModel.updateErrorSnackBar("AI Summary could not connect. Please try again later.")
                 BibleIQDataModel.showHomePage = true
             }
+            scrollState.scrollTo(0)
         }
     }
-//    TODO: review if still needed after previous refactor
     if (content.isNullOrEmpty()) {
         LoadingScreen()
     } else {

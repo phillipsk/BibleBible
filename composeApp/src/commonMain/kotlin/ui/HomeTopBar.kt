@@ -106,7 +106,7 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                 if (!BibleIQDataModel.showHomePage) {
                     GenerateAISummaryButton(
                         generateAISummary,
-                        !GeminiModel.isLoading && GeminiModel.showSummary
+                        GeminiModel.isSuccessful
                     )
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                     FontSizeMenu()
@@ -126,13 +126,12 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
 @Composable
 fun GenerateAISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) {
     val scope = rememberCoroutineScope()
-    var selected = remember { GeminiModel.showSummary }
+    val selected = remember(isAISummaryLoading) { GeminiModel.showSummary }
 
     FilterChip(
         onClick = {
             scope.launch {
                 generateAISummary()
-                selected = !selected
             }
         },
         selected = selected,

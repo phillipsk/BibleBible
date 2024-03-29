@@ -15,8 +15,9 @@ object GeminiModel {
 
     private var geminiData by mutableStateOf(GeminiResponseDto())
 
-    internal val geminiDataText get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+    internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
 
+    val isSuccessful get() = !isLoading && showSummary && geminiDataText != null
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
         Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
