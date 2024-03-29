@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun GeminiSummary(scrollState: ScrollState) {
     var content by remember { mutableStateOf(BibleIQDataModel.geminiDataText) }
-    val query =
+    val query = "Generate a summary of the bible chapter " +
         BibleIQDataModel.selectedBook.cleanedName + " " + BibleIQDataModel.bibleChapter?.chapterId
     LaunchedEffect(true) {
         generateContent(query)
