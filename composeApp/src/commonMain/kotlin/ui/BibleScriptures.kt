@@ -14,32 +14,36 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.GeminiResponseDto
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
-import data.generateContent
-import email.kevinphillips.biblebible.BuildKonfig
+import data.gemini.generateContent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
 internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState) {
-    var data by remember { mutableStateOf(GeminiResponseDto()) }
+    var content by remember { mutableStateOf(BibleIQDataModel.geminiDataText) }
+    val query =
+        BibleIQDataModel.selectedBook.cleanedName + " " + BibleIQDataModel.bibleChapter?.chapterId
     LaunchedEffect(true) {
-        BibleIQDataModel.geminiData = generateContent("Matthew 21", BuildKonfig.GEMINI_API_KEY)
-        withContext(Dispatchers.Main) {
-            data = BibleIQDataModel.geminiData
+        generateContent(query)
+        if (BibleIQDataModel.geminiDataText?.isEmpty() == false) {
+            withContext(Dispatchers.Main) {
+                content = BibleIQDataModel.geminiDataText
+            }
         }
     }
-    if (data.candidates.isNullOrEmpty()) {
+    if (content.isNullOrEmpty()) {
         LoadingScreen()
     } else {
-        Column(modifier = Modifier.verticalScroll(scrollState)) {
-            Text(
-                text = data.candidates.toString(),
-                fontSize = 20.sp,
-                modifier = Modifier.padding(4.dp)
-            )
+        content?.let {
+            Column(modifier = Modifier.verticalScroll(scrollState)) {
+                Text(
+                    text = it,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
         }
     }
 }

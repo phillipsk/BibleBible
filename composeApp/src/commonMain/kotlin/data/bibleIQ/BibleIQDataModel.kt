@@ -4,9 +4,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.GeminiResponseDto
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.gemini.GeminiResponseDto
 import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
@@ -107,5 +107,11 @@ object BibleIQDataModel {
     }
 
     var geminiData by mutableStateOf(GeminiResponseDto())
-        internal set
+        private set
+
+    val geminiDataText get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+
+    internal fun updateGeminiData(data: GeminiResponseDto) {
+        geminiData = data
+    }
 }

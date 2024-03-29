@@ -72,6 +72,7 @@ internal fun BibleHomeScreen() {
                 snackbarHostState.showSnackbar(errorMsg).also {
                     BibleIQDataModel.clearErrorSnackBar()
                 }
+                BibleIQDataModel.showHomePage = true
             }
         }
     }
