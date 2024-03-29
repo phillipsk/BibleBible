@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -22,6 +25,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,17 +45,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun HomeTopBar(onClick: () -> Unit = {}) {
+internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -72,7 +76,11 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 Spacer(modifier = Modifier.padding(4.dp))
 
                 Text(
-                    text = "BibleBible",
+                    text = if (BibleIQDataModel.showHomePage) {
+                        "BibleBible"
+                    } else {
+                        BibleIQDataModel.selectedBook.cleanedName.toString()
+                    },
                     style = TextStyle(
                         fontFamily = FontFamily.Cursive,
                         fontSize = 24.sp,
@@ -93,9 +101,8 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
                 if (!BibleIQDataModel.showHomePage) {
-                    BookMenu(
-                        bookDataList = BibleAPIDataModel.uiBooks.data
-                    )
+                    GenerateAISummaryButton(generateAISummary)
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                     BibleMenu(
                         bibleVersionsList = BibleIQDataModel.bibleVersions
                     )
@@ -104,6 +111,36 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun GenerateAISummaryButton(generateAISummary: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var selected by remember { mutableStateOf(false) }
+
+    FilterChip(
+        onClick = {
+            scope.launch {
+                generateAISummary()
+                selected = !selected
+            }
+        },
+        selected = selected,
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    imageVector = Icons.Filled.Done,
+                    contentDescription = "Done icon",
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        } else {
+            null
+        },
+    ) {
+        Text("AI")
     }
 }
 

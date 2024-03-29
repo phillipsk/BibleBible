@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
@@ -42,7 +43,11 @@ internal fun BibleHomeScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     Scaffold(
-        topBar = { HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) },
+        topBar = {
+            HomeTopBar(
+                onClick = { BibleIQDataModel.onHomeClick() },
+                generateAISummary = { GeminiModel.generateAISummary() })
+        },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },

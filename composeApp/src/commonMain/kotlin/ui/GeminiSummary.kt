@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.GeminiModel
 import data.bibleIQ.BibleIQDataModel
 import data.gemini.generateContent
 import kotlinx.coroutines.Dispatchers
@@ -21,14 +22,14 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun GeminiSummary(scrollState: ScrollState) {
-    var content by remember { mutableStateOf(BibleIQDataModel.geminiDataText) }
+    var content by remember { mutableStateOf(GeminiModel.geminiDataText) }
     val query = "Generate a summary of the bible chapter " +
         BibleIQDataModel.selectedBook.cleanedName + " " + BibleIQDataModel.bibleChapter?.chapterId
     LaunchedEffect(true) {
         generateContent(query)
         withContext(Dispatchers.Main) {
-            if (BibleIQDataModel.geminiDataText?.isEmpty() == false) {
-                content = BibleIQDataModel.geminiDataText
+            if (GeminiModel.geminiDataText?.isEmpty() == false) {
+                content = GeminiModel.geminiDataText
 
             } else {
                 BibleIQDataModel.updateErrorSnackBar("AI Summary could not connect. Please try again later.")

@@ -2,6 +2,7 @@ package email.kevinphillips.biblebible.gemini.model
 
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import data.GeminiModel
 import data.bibleIQ.BibleIQDataModel
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
@@ -26,7 +27,7 @@ class GeminiAndroidService() {
 
     suspend fun collectContentStream() = generativeModel.generateContentStream(inputContent).collect { chunk ->
         Napier.d("collectContentStream: $chunk", tag = "GeminiService")
-        BibleIQDataModel.concatGeminiResponse(chunk.text)
+        GeminiModel.concatGeminiResponse(chunk.text)
         chunk.text?.let { BibleIQDataModel.updateErrorSnackBar(it) }
 
         print(chunk.text)

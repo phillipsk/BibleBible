@@ -1,6 +1,6 @@
 package data.gemini
 
-import data.bibleIQ.BibleIQDataModel
+import data.GeminiModel
 import data.httpClientGemini
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
@@ -33,7 +33,7 @@ suspend fun generateContent(content: String) {
                 setBody(Json.encodeToString(requestBody))
             }.body<GeminiResponseDto>()
         }
-        BibleIQDataModel.updateGeminiData(responseText)
+        GeminiModel.updateGeminiData(responseText)
     } catch (e: Exception) {
         Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
     }
