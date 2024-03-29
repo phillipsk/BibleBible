@@ -12,18 +12,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun GeminiSummary(scrollState: ScrollState) {
+fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
     var content by remember { mutableStateOf(GeminiModel.geminiDataText) }
-    val query = "Generate a summary of the bible chapter " +
-        BibleIQDataModel.selectedBook.cleanedName + " " + BibleIQDataModel.bibleChapter?.chapterId
     LaunchedEffect(true) {
 //        generateContent(query)
         withContext(Dispatchers.Main) {
@@ -36,6 +34,7 @@ fun GeminiSummary(scrollState: ScrollState) {
             }
         }
     }
+//    TODO: review if still needed after previous refactor
     if (content.isNullOrEmpty()) {
         LoadingScreen()
     } else {
@@ -43,7 +42,7 @@ fun GeminiSummary(scrollState: ScrollState) {
             Column(modifier = Modifier.verticalScroll(scrollState)) {
                 Text(
                     text = it,
-                    fontSize = 20.sp,
+                    fontSize = selectedFontSize,
                     modifier = Modifier.padding(4.dp)
                 )
             }

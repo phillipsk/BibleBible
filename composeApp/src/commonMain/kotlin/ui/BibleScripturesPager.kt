@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
@@ -158,10 +159,17 @@ internal fun BibleScripturesPager(
                             LoadingScreen()
                         }
                         GeminiModel.geminiDataText.isNullOrEmpty() || !showAISummary -> {
-                            BibleScriptures(chapters, pagerColumnScrollState)
+                            BibleScriptures(
+                                chapters,
+                                pagerColumnScrollState,
+                                BibleIQDataModel.selectedFontSize.sp
+                            )
                         }
                         else -> {
-                            GeminiSummary(pagerColumnScrollState)
+                            GeminiSummary(
+                                pagerColumnScrollState,
+                                BibleIQDataModel.selectedFontSize.sp
+                            )
                         }
                     }
                 }
