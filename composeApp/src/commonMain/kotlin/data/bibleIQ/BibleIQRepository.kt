@@ -2,6 +2,7 @@ package data.bibleIQ
 
 import JSON_BOOKS
 import JSON_VERSIONS
+import data.GeminiModel
 import data.apiBible.BookData
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -52,6 +53,7 @@ internal suspend fun getChapterBibleIQ(
     version: String = BibleIQDataModel.selectedVersion
 ) {
     try {
+        GeminiModel.showSummary = false
         val bookId = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey)
         Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
         val chapterVerses: List<BibleChapter>

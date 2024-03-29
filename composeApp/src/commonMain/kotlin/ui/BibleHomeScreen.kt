@@ -46,7 +46,14 @@ internal fun BibleHomeScreen() {
         topBar = {
             HomeTopBar(
                 onClick = { BibleIQDataModel.onHomeClick() },
-                generateAISummary = { GeminiModel.generateAISummary() })
+                generateAISummary = {
+                    GeminiModel.isLoading = true
+                    scope.launch {
+                        GeminiModel.showSummary = true
+                        GeminiModel.generateAISummary()
+                        GeminiModel.isLoading = false
+                    }
+                })
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -67,7 +74,9 @@ internal fun BibleHomeScreen() {
                     BibleScripturesPager(
                         chapters = it1,
                         bibleVersion = BibleIQDataModel.selectedVersion,
-                        selectedBook = BibleIQDataModel.selectedBook
+                        selectedBook = BibleIQDataModel.selectedBook,
+                        isAISummaryLoading = GeminiModel.isLoading,
+                        showAISummary = GeminiModel.showSummary
                     )
                 }
             }

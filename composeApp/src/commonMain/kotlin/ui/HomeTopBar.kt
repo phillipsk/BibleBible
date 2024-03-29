@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.GeminiModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
@@ -101,7 +102,10 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                 modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
             ) {
                 if (!BibleIQDataModel.showHomePage) {
-                    GenerateAISummaryButton(generateAISummary)
+                    GenerateAISummaryButton(
+                        generateAISummary,
+                        !GeminiModel.isLoading && GeminiModel.showSummary
+                    )
                     Spacer(modifier = Modifier.padding(horizontal = 8.dp))
                     BibleMenu(
                         bibleVersionsList = BibleIQDataModel.bibleVersions
@@ -116,9 +120,9 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun GenerateAISummaryButton(generateAISummary: () -> Unit) {
+fun GenerateAISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) {
     val scope = rememberCoroutineScope()
-    var selected by remember { mutableStateOf(false) }
+    var selected = remember { GeminiModel.showSummary }
 
     FilterChip(
         onClick = {
@@ -128,7 +132,7 @@ fun GenerateAISummaryButton(generateAISummary: () -> Unit) {
             }
         },
         selected = selected,
-        leadingIcon = if (selected) {
+        leadingIcon = if (isAISummaryLoading) {
             {
                 Icon(
                     imageVector = Icons.Filled.Done,
