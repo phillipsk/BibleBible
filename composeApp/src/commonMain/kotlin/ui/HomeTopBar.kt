@@ -4,15 +4,19 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.DropdownMenu
@@ -69,7 +73,6 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable(onClick = onClick)
-                    .weight(1f)
             ) {
                 Image(
                     painter = painterResource("BibleBible_ico_iv.png"),
@@ -82,7 +85,7 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                     text = if (BibleIQDataModel.showHomePage) {
                         "BibleBible"
                     } else {
-                        BibleIQDataModel.selectedBook.abbreviation.toString()
+                        BibleIQDataModel.selectedBook.cleanedName.toString()
                     },
                     style = TextStyle(
                         fontFamily = FontFamily.Cursive,
@@ -94,23 +97,25 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, end = 4.dp)
+                        .width(IntrinsicSize.Max)
+                        .padding(horizontal =  4.dp)
                 )
 
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
+                horizontalArrangement = Arrangement.aligned(Alignment.End),
+                modifier = Modifier.padding(horizontal = 4.dp).wrapContentWidth()
+                    .horizontalScroll(rememberScrollState())
             ) {
                 if (!BibleIQDataModel.showHomePage) {
                     GenerateAISummaryButton(
                         generateAISummary,
                         GeminiModel.isSuccessful
                     )
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Spacer(modifier = Modifier.padding(horizontal = 2.dp))
                     FontSizeMenu()
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Spacer(modifier = Modifier.padding(horizontal = 2.dp))
                     BibleMenu(
                         bibleVersionsList = BibleIQDataModel.bibleVersions
                     )
