@@ -58,7 +58,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
+internal fun HomeTopBar(onClick: () -> Unit) {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -79,11 +79,7 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                 Spacer(modifier = Modifier.padding(4.dp))
 
                 Text(
-                    text = if (BibleIQDataModel.showHomePage) {
-                        "BibleBible"
-                    } else {
-                        BibleIQDataModel.selectedBook.abbreviation.toString()
-                    },
+                    text = "BibleBible",
                     style = TextStyle(
                         fontFamily = FontFamily.Cursive,
                         fontSize = 24.sp,
@@ -98,25 +94,6 @@ internal fun HomeTopBar(onClick: () -> Unit, generateAISummary: () -> Unit) {
                         .padding(start = 4.dp, end = 4.dp)
                 )
 
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
-            ) {
-                if (!BibleIQDataModel.showHomePage) {
-                    GenerateAISummaryButton(
-                        generateAISummary,
-                        GeminiModel.isSuccessful
-                    )
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    FontSizeMenu()
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    BibleMenu(
-                        bibleVersionsList = BibleIQDataModel.bibleVersions
-                    )
-                } else {
-                    SortBibleBooksToggle()
-                }
             }
         }
     }

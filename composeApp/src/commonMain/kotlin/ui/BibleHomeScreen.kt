@@ -16,10 +16,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
@@ -37,63 +38,72 @@ import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleHomeScreen() {
     val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    Scaffold(
+    BottomSheetScaffold(
+//        TODO: remove color tint
+//        drawerScrimColor = Color.Transparent,
+//        sheetBackgroundColor = Color.Transparent,
+        sheetBackgroundColor = MaterialTheme.colors.background,
+//        backgroundColor = Color.Transparent,
+//        sheetContentColor = Color.Transparent,
+//        contentColor = Color.Transparent,
         topBar = {
-            HomeTopBar(
-                onClick = { BibleIQDataModel.onHomeClick() },
-                generateAISummary = {
-                    GeminiModel.isLoading = true
-                    if (!GeminiModel.showSummary) {
-                        scope.launch {
-                            GeminiModel.showSummary = true
-                            GeminiModel.generateAISummary()
-                            GeminiModel.isLoading = false
-                        }
-                    } else {
-                        GeminiModel.showSummary = false
-                    }
-                })
+            HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (BibleIQDataModel.showHomePage) {
-                BibleBookList(
-                    bookData = BibleAPIDataModel.uiBooks.data,
-                    selectedChapter = BibleAPIDataModel.selectedChapter,
-                    bibleId = BibleIQDataModel.selectedVersion
-                )
-            } else {
-                BibleIQDataModel.bibleChapter?.let { it1 ->
-                    BibleScripturesPager(
-                        chapters = it1,
-                        bibleVersion = BibleIQDataModel.selectedVersion,
-                        selectedBook = BibleIQDataModel.selectedBook,
-                        isAISummaryLoading = GeminiModel.isLoading,
-                        showAISummary = GeminiModel.showSummary
+        sheetContent = ({
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                BottomTopBar(
+                    onClick = { BibleIQDataModel.onHomeClick() },
+                    generateAISummary = {
+                        GeminiModel.isLoading = true
+                        if (!GeminiModel.showSummary) {
+                            scope.launch {
+                                GeminiModel.showSummary = true
+                                GeminiModel.generateAISummary()
+                                GeminiModel.isLoading = false
+                            }
+                        } else {
+                            GeminiModel.showSummary = false
+                        }
+                    })
+                if (BibleIQDataModel.showHomePage) {
+                    BibleBookList(
+                        bookData = BibleAPIDataModel.uiBooks.data,
+                        selectedChapter = BibleAPIDataModel.selectedChapter,
+                        bibleId = BibleIQDataModel.selectedVersion
                     )
+                } else {
+                    BibleIQDataModel.bibleChapter?.let { it1 ->
+                        BibleScripturesPager(
+                            chapters = it1,
+                            bibleVersion = BibleIQDataModel.selectedVersion,
+                            selectedBook = BibleIQDataModel.selectedBook,
+                            isAISummaryLoading = GeminiModel.isLoading,
+                            showAISummary = GeminiModel.showSummary
+                        )
+                    }
                 }
             }
-        }
-        if (errorMsg.isNotEmpty()) {
-            scope.launch {
-                snackbarHostState.showSnackbar(errorMsg).also {
-                    BibleIQDataModel.clearErrorSnackBar()
+            if (errorMsg.isNotEmpty()) {
+                scope.launch {
+                    snackbarHostState.showSnackbar(errorMsg).also {
+                        BibleIQDataModel.clearErrorSnackBar()
+                    }
+                    BibleIQDataModel.showHomePage = true
                 }
-                BibleIQDataModel.showHomePage = true
             }
-        }
-    }
+        }), content = {})
 }
 
 @Composable
