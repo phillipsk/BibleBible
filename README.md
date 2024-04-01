@@ -78,7 +78,10 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   ~~No light mode only dark mode~~
 *   ~~sort Books A-Z, disable selectedBook on homeScreen~~
 *   ~~add strikethrough backlog~~
-*   open/close database
+*   open/close database connection pools
+*   ~~revert AI summary on double tap~~
+*   add obfuscation, R8, Proguard
+*   window insets on iOS
 
 ## Nice to have
 *   add some UI home screen uniform design
