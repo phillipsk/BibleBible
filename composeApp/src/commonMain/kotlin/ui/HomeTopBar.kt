@@ -23,6 +23,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
+import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
@@ -140,8 +141,13 @@ internal fun SortBibleBooksToggle() {
             onCheckedChange = {
                 BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
                 checked = it
-            }
-        )
+            },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color.White.copy(alpha = 0.5f),
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.White.copy(alpha = 0.5f)
+        ))
         Text(
             text = AnnotatedString(BibleIQDataModel.selectedSortType),
             style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),

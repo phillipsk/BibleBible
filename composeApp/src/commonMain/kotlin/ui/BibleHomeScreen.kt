@@ -8,15 +8,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.BackdropScaffold
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
@@ -44,21 +47,46 @@ internal fun BibleHomeScreen() {
     val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    BottomSheetScaffold(
-//        TODO: remove color tint
-//        drawerScrimColor = Color.Transparent,
-//        sheetBackgroundColor = Color.Transparent,
-        sheetBackgroundColor = MaterialTheme.colors.background,
-//        backgroundColor = Color.Transparent,
-//        sheetContentColor = Color.Transparent,
-//        contentColor = Color.Transparent,
-        topBar = {
-            HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
+    BackdropScaffold(
+        appBar = ({ HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) }),
+        backLayerContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 8.dp).wrapContentWidth()
+            ) {
+                if (!BibleIQDataModel.showHomePage) {
+                    GenerateAISummaryButton(
+                        generateAISummary = {
+                            GeminiModel.isLoading = true
+                            if (!GeminiModel.showSummary) {
+                                scope.launch {
+                                    GeminiModel.showSummary = true
+                                    GeminiModel.generateAISummary()
+                                    GeminiModel.isLoading = false
+                                }
+                            } else {
+                                GeminiModel.showSummary = false
+                            }
+                        },
+                        isAISummaryLoading = GeminiModel.isSuccessful
+                    )
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    FontSizeMenu()
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    BibleMenu(
+                        bibleVersionsList = BibleIQDataModel.bibleVersions
+                    )
+                } else {
+                    SortBibleBooksToggle()
+                }
+            }
+
+
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-        sheetContent = ({
+        frontLayerContent = ({
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -103,7 +131,8 @@ internal fun BibleHomeScreen() {
                     BibleIQDataModel.showHomePage = true
                 }
             }
-        }), content = {})
+        })
+    )
 }
 
 @Composable
