@@ -4,6 +4,7 @@ import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
 import data.apiBible.BookData
+import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
@@ -54,6 +55,7 @@ internal suspend fun getChapterBibleIQ(
 ) {
     try {
         GeminiModel.showSummary = false
+        GeminiModel.geminiData = GeminiResponseDto()
         val bookId = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey)
         Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
         val chapterVerses: List<BibleChapter>

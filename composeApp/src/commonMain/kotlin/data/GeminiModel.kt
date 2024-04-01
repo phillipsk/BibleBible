@@ -13,7 +13,7 @@ object GeminiModel {
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
 
-    private var geminiData by mutableStateOf(GeminiResponseDto())
+    var geminiData by mutableStateOf(GeminiResponseDto())
 
     internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
 
@@ -36,7 +36,7 @@ object GeminiModel {
                 BibleIQDataModel.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary() {
-        if (showSummary && isLoading) {
+        if (showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
             generateContent(geminiQuery)
         }
     }
