@@ -8,13 +8,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -40,6 +37,9 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
+import ui.configs.BackLayerColumnConfigs
+import ui.configs.FrontLayerTopBar
+import ui.configs.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -50,38 +50,7 @@ internal fun BibleHomeScreen() {
     BackdropScaffold(
         appBar = ({ HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) }),
         backLayerContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 8.dp).wrapContentWidth()
-            ) {
-                if (!BibleIQDataModel.showHomePage) {
-                    GenerateAISummaryButton(
-                        generateAISummary = {
-                            GeminiModel.isLoading = true
-                            if (!GeminiModel.showSummary) {
-                                scope.launch {
-                                    GeminiModel.showSummary = true
-                                    GeminiModel.generateAISummary()
-                                    GeminiModel.isLoading = false
-                                }
-                            } else {
-                                GeminiModel.showSummary = false
-                            }
-                        },
-                        isAISummaryLoading = GeminiModel.isSuccessful
-                    )
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    FontSizeMenu()
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                    BibleMenu(
-                        bibleVersionsList = BibleIQDataModel.bibleVersions
-                    )
-                } else {
-                    SortBibleBooksToggle()
-                }
-            }
-
-
+            BackLayerColumnConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -91,20 +60,9 @@ internal fun BibleHomeScreen() {
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                BottomTopBar(
-                    onClick = { BibleIQDataModel.onHomeClick() },
-                    generateAISummary = {
-                        GeminiModel.isLoading = true
-                        if (!GeminiModel.showSummary) {
-                            scope.launch {
-                                GeminiModel.showSummary = true
-                                GeminiModel.generateAISummary()
-                                GeminiModel.isLoading = false
-                            }
-                        } else {
-                            GeminiModel.showSummary = false
-                        }
-                    })
+                FrontLayerTopBar {
+                    BibleIQDataModel.onHomeClick()
+                }
                 if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,

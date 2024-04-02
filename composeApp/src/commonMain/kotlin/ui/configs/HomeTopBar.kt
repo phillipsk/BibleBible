@@ -1,4 +1,4 @@
-package ui
+package ui.configs
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,31 +10,22 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,12 +39,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.GeminiModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
@@ -100,61 +88,6 @@ internal fun HomeTopBar(onClick: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun GenerateAISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) {
-    val scope = rememberCoroutineScope()
-    val selected = remember(isAISummaryLoading) { GeminiModel.showSummary }
-
-    FilterChip(
-        onClick = {
-            scope.launch {
-                generateAISummary()
-            }
-        },
-        selected = selected,
-        leadingIcon = if (isAISummaryLoading) {
-            {
-                Icon(
-                    imageVector = Icons.Filled.Done,
-                    contentDescription = "Done icon",
-                    modifier = Modifier.size(12.dp)
-                )
-            }
-        } else {
-            null
-        },
-    ) {
-        Text("AI")
-    }
-}
-
-@Composable
-internal fun SortBibleBooksToggle() {
-    var checked by remember { mutableStateOf(!BibleIQDataModel.sortAZ) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(end = 2.dp).wrapContentWidth()
-    ) {
-        Switch(
-            checked = checked,
-            onCheckedChange = {
-                BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
-                checked = it
-            },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color.White.copy(alpha = 0.5f),
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.White.copy(alpha = 0.5f)
-        ))
-        Text(
-            text = AnnotatedString(BibleIQDataModel.selectedSortType),
-            style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
-        )
-    }
-}
-
 @Composable
 internal fun BookMenu(bookDataList: List<BookData>?) {
     var expanded by remember { mutableStateOf(false) }
@@ -198,53 +131,6 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
                     selectedBookData = it
                 }) {
                     Text("${it.abbreviation} ")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
-    val scope = rememberCoroutineScope()
-    var expanded by remember { mutableStateOf(false) }
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (expanded) 90f else 0f,
-        animationSpec = tween(300)
-    )
-    var selectedBibleVersion by remember { mutableStateOf(BibleIQDataModel.selectedVersion) }
-    LaunchedEffect(true) {
-        Napier.v("LaunchedEffect :: BibleMenu", tag = "IQ2455")
-    }
-    Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
-
-        ClickableText(
-            text = AnnotatedString(selectedBibleVersion),
-            style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
-            onClick = { expanded = !expanded }
-        )
-        IconButton(onClick = { expanded = !expanded }) {
-            Icon(
-                Icons.Filled.ArrowDropDown,
-                contentDescription = "Dropdown Menu",
-                modifier = Modifier.graphicsLayer(rotationZ = rotationAngle)
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            bibleVersionsList.data.forEach {
-                if (it.abbreviation != null) {
-                    DropdownMenuItem(onClick = {
-                        BibleIQDataModel.run {
-                            updateSelectedVersion(it.abbreviation)
-                        }
-                        selectedBibleVersion = it.abbreviation ?: ""
-                        expanded = false
-                    }) {
-                        Text("${it.uiAbbreviation} ")
-                    }
                 }
             }
         }
