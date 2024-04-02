@@ -1,5 +1,11 @@
 package data.bibleIQ
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.material.BackdropValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.rememberBackdropScaffoldState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +22,15 @@ object BibleIQDataModel {
 
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+
+    @OptIn(ExperimentalMaterialApi::class)
+    val backdropScaffoldState
+        @Composable
+        get() = rememberBackdropScaffoldState(
+            initialValue = BackdropValue.Revealed,
+            animationSpec = spring(stiffness = Spring.StiffnessLow)
+//            snackbarHostState = SnackbarHostState()
+        )
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
 
@@ -101,10 +116,12 @@ object BibleIQDataModel {
 
     var errorSnackBar: String by mutableStateOf("")
         private set
+
     internal fun updateErrorSnackBar(error: String) {
         Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
         errorSnackBar = error
     }
+
     internal fun clearErrorSnackBar() {
         errorSnackBar = ""
     }

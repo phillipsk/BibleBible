@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,9 +45,16 @@ internal fun FrontLayerTopBar(onClick: () -> Unit) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onClick)
-                    .weight(1f)
+                modifier = Modifier.clickable(onClick = onClick).weight(1f)
             ) {
+                if (!BibleIQDataModel.showHomePage) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back to Home",
+                        tint = Color.White,
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
+                    )
+                }
                 Text(
                     text = if (BibleIQDataModel.showHomePage) {
                         "Bible Study"

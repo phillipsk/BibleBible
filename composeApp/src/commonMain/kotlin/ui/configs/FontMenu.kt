@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import data.bibleIQ.BibleIQDataModel
 
 @Composable
-fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
+internal fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
     var userSelectedFontSize by remember { mutableStateOf(selectedFontSize) }
 
     var sliderPosition by remember { mutableFloatStateOf(0f) }
@@ -32,7 +32,7 @@ fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
                 BibleIQDataModel.selectedFontSize = userSelectedFontSize
             },
             colors = SliderDefaults.colors(
-                thumbColor = Color.Black,
+                thumbColor = Color.DarkGray,
                 activeTrackColor = Color.DarkGray,
                 inactiveTrackColor = Color.LightGray
             ),

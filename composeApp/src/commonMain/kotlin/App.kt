@@ -1,6 +1,5 @@
-import androidx.compose.material.BackdropValue
+
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.rememberBackdropScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -32,10 +31,7 @@ internal fun App() {
             // Loading screen
         } else {
             BibleHomeScreen(
-                rememberBackdropScaffoldState(
-                    initialValue = BackdropValue.Revealed,
-                    //            snackbarHostState = snackbarHostState
-                )
+                backdropScaffoldState = BibleIQDataModel.backdropScaffoldState,
             )
         }
     }
