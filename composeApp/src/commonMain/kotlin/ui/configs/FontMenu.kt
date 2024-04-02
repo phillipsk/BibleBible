@@ -21,8 +21,11 @@ import data.bibleIQ.BibleIQDataModel
 internal fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
     var userSelectedFontSize by remember { mutableStateOf(selectedFontSize) }
 
-    var sliderPosition by remember { mutableFloatStateOf(0f) }
-    Row(modifier = Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    var sliderPosition by remember { mutableFloatStateOf(selectedFontSize.toFloat()) }
+    Row(
+        modifier = Modifier.padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(text = "Font Size: ")
         Slider(
             value = sliderPosition,
