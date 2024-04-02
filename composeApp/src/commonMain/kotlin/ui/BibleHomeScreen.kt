@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BackdropScaffold
+import androidx.compose.material.BackdropValue
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
@@ -24,6 +25,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
+import androidx.compose.material.rememberBackdropScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,7 +39,7 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
-import ui.configs.BackLayerColumnConfigs
+import ui.configs.BackLayerConfigs
 import ui.configs.FrontLayerTopBar
 import ui.configs.HomeTopBar
 
@@ -48,9 +50,13 @@ internal fun BibleHomeScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     BackdropScaffold(
+        scaffoldState = rememberBackdropScaffoldState(
+            initialValue = BackdropValue.Revealed,
+//            snackbarHostState = snackbarHostState
+        ),
         appBar = ({ HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) }),
         backLayerContent = {
-            BackLayerColumnConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
+            BackLayerConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)

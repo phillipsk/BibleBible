@@ -9,7 +9,7 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 
 @Composable
-internal fun BackLayerColumnConfigs(bibleVersionsList: BibleIQVersions) {
+internal fun BackLayerConfigs(bibleVersionsList: BibleIQVersions) {
     Column(modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)) {
         BibleMenu(
             bibleVersionsList = bibleVersionsList,
