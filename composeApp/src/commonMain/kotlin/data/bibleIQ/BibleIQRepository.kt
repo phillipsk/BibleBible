@@ -2,7 +2,9 @@ package data.bibleIQ
 
 import JSON_BOOKS
 import JSON_VERSIONS
+import data.GeminiModel
 import data.apiBible.BookData
+import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
@@ -52,6 +54,8 @@ internal suspend fun getChapterBibleIQ(
     version: String = BibleIQDataModel.selectedVersion
 ) {
     try {
+        GeminiModel.showSummary = false
+        GeminiModel.geminiData = GeminiResponseDto()
         val bookId = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey)
         Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
         val chapterVerses: List<BibleChapter>
@@ -100,9 +104,7 @@ internal suspend fun getChapterBibleIQ(
                 insertBibleVerses(chapterVerses, version, chapterCount)
             }
         } else {
-            withContext(Dispatchers.IO) {
-                chapterCount = queryBookChapterSize(bookId, version)
-            }
+            chapterCount = queryBookChapterSize(bookId, version)
             withContext(Dispatchers.Main) {
                 Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
                 BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
@@ -223,10 +225,15 @@ private suspend fun loadVerseData(
 
 internal suspend fun queryBookChapterSize(bookId: Int, version: String): ChapterCount? {
     return try {
-        val count = DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
-            ?.bibleBibleDatabaseQueries?.countVersesByBookId(bookId.toString(), version.lowercase())
-            ?.executeAsOneOrNull()?.chapterCount
-        ChapterCount(count)
+        withContext(Dispatchers.IO) {
+            val count = DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                ?.bibleBibleDatabaseQueries?.countVersesByBookId(
+                    bookId.toString(),
+                    version.lowercase()
+                )
+                ?.executeAsOneOrNull()?.chapterCount
+            ChapterCount(count)
+        }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ093")
         null

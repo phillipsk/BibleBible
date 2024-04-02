@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
+            implementation(libs.generativeai)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -60,6 +61,7 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
             implementation(libs.sqlDelight.driver.native)
+            implementation(libs.generativeai)
         }
     }
     configurations.all {
@@ -79,8 +81,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 3
-        versionName = "3.0"
+        versionCode = 5
+        versionName = "5"
     }
     packaging {
         resources {
@@ -114,12 +116,17 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir).getProperty("api_key") ?: ""
+            gradleLocalProperties(rootDir).getProperty("IQ_BIBLE_API_KEY") ?: ""
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
             gradleLocalProperties(rootDir).getProperty("api_key_api_bible") ?: ""
+        )
+        buildConfigField(
+            STRING,
+            "GEMINI_API_KEY",
+            gradleLocalProperties(rootDir).getProperty("GEMINI_API_KEY") ?: ""
         )
     }
 }

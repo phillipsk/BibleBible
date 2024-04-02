@@ -4,6 +4,7 @@ import data.bibleIQ.BibleIQDataModel
 import email.kevinphillips.biblebible.BuildKonfig
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.Logger
@@ -22,8 +23,15 @@ data class HttpClientConfig(
     val path: String? = null
 )
 
+const val TIMEOUT_LIMIT = 15_000L
+
 private fun createHttpClient(config: HttpClientConfig): HttpClient {
     return HttpClient {
+        install(HttpTimeout) {
+            requestTimeoutMillis = TIMEOUT_LIMIT
+            connectTimeoutMillis = TIMEOUT_LIMIT
+            socketTimeoutMillis = TIMEOUT_LIMIT // create separate client for GeminiService
+        }
         install(Resources)
         if (!BibleIQDataModel.RELEASE_BUILD) {
             install(Logging) {
@@ -60,6 +68,14 @@ val httpClientBibleIQ: HttpClient by lazy {
     val config = HttpClientConfig(
         baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
         apiKey = BuildKonfig.API_KEY
+    )
+    createHttpClient(config)
+}
+
+val httpClientGemini: HttpClient by lazy {
+    val config = HttpClientConfig(
+        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "X-RapidAPI-Key",
+        apiKey = BuildKonfig.GEMINI_API_KEY
     )
     createHttpClient(config)
 }
