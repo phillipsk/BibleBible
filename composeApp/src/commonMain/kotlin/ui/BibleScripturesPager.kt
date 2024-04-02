@@ -24,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.GeminiModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
@@ -156,17 +155,21 @@ internal fun BibleScripturesPager(
                     )
                     when {
                         isAISummaryLoading && showAISummary -> {
+                            Napier.v("Pager LoadingScreen: $isAISummaryLoading $showAISummary", tag = "Gemini")
                             LoadingScreen()
                         }
-                        GeminiModel.geminiDataText.isNullOrEmpty() || !showAISummary -> {
-                            BibleScriptures(
-                                chapters,
+                        showAISummary -> {
+                            Napier.v("Pager showSummary: $isAISummaryLoading $showAISummary", tag = "Gemini")
+                            GeminiSummary(
                                 pagerColumnScrollState,
                                 BibleIQDataModel.selectedFontSize.sp
                             )
                         }
+
                         else -> {
-                            GeminiSummary(
+                            Napier.v("Pager LoadingScreen: $isAISummaryLoading $showAISummary", tag = "Gemini")
+                            BibleScriptures(
+                                chapters,
                                 pagerColumnScrollState,
                                 BibleIQDataModel.selectedFontSize.sp
                             )

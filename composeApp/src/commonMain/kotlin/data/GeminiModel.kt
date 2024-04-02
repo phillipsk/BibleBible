@@ -13,15 +13,14 @@ object GeminiModel {
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
 
-    var geminiData by mutableStateOf(GeminiResponseDto())
-
-    internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-
-    val isSuccessful get() = !isLoading && showSummary && geminiDataText != null
+    private var geminiData by mutableStateOf(GeminiResponseDto())
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
         Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
     }
+    internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+
+    val isSuccessful get() = !isLoading && showSummary && geminiDataText != null
 
     internal var geminiFullResponse by mutableStateOf("")
         private set
@@ -35,8 +34,8 @@ object GeminiModel {
                 BibleIQDataModel.selectedBook.cleanedName + " " +
                 BibleIQDataModel.bibleChapter?.chapterId
 
-    internal suspend fun generateAISummary() {
-        if (showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
+    internal suspend fun generateAISummary(pullToRefresh: Boolean = false) {
+        if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
             generateContent(geminiQuery)
         }
     }
