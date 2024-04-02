@@ -116,7 +116,7 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir).getProperty("api_key") ?: ""
+            gradleLocalProperties(rootDir).getProperty("IQ_BIBLE_API_KEY") ?: ""
         )
         buildConfigField(
             STRING,
