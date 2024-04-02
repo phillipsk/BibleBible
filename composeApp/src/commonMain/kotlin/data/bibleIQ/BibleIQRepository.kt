@@ -55,7 +55,7 @@ internal suspend fun getChapterBibleIQ(
 ) {
     try {
         GeminiModel.showSummary = false
-        GeminiModel.geminiData = GeminiResponseDto()
+        GeminiModel.updateGeminiData(GeminiResponseDto())
         val bookId = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey)
         Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
         val chapterVerses: List<BibleChapter>
