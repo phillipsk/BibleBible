@@ -10,13 +10,16 @@ Contributions by Kevin Phillips
 <img src="https://play.google.com/intl/en_gb/badges/static/images/badges/en_badge_web_generic.png" width=240 />
 </a>
 
-## About the App
+## Run the App
 I am currently prioritizing the development of a minimal viable product (MVP) for this app. This means that the app's core functionality is the primary focus, and I will be adding additional features over time.
 
-To run the app, you will need to provide your own API key from [IQ Bible](https://rapidapi.com/vibrantmiami/api/iq-bible). Once you have your API key, add the key to the file `local.properties` in the root directory of the project:
+To run the app, you will need to provide your own API key from [IQ Bible](https://rapidapi.com/vibrantmiami/api/iq-bible) 
+Additionally an API key from [Gemini AI](https://ai.google.dev/) will be needed for the AI summary feature
+Once you have your API keys, add them to the file `local.properties` in the root directory of the project:
 ```
 # local.properties
-api_key=YOUR_API_KEY_HERE
+IQ_BIBLE_API_KEY=[YOUR_API_KEY_HERE]
+GEMINI_API_KEY=[YOUR_API_KEY_HERE]
 ```
 
 ## Approach
