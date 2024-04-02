@@ -14,6 +14,7 @@ object BibleIQDataModel {
     const val RELEASE_BUILD = false
     const val DEFAULT_BIBLE_ID = "kjv"
 
+    var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set

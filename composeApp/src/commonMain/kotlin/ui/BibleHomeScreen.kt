@@ -17,7 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BackdropScaffold
-import androidx.compose.material.BackdropValue
+import androidx.compose.material.BackdropScaffoldState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
@@ -25,8 +25,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
-import androidx.compose.material.rememberBackdropScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -38,6 +38,7 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ui.configs.BackLayerConfigs
 import ui.configs.FrontLayerTopBar
@@ -45,15 +46,18 @@ import ui.configs.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleHomeScreen() {
+internal fun BibleHomeScreen(backdropScaffoldState: BackdropScaffoldState) {
     val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val localBackdropScaffoldState = remember { backdropScaffoldState }
+    LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
+        delay(450)
+        localBackdropScaffoldState.conceal()
+        BibleIQDataModel.isFirstLaunch = false
+    }
     BackdropScaffold(
-        scaffoldState = rememberBackdropScaffoldState(
-            initialValue = BackdropValue.Revealed,
-//            snackbarHostState = snackbarHostState
-        ),
+        scaffoldState = backdropScaffoldState,
         appBar = ({ HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) }),
         backLayerContent = {
             BackLayerConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)

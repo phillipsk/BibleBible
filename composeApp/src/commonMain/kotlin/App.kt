@@ -1,4 +1,6 @@
-
+import androidx.compose.material.BackdropValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.rememberBackdropScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +14,7 @@ import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun App() {
     initializeNapier()
@@ -28,7 +31,12 @@ internal fun App() {
         if (isLoading.value) {
             // Loading screen
         } else {
-            BibleHomeScreen()
+            BibleHomeScreen(
+                rememberBackdropScaffoldState(
+                    initialValue = BackdropValue.Revealed,
+                    //            snackbarHostState = snackbarHostState
+                )
+            )
         }
     }
 }
