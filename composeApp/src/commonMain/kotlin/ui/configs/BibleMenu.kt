@@ -1,8 +1,10 @@
 package ui.configs
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
@@ -10,10 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.bibleIQ.BibleIQDataModel
@@ -21,22 +20,21 @@ import data.bibleIQ.BibleIQVersions
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
-    var checked by remember { mutableStateOf(false)}
+internal fun BibleMenu(bibleVersionsList: BibleIQVersions, selectedVersion: String) {
 
-    Row {
-        bibleVersionsList.data.forEach {
-            if (it.abbreviation != null) {
+    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+        bibleVersionsList.data.forEach { version ->
+            if (version.abbreviation != null) {
+                val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
                 FilterChip(
                     modifier = Modifier.padding(4.dp),
                     onClick = {
                         BibleIQDataModel.run {
-                            updateSelectedVersion(it.abbreviation)
+                            updateSelectedVersion(version.abbreviation)
                         }
-                        checked = it.abbreviation == BibleIQDataModel.selectedVersion
                     },
-                    selected = checked,
-                    leadingIcon = if (checked) {
+                    selected = selected,
+                    leadingIcon = if (selected) {
                         {
                             Icon(
                                 imageVector = Icons.Filled.Done,
@@ -48,7 +46,7 @@ internal fun BibleMenu(bibleVersionsList: BibleIQVersions) {
                         null
                     },
                 ) {
-                    Text("${it.abbreviation} ")
+                    Text("${version.abbreviation} ")
                 }
             }
         }

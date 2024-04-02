@@ -23,7 +23,7 @@ object BibleIQDataModel {
             it.abbreviation == "KJV" || it.abbreviation == "ASV"
                     || it.abbreviation == "RV1909" || it.abbreviation == "SVD"
         }
-        bibleVersions = BibleIQVersions(data = list)
+        bibleVersions = BibleIQVersions(data = newVersions.data)
     }
 
     private var _selectedVersion: MutableState<String> = mutableStateOf("")
