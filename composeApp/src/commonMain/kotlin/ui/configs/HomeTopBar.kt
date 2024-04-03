@@ -1,6 +1,12 @@
 package ui.configs
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,6 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,12 +33,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun HomeTopBar(onClick: () -> Unit, showSubtitle: Boolean) {
+internal fun HomeTopBar(onClick: () -> Unit) {
+    var showSubtitle by mutableStateOf(true)
+    var animationCounter by mutableStateOf(0)
+    suspend fun animateSubtitle(delay: Long) {
+        delay(delay)
+        showSubtitle = !showSubtitle
+        animationCounter++
+    }
+    LaunchedEffect(Unit) {
+        animateSubtitle(1000)
+        animateSubtitle(500)
+        animateSubtitle(2000)
+    }
+
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -38,8 +62,7 @@ internal fun HomeTopBar(onClick: () -> Unit, showSubtitle: Boolean) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onClick)
-                    .weight(1f)
+                modifier = Modifier.clickable(onClick = onClick).weight(1f).padding(end = 6.dp)
             ) {
                 Image(
                     painter = painterResource("BibleBible_ico_iv.png"),
@@ -64,9 +87,18 @@ internal fun HomeTopBar(onClick: () -> Unit, showSubtitle: Boolean) {
                         .padding(start = 4.dp, end = 4.dp)
                 )
                 Napier.d("HomeTopBar: showSubtitle $showSubtitle", tag = "HomeTopBar")
-                AnimatedVisibility(visible = showSubtitle) {
+                AnimatedVisibility(
+                    visible = showSubtitle,
+                    exit = if (animationCounter < 2) {
+                        fadeOut() + slideOutVertically()
+                    } else {
+                        fadeOut() + shrinkHorizontally(animationSpec = spring(stiffness = Spring.StiffnessVeryLow))
+                    },
+                    modifier = Modifier.animateContentSize()
+                ) {
                     Text(
-                        "AI Assisted Bible Study", style = TextStyle(
+                        "AI Assisted Bible Study",
+                        style = TextStyle(
                             fontFamily = FontFamily.Cursive,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
