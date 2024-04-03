@@ -48,7 +48,7 @@ internal fun HomeTopBar(onClick: () -> Unit) {
         try {
             val showAnimation = checkAnimationLastCalled()
             Napier.d("HomeTopBar: showAnimation $showAnimation", tag = "HomeTopBar")
-            if (showAnimation == true) {
+            if (showAnimation) {
                 listOf(1000L, 500L, 2000L, 50L).forEach { delay ->
                     showSubtitle = !showSubtitle
                     delay(delay)

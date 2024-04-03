@@ -42,16 +42,14 @@ suspend fun generateContent(content: String) {
     }
 }
 
-suspend fun checkAnimationLastCalled(): Boolean? {
-    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        val lastCalledTime: Long
-        val currentTime: Long
-        val showAnimation: Boolean
+suspend fun checkAnimationLastCalled(): Boolean {
+    return DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+        var showAnimation = false
         try {
             withContext(Dispatchers.IO) {
                 val lastCalledQuery = database.bibleBibleDatabaseQueries.getLastCalled()
-                lastCalledTime = lastCalledQuery.executeAsOneOrNull()?.time ?: 0
-                currentTime = Clock.System.now().toEpochMilliseconds()
+                val lastCalledTime = lastCalledQuery.executeAsOneOrNull()?.time ?: 0
+                val currentTime = Clock.System.now().toEpochMilliseconds()
 
                 // Check if animation was called more than a day ago
                 showAnimation = currentTime - lastCalledTime > 24 * 60 * 60 * 1000
@@ -59,14 +57,9 @@ suspend fun checkAnimationLastCalled(): Boolean? {
                     database.bibleBibleDatabaseQueries.insertLastCalled(time = currentTime)
                 }
             }
-            withContext(Dispatchers.Main) {
-                return@withContext showAnimation
-            }
-
         } catch (e: Exception) {
             Napier.e("Error in checkAnimationLastCalled: ${e.message}", tag = "HomeTopBar")
         }
-
-    }
-    return null
+        showAnimation
+    } ?: false
 }
