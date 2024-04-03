@@ -1,6 +1,7 @@
 package ui.configs
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,13 +22,14 @@ import data.bibleIQ.BibleIQVersions
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleMenu(bibleVersionsList: BibleIQVersions, selectedVersion: String) {
-
-    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         bibleVersionsList.data.forEach { version ->
             if (version.abbreviation != null) {
                 val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
                 FilterChip(
-                    modifier = Modifier.padding(4.dp),
                     onClick = {
                         BibleIQDataModel.run {
                             updateSelectedVersion(version.abbreviation)
