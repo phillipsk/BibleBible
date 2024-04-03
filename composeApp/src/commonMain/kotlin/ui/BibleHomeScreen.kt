@@ -65,6 +65,7 @@ internal fun BibleHomeScreen(backdropScaffoldState: BackdropScaffoldState) {
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
+        frontLayerShape = TopCutShape(Orientation.TOP),
         frontLayerContent = ({
             Column(
                 modifier = Modifier.fillMaxSize(),
