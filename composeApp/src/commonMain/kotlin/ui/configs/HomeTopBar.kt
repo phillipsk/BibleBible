@@ -2,10 +2,10 @@ package ui.configs
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.EaseInCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -30,6 +30,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.gemini.checkAnimationLastCalled
@@ -103,7 +104,9 @@ internal fun HomeTopBar(onClick: () -> Unit) {
                     exit = if (animationCounter < 2) {
                         fadeOut() + slideOutVertically()
                     } else {
-                        fadeOut() + shrinkHorizontally(animationSpec = spring(stiffness = Spring.StiffnessVeryLow))
+                        slideOut(tween(200, easing = EaseInCubic)) {
+                            IntOffset(180, 0)
+                        }
                     },
                     modifier = Modifier.animateContentSize()
                 ) {
