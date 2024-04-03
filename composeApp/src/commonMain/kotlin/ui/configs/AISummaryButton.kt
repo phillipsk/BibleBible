@@ -1,9 +1,11 @@
 package ui.configs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
@@ -22,6 +24,8 @@ fun AISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) 
     val checked = remember(isAISummaryLoading) { GeminiModel.showSummary }
 
     FilterChip(
+        enabled = !isAISummaryLoading,
+        border = if (!checked) BorderStroke(2.dp, MaterialTheme.colors.primary) else null,
         onClick = {
             scope.launch {
                 generateAISummary()
