@@ -104,7 +104,8 @@ fun FrontTopBar(showHomePage: Boolean) {
                         GeminiModel.showSummary = false
                     }
                 },
-                isAISummaryLoading = GeminiModel.isSuccessful
+                isAISummaryLoading = GeminiModel.isLoading,
+                isAISummarySuccessful = GeminiModel.isSuccessful
             )
 
         }

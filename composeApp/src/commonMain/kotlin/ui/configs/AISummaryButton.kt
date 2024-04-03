@@ -15,16 +15,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.GeminiModel
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun AISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) {
+fun AISummaryButton(
+    generateAISummary: () -> Unit,
+    isAISummaryLoading: Boolean,
+    isAISummarySuccessful: Boolean,
+) {
     val scope = rememberCoroutineScope()
     val checked = remember(isAISummaryLoading) { GeminiModel.showSummary }
 
+    Napier.d("AISummaryButton isAISummaryLoading :: $isAISummaryLoading", tag = "Gemini")
     FilterChip(
-        enabled = !isAISummaryLoading,
         border = if (!checked) BorderStroke(2.dp, MaterialTheme.colors.primary) else null,
         onClick = {
             scope.launch {
@@ -32,7 +37,7 @@ fun AISummaryButton(generateAISummary: () -> Unit, isAISummaryLoading: Boolean) 
             }
         },
         selected = checked,
-        leadingIcon = if (isAISummaryLoading) {
+        leadingIcon = if (isAISummarySuccessful) {
             {
                 Icon(
                     imageVector = Icons.Filled.Done,
