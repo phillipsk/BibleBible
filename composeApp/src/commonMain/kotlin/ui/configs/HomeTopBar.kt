@@ -42,15 +42,15 @@ import org.jetbrains.compose.resources.painterResource
 internal fun HomeTopBar(onClick: () -> Unit) {
     var showSubtitle by mutableStateOf(true)
     var animationCounter by mutableStateOf(0)
-    suspend fun animateSubtitle(delay: Long) {
-        delay(delay)
-        showSubtitle = !showSubtitle
-        animationCounter++
+    suspend fun animateSubtitle() {
+        listOf(1000L, 500L, 2000L).forEach { delay ->
+            delay(delay)
+            showSubtitle = !showSubtitle
+            animationCounter++
+        }
     }
     LaunchedEffect(Unit) {
-        animateSubtitle(1000)
-        animateSubtitle(500)
-        animateSubtitle(2000)
+        animateSubtitle()
     }
 
     TopAppBar(
