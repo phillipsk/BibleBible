@@ -85,7 +85,7 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   ~~revert AI summary on double tap~~
 *   add obfuscation, R8, Proguard
 *   window insets on iOS
-*   back arrow on front layer page
+*   ~~back arrow on front layer page~~
 *   data class for AI Summary UI state
 
 ## Nice to have
