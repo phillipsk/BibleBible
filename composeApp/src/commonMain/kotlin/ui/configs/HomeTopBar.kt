@@ -50,7 +50,7 @@ internal fun HomeTopBar(onClick: () -> Unit) {
             val showAnimation = checkAnimationLastCalled()
             Napier.d("HomeTopBar: showAnimation $showAnimation", tag = "HomeTopBar")
             if (showAnimation) {
-                listOf(1000L, 500L, 2000L, 50L).forEach { delay ->
+                listOf(1000L, 700L, 2000L, 50L).forEach { delay ->
                     showSubtitle = !showSubtitle
                     delay(delay)
                     animationCounter++
@@ -74,16 +74,15 @@ internal fun HomeTopBar(onClick: () -> Unit) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onClick).weight(1f).padding(end = 6.dp)
+                modifier = Modifier.clickable(onClick = onClick)
             ) {
                 Image(
                     painter = painterResource("BibleBible_ico_iv.png"),
                     contentDescription = "BibleBible",
-                    modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(20.dp))
+                    modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(30.dp))
                 )
-                Spacer(modifier = Modifier.padding(4.dp))
-
                 Text(
+                    modifier = Modifier.padding(start = 4.dp),
                     text = "BibleBible",
                     style = TextStyle(
                         fontFamily = FontFamily.Cursive,
@@ -94,10 +93,14 @@ internal fun HomeTopBar(onClick: () -> Unit) {
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Visible,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, end = 4.dp)
                 )
+            }
+            Spacer(modifier = Modifier.padding(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 12.dp, top = 8.dp)
+            ) {
                 Napier.d("HomeTopBar: showSubtitle $showSubtitle", tag = "HomeTopBar")
                 AnimatedVisibility(
                     visible = showSubtitle,
@@ -111,7 +114,8 @@ internal fun HomeTopBar(onClick: () -> Unit) {
                     modifier = Modifier.animateContentSize()
                 ) {
                     Text(
-                        "AI Assisted Bible Study",
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "AI Assisted \n       Bible Study",
                         style = TextStyle(
                             fontFamily = FontFamily.Cursive,
                             fontSize = 16.sp,
@@ -120,7 +124,7 @@ internal fun HomeTopBar(onClick: () -> Unit) {
                             color = Color.White,
 
                             ),
-                        maxLines = 1,
+//                        maxLines = 1,
                     )
                 }
             }
