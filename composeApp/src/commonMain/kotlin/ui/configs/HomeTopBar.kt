@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.gemini.checkAnimationLastCalled
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.ExperimentalResourceApi
@@ -40,15 +41,25 @@ import org.jetbrains.compose.resources.painterResource
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 internal fun HomeTopBar(onClick: () -> Unit) {
-    var showSubtitle by mutableStateOf(true)
+    var showSubtitle by mutableStateOf(false)
     var animationCounter by mutableStateOf(0)
+
     suspend fun animateSubtitle() {
-        listOf(1000L, 500L, 2000L).forEach { delay ->
-            delay(delay)
-            showSubtitle = !showSubtitle
-            animationCounter++
+        try {
+            val showAnimation = checkAnimationLastCalled()
+            Napier.d("HomeTopBar: showAnimation $showAnimation", tag = "HomeTopBar")
+            if (showAnimation == true) {
+                listOf(1000L, 500L, 2000L, 50L).forEach { delay ->
+                    showSubtitle = !showSubtitle
+                    delay(delay)
+                    animationCounter++
+                }
+            }
+        } catch (e: Exception) {
+            Napier.e("Error in animateSubtitle: ${e.message}", tag = "HomeTopBar")
         }
     }
+
     LaunchedEffect(Unit) {
         animateSubtitle()
     }
