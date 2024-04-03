@@ -1,5 +1,6 @@
 package ui.configs
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,12 +22,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.aakira.napier.Napier
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun HomeTopBar(onClick: () -> Unit) {
+internal fun HomeTopBar(onClick: () -> Unit, showSubtitle: Boolean) {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -61,7 +63,20 @@ internal fun HomeTopBar(onClick: () -> Unit) {
                         .weight(1f)
                         .padding(start = 4.dp, end = 4.dp)
                 )
+                Napier.d("HomeTopBar: showSubtitle $showSubtitle", tag = "HomeTopBar")
+                AnimatedVisibility(visible = showSubtitle) {
+                    Text(
+                        "AI Assisted Bible Study", style = TextStyle(
+                            fontFamily = FontFamily.Cursive,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 2.1.sp,
+                            color = Color.White,
 
+                            ),
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

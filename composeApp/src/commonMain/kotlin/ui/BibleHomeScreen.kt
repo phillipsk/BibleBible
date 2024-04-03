@@ -27,8 +27,11 @@ import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,9 +59,19 @@ internal fun BibleHomeScreen(backdropScaffoldState: BackdropScaffoldState) {
         localBackdropScaffoldState.conceal()
         BibleIQDataModel.isFirstLaunch = false
     }
+    var showSubtitle by mutableStateOf(true)
+    LaunchedEffect(Unit) {
+        delay(1000)
+        showSubtitle = false
+    }
     BackdropScaffold(
         scaffoldState = backdropScaffoldState,
-        appBar = ({ HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) }),
+        appBar = {
+            HomeTopBar(
+                onClick = { BibleIQDataModel.onHomeClick() },
+                showSubtitle = showSubtitle
+            )
+        },
         backLayerContent = {
             BackLayerConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
