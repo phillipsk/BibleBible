@@ -40,6 +40,7 @@ internal fun BibleStudyTopBar(onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
