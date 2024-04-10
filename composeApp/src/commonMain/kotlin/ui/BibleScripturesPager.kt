@@ -80,11 +80,12 @@ internal fun BibleScripturesPager(
             "LaunchedEffect: selectedBook :: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
             tag = "BB2470"
         )
-//        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
-//            bottomSheetScaffoldState.bottomSheetState.expand()
-//        } else {
-//            bottomSheetScaffoldState.bottomSheetState.collapse()
-//        }
+        BibleIQDataModel.bottomSheetViewCount = 0
+        /*        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
+                    bottomSheetScaffoldState.bottomSheetState.expand()
+                } else {
+                    bottomSheetScaffoldState.bottomSheetState.collapse()
+                }*/
     }
 
     LaunchedEffect(bibleVersion) {
@@ -109,11 +110,12 @@ internal fun BibleScripturesPager(
                 getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
+            bottomSheetScaffoldState.bottomSheetState.expand()
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
-        bottomSheetScaffoldState.bottomSheetState.collapse()
         pagerColumnScrollState.scrollTo(0)
     }
 
@@ -124,8 +126,9 @@ internal fun BibleScripturesPager(
         )
         if (pagerColumnScrollState.canScrollBackward || showAISummary) {
             bottomSheetScaffoldState.bottomSheetState.collapse()
-        } else {
+        } else if (BibleIQDataModel.bottomSheetViewCount < 3) {
             bottomSheetScaffoldState.bottomSheetState.expand()
+            BibleIQDataModel.bottomSheetViewCount++
         }
     }
 
