@@ -40,8 +40,8 @@ import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import ui.configs.BackLayerConfigs
-import ui.configs.FrontLayerTopBar
+import ui.configs.BottomSheetConfigs
+import ui.configs.BibleStudyTopBar
 import ui.configs.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -62,7 +62,7 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
             HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
         },
         sheetContent = {
-            BackLayerConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
+            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -72,7 +72,7 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                FrontLayerTopBar {
+                BibleStudyTopBar {
                     BibleIQDataModel.onHomeClick()
                 }
                 if (BibleIQDataModel.showHomePage) {

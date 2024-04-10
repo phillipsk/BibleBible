@@ -9,7 +9,7 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 
 @Composable
-internal fun BackLayerConfigs(bibleVersionsList: BibleIQVersions) {
+internal fun BottomSheetConfigs(bibleVersionsList: BibleIQVersions) {
     Column(
         modifier = Modifier.padding(4.dp),
 //        verticalArrangement = Arrangement.spacedBy(2.dp)

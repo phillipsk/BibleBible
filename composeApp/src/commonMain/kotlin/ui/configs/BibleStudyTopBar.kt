@@ -35,7 +35,7 @@ import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
 @Composable
-internal fun FrontLayerTopBar(onClick: () -> Unit) {
+internal fun BibleStudyTopBar(onClick: () -> Unit) {
     TopAppBar(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -76,13 +76,13 @@ internal fun FrontLayerTopBar(onClick: () -> Unit) {
                 )
 
             }
-            FrontTopBar(BibleIQDataModel.showHomePage)
+            BibleStudyConfigBar(BibleIQDataModel.showHomePage)
         }
     }
 }
 
 @Composable
-fun FrontTopBar(showHomePage: Boolean) {
+fun BibleStudyConfigBar(showHomePage: Boolean) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(end = if (showHomePage) 2.dp else 12.dp).wrapContentWidth()
