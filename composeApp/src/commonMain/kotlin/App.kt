@@ -31,7 +31,7 @@ internal fun App() {
             // Loading screen
         } else {
             BibleHomeScreen(
-                backdropScaffoldState = BibleIQDataModel.backdropScaffoldState,
+                scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,
             )
         }
     }

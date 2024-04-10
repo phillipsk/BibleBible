@@ -1,10 +1,9 @@
 package data.bibleIQ
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.material.BackdropValue
+import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.rememberBackdropScaffoldState
+import androidx.compose.material.rememberBottomSheetScaffoldState
+import androidx.compose.material.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -24,11 +23,10 @@ object BibleIQDataModel {
     var showHomePage by mutableStateOf(true)
 
     @OptIn(ExperimentalMaterialApi::class)
-    val backdropScaffoldState
+    val bottomSheetScaffoldState
         @Composable
-        get() = rememberBackdropScaffoldState(
-            initialValue = BackdropValue.Revealed,
-            animationSpec = spring(stiffness = Spring.StiffnessLow)
+        get() = rememberBottomSheetScaffoldState(
+            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
 //            snackbarHostState = SnackbarHostState()
         )
     var bibleVersions by mutableStateOf(BibleIQVersions())

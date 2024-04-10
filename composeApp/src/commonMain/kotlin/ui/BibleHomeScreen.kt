@@ -16,8 +16,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.BackdropScaffold
-import androidx.compose.material.BackdropScaffoldState
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
@@ -46,29 +46,28 @@ import ui.configs.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleHomeScreen(backdropScaffoldState: BackdropScaffoldState) {
+internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
     val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val localBackdropScaffoldState = remember { backdropScaffoldState }
+    val localScaffoldState = remember { scaffoldState }
     LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
         delay(450)
-        localBackdropScaffoldState.conceal()
+        localScaffoldState.drawerState.close()
         BibleIQDataModel.isFirstLaunch = false
     }
-    BackdropScaffold(
-        scaffoldState = backdropScaffoldState,
-        appBar = {
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        topBar = {
             HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
         },
-        backLayerContent = {
+        sheetContent = {
             BackLayerConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-        frontLayerShape = TopCutShape(Orientation.TOP),
-        frontLayerContent = ({
+        content = ({
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
