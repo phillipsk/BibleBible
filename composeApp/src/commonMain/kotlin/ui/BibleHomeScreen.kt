@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetScaffoldState
@@ -38,22 +40,33 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import ui.configs.BottomSheetConfigs
 import ui.configs.BibleStudyTopBar
+import ui.configs.BottomSheetConfigs
 import ui.configs.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
+internal fun BibleHomeScreen(
+    scaffoldState: BottomSheetScaffoldState,
+) {
     val errorMsg = BibleIQDataModel.errorSnackBar
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
+
+//    Hide on home screen
+    /*    val lazyGridState = rememberLazyGridState()
+        LaunchedEffect(lazyGridState.canScrollBackward) {
+            if (!lazyGridState.canScrollBackward) {
+                localScaffoldState.bottomSheetState.expand()
+            } else {
+                localScaffoldState.bottomSheetState.collapse()
+            }
+        }*/
     LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
-        delay(450)
-        localScaffoldState.drawerState.close()
+//        delay(450)
+//        localScaffoldState.bottomSheetState.collapse()
         BibleIQDataModel.isFirstLaunch = false
     }
     BottomSheetScaffold(
@@ -61,6 +74,7 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
         topBar = {
             HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
         },
+        sheetPeekHeight = 0.dp,
         sheetContent = {
             BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
         },
@@ -79,7 +93,7 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
                         selectedChapter = BibleAPIDataModel.selectedChapter,
-                        bibleId = BibleIQDataModel.selectedVersion
+                        bibleId = BibleIQDataModel.selectedVersion,
                     )
                 } else {
                     BibleIQDataModel.bibleChapter?.let { it1 ->
@@ -88,7 +102,8 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
                             bibleVersion = BibleIQDataModel.selectedVersion,
                             selectedBook = BibleIQDataModel.selectedBook,
                             isAISummaryLoading = GeminiModel.isLoading,
-                            showAISummary = GeminiModel.showSummary
+                            showAISummary = GeminiModel.showSummary,
+                            bottomSheetScaffoldState = localScaffoldState
                         )
                     }
                 }
@@ -106,7 +121,12 @@ internal fun BibleHomeScreen(scaffoldState: BottomSheetScaffoldState) {
 }
 
 @Composable
-internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
+internal fun BibleBookList(
+    bookData: List<BookData>?,
+    selectedChapter: String,
+    bibleId: String,
+    lazyGridState: LazyGridState = rememberLazyGridState(),
+) {
     val scope = rememberCoroutineScope()
     AnimatedVisibility(
         visible = BibleIQDataModel.showHomePage,
@@ -116,6 +136,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
         bookData?.let { bookDataList ->
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
+                    state = lazyGridState,
                     columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(10.dp),
                     userScrollEnabled = true,

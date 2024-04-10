@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ScrollableTabRow
 import androidx.compose.material.Tab
@@ -35,7 +37,7 @@ import ui.BibleScriptures
 import ui.GeminiSummary
 import ui.LoadingScreen
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleScripturesPager(
     chapters: BibleChapterUIState,
@@ -43,9 +45,12 @@ internal fun BibleScripturesPager(
     selectedBook: BookData,
     isAISummaryLoading: Boolean,
     showAISummary: Boolean,
+    bottomSheetScaffoldState: BottomSheetScaffoldState,
 ) {
-    val scope = rememberCoroutineScope()
+
+    var initialLoadDone by remember { mutableStateOf(false) }
     val pagerColumnScrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     var selectedTabIndex by remember(selectedBook) { mutableStateOf(0) }
     Napier.v(
         "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
@@ -57,7 +62,6 @@ internal fun BibleScripturesPager(
     var isPageChangeFromTabClick by remember { mutableStateOf(false) }
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 100L  // 300 ms for debounce duration
-    var initialLoadDone by remember { mutableStateOf(false) }
     val uiStateReady =
         BibleIQDataModel.getAPIBibleCardinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
@@ -96,8 +100,29 @@ internal fun BibleScripturesPager(
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
         pagerColumnScrollState.scrollTo(0)
+    }
+
+    LaunchedEffect(pagerColumnScrollState.canScrollBackward || initialLoadDone) {
+        Napier.v(
+            "LaunchedEffect: canScrollBackward: ${pagerColumnScrollState.canScrollBackward}",
+            tag = "BB2470"
+        )
+        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
+            bottomSheetScaffoldState.bottomSheetState.expand()
+        } else {
+            bottomSheetScaffoldState.bottomSheetState.collapse()
+        }
+    }
+
+        LaunchedEffect(isAISummaryLoading || showAISummary) {
+        Napier.v(
+            "LaunchedEffect: isAISummaryLoading: $isAISummaryLoading showAISummary: $showAISummary",
+            tag = "BB2470"
+        )
+        bottomSheetScaffoldState.bottomSheetState.collapse()
     }
 
     if (chapters.bookId != null) {
@@ -155,11 +180,18 @@ internal fun BibleScripturesPager(
                     )
                     when {
                         isAISummaryLoading && showAISummary -> {
-                            Napier.v("Pager LoadingScreen: $isAISummaryLoading $showAISummary", tag = "Gemini")
+                            Napier.v(
+                                "Pager LoadingScreen: $isAISummaryLoading $showAISummary",
+                                tag = "Gemini"
+                            )
                             LoadingScreen()
                         }
+
                         showAISummary -> {
-                            Napier.v("Pager showSummary: $isAISummaryLoading $showAISummary", tag = "Gemini")
+                            Napier.v(
+                                "Pager showSummary: $isAISummaryLoading $showAISummary",
+                                tag = "Gemini"
+                            )
                             GeminiSummary(
                                 pagerColumnScrollState,
                                 BibleIQDataModel.selectedFontSize.sp
@@ -167,7 +199,10 @@ internal fun BibleScripturesPager(
                         }
 
                         else -> {
-                            Napier.v("Pager LoadingScreen: $isAISummaryLoading $showAISummary", tag = "Gemini")
+                            Napier.v(
+                                "Pager LoadingScreen: $isAISummaryLoading $showAISummary",
+                                tag = "Gemini"
+                            )
                             BibleScriptures(
                                 chapters,
                                 pagerColumnScrollState,
