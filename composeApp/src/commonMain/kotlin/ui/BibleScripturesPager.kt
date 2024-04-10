@@ -69,13 +69,22 @@ internal fun BibleScripturesPager(
 //    TODO: calling and updating BibleChapterUIState on selectedBook change
         Napier.v(
             "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
-            tag = "BB2460"
+            tag = "BB2470"
         )
         initialLoadDone = true
         getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         pagerState.scrollToPage(0)
         selectedTabIndex = 0
         initialLoadDone = false
+        Napier.v(
+            "LaunchedEffect: selectedBook :: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
+            tag = "BB2470"
+        )
+//        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
+//            bottomSheetScaffoldState.bottomSheetState.expand()
+//        } else {
+//            bottomSheetScaffoldState.bottomSheetState.collapse()
+//        }
     }
 
     LaunchedEffect(bibleVersion) {
@@ -89,7 +98,10 @@ internal fun BibleScripturesPager(
     }
 
     LaunchedEffect(pagerState.currentPage) {
-        Napier.v("LaunchedEffect: currentPage: ${pagerState.currentPage}", tag = "BB2460")
+        Napier.v(
+            "LaunchedEffect: currentPage: ${pagerState.currentPage} initialLoadDone $initialLoadDone",
+            tag = "BB2470"
+        )
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (isPageChangeFromTabClick) {
             if (currentTime - lastTabClickTime > debounceDuration) {
@@ -100,24 +112,24 @@ internal fun BibleScripturesPager(
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
+        bottomSheetScaffoldState.bottomSheetState.collapse()
         pagerColumnScrollState.scrollTo(0)
     }
 
-    LaunchedEffect(pagerColumnScrollState.canScrollBackward || initialLoadDone) {
+    LaunchedEffect(pagerColumnScrollState.canScrollBackward) {
         Napier.v(
-            "LaunchedEffect: canScrollBackward: ${pagerColumnScrollState.canScrollBackward}",
+            "LaunchedEffect: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
             tag = "BB2470"
         )
-        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
-            bottomSheetScaffoldState.bottomSheetState.expand()
-        } else {
+        if (pagerColumnScrollState.canScrollBackward || showAISummary) {
             bottomSheetScaffoldState.bottomSheetState.collapse()
+        } else {
+            bottomSheetScaffoldState.bottomSheetState.expand()
         }
     }
 
-        LaunchedEffect(isAISummaryLoading || showAISummary) {
+    LaunchedEffect(isAISummaryLoading || showAISummary) {
         Napier.v(
             "LaunchedEffect: isAISummaryLoading: $isAISummaryLoading showAISummary: $showAISummary",
             tag = "BB2470"

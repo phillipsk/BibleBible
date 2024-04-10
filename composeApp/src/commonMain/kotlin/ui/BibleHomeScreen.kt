@@ -40,6 +40,7 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleStudyTopBar
 import ui.configs.BottomSheetConfigs
@@ -56,14 +57,15 @@ internal fun BibleHomeScreen(
     val localScaffoldState = remember { scaffoldState }
 
 //    Hide on home screen
-    /*    val lazyGridState = rememberLazyGridState()
-        LaunchedEffect(lazyGridState.canScrollBackward) {
-            if (!lazyGridState.canScrollBackward) {
-                localScaffoldState.bottomSheetState.expand()
-            } else {
+//        val lazyGridState = rememberLazyGridState()
+        LaunchedEffect(BibleIQDataModel.showHomePage) {
+            Napier.v("BibleHomeScreen :: LaunchedEffect :: showHomePage ${BibleIQDataModel.showHomePage}", tag = "BB2470")
+//            if (!lazyGridState.canScrollBackward) {
+//                localScaffoldState.bottomSheetState.expand()
+//            } else {
                 localScaffoldState.bottomSheetState.collapse()
-            }
-        }*/
+//            }
+        }
     LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
 //        delay(450)
 //        localScaffoldState.bottomSheetState.collapse()
@@ -94,6 +96,7 @@ internal fun BibleHomeScreen(
                         bookData = BibleAPIDataModel.uiBooks.data,
                         selectedChapter = BibleAPIDataModel.selectedChapter,
                         bibleId = BibleIQDataModel.selectedVersion,
+//                        lazyGridState = lazyGridState
                     )
                 } else {
                     BibleIQDataModel.bibleChapter?.let { it1 ->
