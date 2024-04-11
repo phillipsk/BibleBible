@@ -44,7 +44,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleStudyTopBar
 import ui.configs.BottomSheetConfigs
-import ui.configs.HomeTopBar
+import ui.configs.home.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
