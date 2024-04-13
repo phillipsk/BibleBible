@@ -1,115 +1,52 @@
 package ui.configs
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.GeminiModel
 import data.bibleIQ.BibleIQDataModel
-import kotlinx.coroutines.launch
 
 @Composable
-internal fun BibleStudyTopBar(onClick: () -> Unit) {
-    TopAppBar(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+internal fun BibleStudyTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
+    TopAppBar {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.clickable(onClick = onClick).weight(1f)
-            ) {
-                if (!BibleIQDataModel.showHomePage) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back to Home",
-                        tint = Color.White,
-                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
-                    )
-                }
-                Text(
-                    text = if (BibleIQDataModel.showHomePage) {
-                        "Bible Study"
-                    } else {
-                        BibleIQDataModel.selectedBook.cleanedName.toString()
-                    },
-                    style = TextStyle(
-                        fontFamily = FontFamily.Cursive,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 3.1.sp,
-                        color = Color.White,
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Visible,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp, end = 4.dp)
-                )
-
+            if (BibleIQDataModel.showHomePage) {
+                BibleBookTopBar()
+            } else {
+                ChapterTopBar(BibleIQDataModel.showHomePage, onClick, showBottomSheet)
             }
-            BibleStudyConfigBar(BibleIQDataModel.showHomePage)
         }
     }
 }
 
 @Composable
-fun BibleStudyConfigBar(showHomePage: Boolean) {
+private fun BibleBookTopBar() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(end = if (showHomePage) 2.dp else 12.dp).wrapContentWidth()
+        modifier = Modifier.padding(start = 4.dp, end = 8.dp)
     ) {
-        val scope = rememberCoroutineScope()
-        if (showHomePage) {
-            SortBibleBooksToggle()
-        } else {
-            AISummaryButton(
-                generateAISummary = {
-                    GeminiModel.isLoading = true
-                    if (!GeminiModel.showSummary) {
-                        scope.launch {
-                            GeminiModel.showSummary = true
-                            GeminiModel.generateAISummary()
-                            GeminiModel.isLoading = false
-                        }
-                    } else {
-                        GeminiModel.showSummary = false
-                    }
-                },
-                isAISummaryLoading = GeminiModel.isLoading,
-                isAISummarySuccessful = GeminiModel.isSuccessful
-            )
-
-        }
+        TopBarTitle("Bible Study")
+        Spacer(modifier = Modifier.weight(1f))
+        SortBibleBooksToggle()
     }
 }
 

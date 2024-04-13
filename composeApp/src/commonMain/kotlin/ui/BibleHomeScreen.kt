@@ -58,14 +58,17 @@ internal fun BibleHomeScreen(
 
 //    Hide on home screen
 //        val lazyGridState = rememberLazyGridState()
-        LaunchedEffect(BibleIQDataModel.showHomePage) {
-            Napier.v("BibleHomeScreen :: LaunchedEffect :: showHomePage ${BibleIQDataModel.showHomePage}", tag = "BB2470")
+    LaunchedEffect(BibleIQDataModel.showHomePage) {
+        Napier.v(
+            "BibleHomeScreen :: LaunchedEffect :: showHomePage ${BibleIQDataModel.showHomePage}",
+            tag = "BB2470"
+        )
 //            if (!lazyGridState.canScrollBackward) {
 //                localScaffoldState.bottomSheetState.expand()
 //            } else {
-                localScaffoldState.bottomSheetState.collapse()
+        localScaffoldState.bottomSheetState.collapse()
 //            }
-        }
+    }
     LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
 //        delay(450)
 //        localScaffoldState.bottomSheetState.collapse()
@@ -76,6 +79,7 @@ internal fun BibleHomeScreen(
         topBar = {
             HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
         },
+        sheetShape = MaterialTheme.shapes.medium,
         sheetPeekHeight = 0.dp,
         sheetContent = {
             BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
@@ -88,9 +92,18 @@ internal fun BibleHomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                BibleStudyTopBar {
-                    BibleIQDataModel.onHomeClick()
-                }
+                BibleStudyTopBar(
+                    onClick = BibleIQDataModel.onHomeClick,
+                    showBottomSheet = {
+                        scope.launch {
+                            if (localScaffoldState.bottomSheetState.isExpanded) {
+                                localScaffoldState.bottomSheetState.collapse()
+                            } else {
+                                localScaffoldState.bottomSheetState.expand()
+                            }
+                        }
+                    }
+                )
                 if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,

@@ -1,3 +1,4 @@
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -110,11 +111,11 @@ internal fun BibleScripturesPager(
                 getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
-            bottomSheetScaffoldState.bottomSheetState.expand()
+//            bottomSheetScaffoldState.bottomSheetState.expand()
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-            bottomSheetScaffoldState.bottomSheetState.collapse()
+//            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
         pagerColumnScrollState.scrollTo(0)
     }
