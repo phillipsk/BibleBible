@@ -24,11 +24,8 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -40,7 +37,6 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigs
@@ -51,37 +47,18 @@ internal fun BibleHomeScreen(
     scaffoldState: BottomSheetScaffoldState,
 ) {
     val errorMsg = BibleIQDataModel.errorSnackBar
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
 
-//    Hide on home screen
-//        val lazyGridState = rememberLazyGridState()
-    LaunchedEffect(BibleIQDataModel.showHomePage) {
-        Napier.v(
-            "BibleHomeScreen :: LaunchedEffect :: showHomePage ${BibleIQDataModel.showHomePage}",
-            tag = "BB2470"
-        )
-//            if (!lazyGridState.canScrollBackward) {
-//                localScaffoldState.bottomSheetState.expand()
-//            } else {
-        localScaffoldState.bottomSheetState.collapse()
-//            }
-    }
-    LaunchedEffect(BibleIQDataModel.isFirstLaunch) {
-//        delay(450)
-//        localScaffoldState.bottomSheetState.collapse()
-        BibleIQDataModel.isFirstLaunch = false
-    }
     BottomSheetScaffold(
+        snackbarHost = {
+            CustomSnackbarHost(snackbarHostState = scaffoldState.snackbarHostState)
+        },
         scaffoldState = scaffoldState,
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
             BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
         },
         content = ({
             Column(
@@ -103,9 +80,6 @@ internal fun BibleHomeScreen(
                 if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
-                        selectedChapter = BibleAPIDataModel.selectedChapter,
-                        bibleId = BibleIQDataModel.selectedVersion,
-//                        lazyGridState = lazyGridState
                     )
                 } else {
                     BibleIQDataModel.bibleChapter?.let { it1 ->
@@ -122,10 +96,10 @@ internal fun BibleHomeScreen(
             }
             if (errorMsg.isNotEmpty()) {
                 scope.launch {
-                    snackbarHostState.showSnackbar(errorMsg).also {
+                    localScaffoldState.snackbarHostState.showSnackbar(errorMsg).also {
                         BibleIQDataModel.clearErrorSnackBar()
                     }
-                    BibleIQDataModel.showHomePage = true
+//                    BibleIQDataModel.showHomePage = true
                 }
             }
         })
@@ -135,11 +109,8 @@ internal fun BibleHomeScreen(
 @Composable
 internal fun BibleBookList(
     bookData: List<BookData>?,
-    selectedChapter: String,
-    bibleId: String,
     lazyGridState: LazyGridState = rememberLazyGridState(),
 ) {
-    val scope = rememberCoroutineScope()
     AnimatedVisibility(
         visible = BibleIQDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
@@ -168,11 +139,11 @@ internal fun BibleBookList(
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                    .height(IntrinsicSize.Min)
                                     .defaultMinSize(
                                         minWidth = 100.dp,
                                         minHeight = 40.dp
-                                    ) // Set a minimum size
+                                    )
                             ) {
                                 it.cleanedName?.let { name ->
                                     Text(
