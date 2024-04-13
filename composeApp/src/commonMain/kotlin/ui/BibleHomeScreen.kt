@@ -75,7 +75,7 @@ internal fun BibleHomeScreen(
     }
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetShape = MaterialTheme.shapes.medium,
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
             BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
