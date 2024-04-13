@@ -44,7 +44,6 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleStudyTopBar
 import ui.configs.BottomSheetConfigs
-import ui.configs.home.HomeTopBar
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -76,9 +75,6 @@ internal fun BibleHomeScreen(
     }
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        topBar = {
-            HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() })
-        },
         sheetShape = MaterialTheme.shapes.medium,
         sheetPeekHeight = 0.dp,
         sheetContent = {

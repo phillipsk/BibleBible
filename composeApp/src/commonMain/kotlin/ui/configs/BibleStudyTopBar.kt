@@ -1,27 +1,22 @@
 package ui.configs
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchDefaults
-import androidx.compose.material.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQDataModel
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.painterResource
+import ui.configs.home.HomeTopBar
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
 internal fun BibleStudyTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
     TopAppBar {
@@ -29,6 +24,11 @@ internal fun BibleStudyTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
+            Image(
+                painter = painterResource("BibleBible_ico_iv.png"),
+                contentDescription = "BibleBible",
+                modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(30.dp))
+            )
             if (BibleIQDataModel.showHomePage) {
                 BibleBookTopBar()
             } else {
@@ -44,30 +44,6 @@ private fun BibleBookTopBar() {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(start = 4.dp, end = 8.dp)
     ) {
-        TopBarTitle("Bible Study")
-        Spacer(modifier = Modifier.weight(1f))
-        SortBibleBooksToggle()
+        HomeTopBar()
     }
-}
-
-@Composable
-internal fun SortBibleBooksToggle() {
-    var checked by remember { mutableStateOf(!BibleIQDataModel.sortAZ) }
-    Switch(
-        checked = checked,
-        onCheckedChange = {
-            BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
-            checked = it
-        },
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = Color.White.copy(alpha = 0.5f),
-            uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = Color.White.copy(alpha = 0.5f)
-        )
-    )
-    Text(
-        text = AnnotatedString(BibleIQDataModel.selectedSortType),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
-    )
 }
