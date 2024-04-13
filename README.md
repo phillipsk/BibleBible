@@ -87,6 +87,8 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   window insets on iOS
 *   ~~back arrow on front layer page~~
 *   data class for AI Summary UI state
+*   update README.md with screenshots
+*   ~~font libraries added to shared module~~
 
 ## Nice to have
 *   add some UI home screen uniform design
