@@ -42,7 +42,7 @@ import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
-import ui.configs.BibleStudyTopBar
+import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigs
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -88,7 +88,7 @@ internal fun BibleHomeScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                BibleStudyTopBar(
+                BibleBibleTopBar(
                     onClick = BibleIQDataModel.onHomeClick,
                     showBottomSheet = {
                         scope.launch {

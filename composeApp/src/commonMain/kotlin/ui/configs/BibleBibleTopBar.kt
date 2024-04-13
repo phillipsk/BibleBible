@@ -9,12 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import data.bibleIQ.BibleIQDataModel
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import ui.configs.home.HomeTopBar
 
-@OptIn(ExperimentalResourceApi::class)
 @Composable
-internal fun BibleStudyTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
+internal fun BibleBibleTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
     TopAppBar {
         Row(
             verticalAlignment = Alignment.CenterVertically,
