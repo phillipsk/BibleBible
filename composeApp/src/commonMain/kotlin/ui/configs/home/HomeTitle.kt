@@ -35,7 +35,7 @@ internal fun HomeTitle(onClick: () -> Unit) {
             modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(30.dp))
         )
         Text(
-            modifier = Modifier.padding(start = 4.dp),
+            modifier = Modifier.padding(start = 6.dp, top = 6.dp),
             text = "BibleBible",
             style = TextStyle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,

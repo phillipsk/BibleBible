@@ -13,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
@@ -49,6 +51,9 @@ fun AISummaryButton(
             null
         },
     ) {
-        Text("AI")
+        Text(
+            text = "AI",
+            style = MaterialTheme.typography.subtitle1.copy(fontSize = 12.sp, color = Color.White)
+        )
     }
 }

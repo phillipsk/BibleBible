@@ -80,6 +80,6 @@ internal fun SortBibleBooksToggle() {
     )
     Text(
         text = AnnotatedString(BibleIQDataModel.selectedSortType),
-        style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
+        style = MaterialTheme.typography.subtitle2.copy(fontSize = 12.sp, color = Color.White),
     )
 }

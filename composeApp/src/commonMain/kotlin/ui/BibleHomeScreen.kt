@@ -176,6 +176,7 @@ internal fun BibleBookList(
                             ) {
                                 it.cleanedName?.let { name ->
                                     Text(
+                                        fontFamily = MaterialTheme.typography.h3.fontFamily,
                                         text = name,
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colors.onPrimary,

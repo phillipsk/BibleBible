@@ -12,7 +12,6 @@ import data.bibleIQ.BibleIQVersions
 internal fun BottomSheetConfigs(bibleVersionsList: BibleIQVersions) {
     Column(
         modifier = Modifier.padding(4.dp),
-//        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         BibleMenu(
             bibleVersionsList = bibleVersionsList,
