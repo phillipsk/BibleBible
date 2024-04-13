@@ -1,4 +1,3 @@
-
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -82,11 +81,6 @@ internal fun BibleScripturesPager(
             tag = "BB2470"
         )
         BibleIQDataModel.bottomSheetViewCount = 0
-        /*        if (!pagerColumnScrollState.canScrollBackward && !showAISummary) {
-                    bottomSheetScaffoldState.bottomSheetState.expand()
-                } else {
-                    bottomSheetScaffoldState.bottomSheetState.collapse()
-                }*/
     }
 
     LaunchedEffect(bibleVersion) {
@@ -117,6 +111,7 @@ internal fun BibleScripturesPager(
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
 //            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
+        bottomSheetScaffoldState.bottomSheetState.collapse()
         pagerColumnScrollState.scrollTo(0)
     }
 
@@ -186,6 +181,7 @@ internal fun BibleScripturesPager(
                 }
 
                 HorizontalPager(
+//                    key = { page -> selectedBook.bookId + page.toString()},
                     state = pagerState,
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.weight(1f)
