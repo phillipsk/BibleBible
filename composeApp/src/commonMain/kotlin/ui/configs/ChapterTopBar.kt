@@ -25,7 +25,7 @@ internal fun ChapterTopBar(showHomePage: Boolean, onClick: () -> Unit, showBotto
         TopBarTitle(BibleIQDataModel.selectedBook.cleanedName.toString(), showHomePage, onClick)
         Spacer(modifier = Modifier.weight(1f))
         AISummaryTopBar()
-        Spacer(modifier = Modifier.weight(0.05f))
+        Spacer(modifier = Modifier.weight(0.10f))
         BottomSheetToggle(showBottomSheet)
     }
 }
@@ -36,7 +36,7 @@ fun BottomSheetToggle(showBottomSheet: () -> Unit) {
         imageVector = Icons.Default.MoreVert,
         contentDescription = "Open Bottom Drawer",
         tint = Color.White,
-        modifier = Modifier.padding(start = 4.dp)
+        modifier = Modifier.padding(start = 4.dp, end = 8.dp)
             .clickable(onClick = showBottomSheet)
 
     )

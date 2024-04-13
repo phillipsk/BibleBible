@@ -9,14 +9,16 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 
 @Composable
-internal fun BottomSheetConfigs(bibleVersionsList: BibleIQVersions) {
+internal fun BottomSheetConfigs(bibleVersionsList: BibleIQVersions, showAISummary: Boolean) {
     Column(
         modifier = Modifier.padding(4.dp),
     ) {
-        BibleMenu(
-            bibleVersionsList = bibleVersionsList,
-            selectedVersion = BibleIQDataModel.selectedVersion
-        )
+        if (!showAISummary) {
+            BibleMenu(
+                bibleVersionsList = bibleVersionsList,
+                selectedVersion = BibleIQDataModel.selectedVersion
+            )
+        }
         FontSizeSlider(BibleIQDataModel.fontSizeOptions, BibleIQDataModel.selectedFontSize)
     }
 }

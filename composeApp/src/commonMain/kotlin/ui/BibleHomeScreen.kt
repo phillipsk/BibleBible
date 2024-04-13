@@ -58,7 +58,8 @@ internal fun BibleHomeScreen(
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions)
+            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary)
         },
         content = ({
             Column(
