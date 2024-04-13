@@ -46,7 +46,8 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
 
             } else {
                 BibleIQDataModel.updateErrorSnackBar("AI Summary could not connect. Please try again later.")
-                BibleIQDataModel.showHomePage = true
+//                BibleIQDataModel.showHomePage = true
+                GeminiModel.showSummary = false
             }
             scrollState.scrollTo(0)
             refreshing = false

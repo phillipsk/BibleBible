@@ -27,8 +27,7 @@ object BibleIQDataModel {
     val bottomSheetScaffoldState
         @Composable
         get() = rememberBottomSheetScaffoldState(
-            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
-//            snackbarHostState = SnackbarHostState()
+            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed),
         )
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set

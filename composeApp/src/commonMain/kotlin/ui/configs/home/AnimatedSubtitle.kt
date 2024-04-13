@@ -9,13 +9,13 @@ import androidx.compose.animation.slideOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -44,7 +44,7 @@ internal fun AnimatedSubtitle(showSubtitle: Boolean, animationCounter: Int) {
                 modifier = Modifier.padding(end = 18.dp),
                 text = "AI Assisted \n       Bible Study",
                 style = TextStyle(
-                    fontFamily = FontFamily.Cursive,
+                    fontFamily = MaterialTheme.typography.h1.fontFamily,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.1.sp,
