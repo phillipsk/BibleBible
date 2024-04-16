@@ -10,7 +10,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,19 +25,26 @@ fun AISummaryButton(
     generateAISummary: () -> Unit,
     isAISummaryLoading: Boolean,
     isAISummarySuccessful: Boolean,
+    showSummary: Boolean,
 ) {
     val scope = rememberCoroutineScope()
-    val checked = remember(isAISummaryLoading) { GeminiModel.showSummary }
 
-    Napier.d("AISummaryButton isAISummaryLoading :: $isAISummaryLoading", tag = "Gemini")
+    Napier.d(
+        "AISummaryButton isAISummaryLoading :: $isAISummaryLoading " +
+                "GeminiModel.showSummary ${GeminiModel.showSummary}",
+        tag = "Gemini"
+    )
     FilterChip(
-        border = if (!checked) BorderStroke(2.dp, MaterialTheme.colors.primary) else null,
+        border = if (!isAISummarySuccessful) BorderStroke(
+            2.dp,
+            MaterialTheme.colors.primary
+        ) else null,
         onClick = {
             scope.launch {
                 generateAISummary()
             }
         },
-        selected = checked,
+        selected = showSummary,
         leadingIcon = if (isAISummarySuccessful) {
             {
                 Icon(
