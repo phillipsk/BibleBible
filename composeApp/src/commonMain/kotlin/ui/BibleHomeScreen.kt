@@ -26,6 +26,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -49,6 +50,10 @@ internal fun BibleHomeScreen(
     val errorMsg = BibleIQDataModel.errorSnackBar
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
+
+    LaunchedEffect(BibleIQDataModel.showHomePage) {
+        localScaffoldState.bottomSheetState.collapse()
+    }
 
     BottomSheetScaffold(
         snackbarHost = {

@@ -89,6 +89,8 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   data class for AI Summary UI state
 *   update README.md with screenshots
 *   ~~font libraries added to shared module~~
+*   Material 3 upgrade
+*   persist user settings
 
 ## Nice to have
 *   add some UI home screen uniform design
