@@ -58,7 +58,7 @@ private fun AISummaryTopBar() {
                 GeminiModel.showSummary = false
             }
         },
-        isAISummaryLoading = GeminiModel.isLoading,
-        isAISummarySuccessful = GeminiModel.isSuccessful
+        isAISummarySuccessful = GeminiModel.isSuccessful,
+        showSummary = GeminiModel.showSummary
     )
 }

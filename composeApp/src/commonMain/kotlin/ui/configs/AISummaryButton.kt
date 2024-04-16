@@ -23,17 +23,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun AISummaryButton(
     generateAISummary: () -> Unit,
-    isAISummaryLoading: Boolean,
     isAISummarySuccessful: Boolean,
     showSummary: Boolean,
 ) {
     val scope = rememberCoroutineScope()
 
-    Napier.d(
-        "AISummaryButton isAISummaryLoading :: $isAISummaryLoading " +
-                "GeminiModel.showSummary ${GeminiModel.showSummary}",
-        tag = "Gemini"
-    )
+    Napier.d("GeminiModel.showSummary ${GeminiModel.showSummary}", tag = "Gemini")
     FilterChip(
         border = if (!isAISummarySuccessful) BorderStroke(
             2.dp,

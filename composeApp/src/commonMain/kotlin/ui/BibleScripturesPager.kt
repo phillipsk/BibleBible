@@ -101,9 +101,6 @@ internal fun BibleScripturesPager(
         )
         val currentTime = Clock.System.now().toEpochMilliseconds()
         if (isPageChangeFromTabClick) {
-//            if (showAISummary) {
-//                GeminiModel.showSummary = false
-//            }
             val time = currentTime - lastTabClickTime
             Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
             if (time > debounceDuration) {
@@ -119,6 +116,7 @@ internal fun BibleScripturesPager(
         }
         bottomSheetScaffoldState.bottomSheetState.collapse()
         pagerColumnScrollState.scrollTo(0)
+//        GeminiModel.showSummary = false // done in API call
     }
 
     /*    LaunchedEffect(pagerColumnScrollState.canScrollBackward) {
