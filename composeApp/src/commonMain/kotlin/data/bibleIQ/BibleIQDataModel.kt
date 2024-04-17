@@ -1,5 +1,10 @@
 package data.bibleIQ
 
+import androidx.compose.material.BottomSheetValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.rememberBottomSheetScaffoldState
+import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +19,16 @@ object BibleIQDataModel {
     const val RELEASE_BUILD = false
     const val DEFAULT_BIBLE_ID = "kjv"
 
+    var bottomSheetViewCount by mutableStateOf(0)
+    var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+
+    @OptIn(ExperimentalMaterialApi::class)
+    val bottomSheetScaffoldState
+        @Composable
+        get() = rememberBottomSheetScaffoldState(
+            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed),
+        )
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
 
@@ -23,7 +37,7 @@ object BibleIQDataModel {
             it.abbreviation == "KJV" || it.abbreviation == "ASV"
                     || it.abbreviation == "RV1909" || it.abbreviation == "SVD"
         }
-        bibleVersions = BibleIQVersions(data = list)
+        bibleVersions = BibleIQVersions(data = newVersions.data)
     }
 
     private var _selectedVersion: MutableState<String> = mutableStateOf("")
@@ -100,10 +114,12 @@ object BibleIQDataModel {
 
     var errorSnackBar: String by mutableStateOf("")
         private set
+
     internal fun updateErrorSnackBar(error: String) {
         Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
         errorSnackBar = error
     }
+
     internal fun clearErrorSnackBar() {
         errorSnackBar = ""
     }

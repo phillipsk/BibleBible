@@ -63,3 +63,17 @@ INSERT INTO ChapterCounts (
                 version,
                 chapterCount
             ) VALUES (?,?,?,?);
+
+CREATE TABLE IF NOT EXISTS LastCalled (
+    id INTEGER PRIMARY KEY,
+    time INTEGER NOT NULL
+);
+
+insertLastCalled:
+INSERT INTO LastCalled (id, time) VALUES (1, ?);
+
+getLastCalled:
+SELECT * FROM LastCalled WHERE id = 1;
+
+cleanLastCalled:
+DELETE FROM LastCalled;

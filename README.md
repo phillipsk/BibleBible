@@ -50,53 +50,54 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 ![iOS demo](previews/demo_ios.gif)
 
 ## Backlog
-*   socket timeout and api/db retries
-*   Context Switching: Remember, switching between dispatchers involves context switching, 
-*   which can have a slight performance overhead. Minimize unnecessary switching for optimal performance.
+*   ~~socket timeout and api/db retries~~
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
 *   is not cached and the remote call fails, the lazy row chapters are not visible
 *   add a compiler flag to disable GC on iOS release build
-*   other production build considerations for KMM release
-*   style UI
-*   control size of BookMenu() drop down menu and fix spacing of toolbar menus
 *   crashlytics with touchlab CrashKiOS and kermit
 *   back handler
 *   read JSON files with library
 *   remove material library in favor of material3
-*   background color on ScrollableTabRow material3
-*   add shimmer effect to scripture load
-*   merge socket timeout branch, revisit snackbar functionality
-*   A-z, OT-NT, sorted comparator
+*   ~~add shimmer effect to scripture load~~
+*   ~~merge socket timeout branch, revisit snackbar functionality~~
+*   ~~A-z, OT-NT, sorted comparator~~
 *   API success state
 *   UI TESTS
 *   mock errors; add Result type to API calls
 *   use immutable state with compose
-*   Fix bible book abbreviation on home screen, change sort order
+*   ~~Fix bible book abbreviation on home screen, change sort order~~
 *   handle empty list and 200 error response from Rapid API
-*   when bibleVersion changes, does a call to Chapter count need to be made
-*   review duplicate API call on launch effect
+*   ~~when bibleVersion changes, does a call to Chapter count need to be made~~
+*   ~~review duplicate API call on launch effect~~
 *   supervisorScope coroutine exception handling 
-*   If on the same chapter, swiping to the next chapter, do not scroll to the top 
 *   Scroll bar on the right 
 *   ~~No light mode only dark mode~~
 *   ~~sort Books A-Z, disable selectedBook on homeScreen~~
 *   ~~add strikethrough backlog~~
 *   open/close database connection pools
 *   ~~revert AI summary on double tap~~
-*   add obfuscation, R8, Proguard
 *   window insets on iOS
+*   ~~back arrow on front layer page~~
+*   data class for AI Summary UI state
+*   update README.md with screenshots
+*   ~~font libraries added to shared module~~
+*   persist user settings
+*   Select text to copy and paste does not work
+*   separate http config clients
 
 ## Nice to have
 *   add some UI home screen uniform design
 *   only need to query database by newly created databaseKey
-*   obfuscation, R8, Proguard
+*   ~~obfuscation, R8, Proguard~~
 *   log api call stats, analytics
 *   refactor database object model
 *   review HTML, JSON, Text api queries
 *   pinch to zoom scriptures
-*   increase font size dynamically
+*   ~~increase font size dynamically~~
 *   Fill white space in the book of Psalms
-*   pinch to zoom font size
+*   Multi window debug/ PiP debug
+*   Color code parables on BookList composable; add Parables section
+*   expect/actual for connectivityManager
 
 ## Checklist
 *   Database retention limit

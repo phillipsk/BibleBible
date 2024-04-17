@@ -13,17 +13,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -36,69 +39,84 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
+import ui.configs.BibleBibleTopBar
+import ui.configs.BottomSheetConfigs
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleHomeScreen() {
+internal fun BibleHomeScreen(
+    scaffoldState: BottomSheetScaffoldState,
+) {
     val errorMsg = BibleIQDataModel.errorSnackBar
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    Scaffold(
-        topBar = {
-            HomeTopBar(
-                onClick = { BibleIQDataModel.onHomeClick() },
-                generateAISummary = {
-                    GeminiModel.isLoading = true
-                    if (!GeminiModel.showSummary) {
-                        scope.launch {
-                            GeminiModel.showSummary = true
-                            GeminiModel.generateAISummary()
-                            GeminiModel.isLoading = false
-                        }
-                    } else {
-                        GeminiModel.showSummary = false
-                    }
-                })
-        },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (BibleIQDataModel.showHomePage) {
-                BibleBookList(
-                    bookData = BibleAPIDataModel.uiBooks.data,
-                    selectedChapter = BibleAPIDataModel.selectedChapter,
-                    bibleId = BibleIQDataModel.selectedVersion
-                )
-            } else {
-                BibleIQDataModel.bibleChapter?.let { it1 ->
-                    BibleScripturesPager(
-                        chapters = it1,
-                        bibleVersion = BibleIQDataModel.selectedVersion,
-                        selectedBook = BibleIQDataModel.selectedBook,
-                        isAISummaryLoading = GeminiModel.isLoading,
-                        showAISummary = GeminiModel.showSummary
-                    )
-                }
-            }
-        }
-        if (errorMsg.isNotEmpty()) {
-            scope.launch {
-                snackbarHostState.showSnackbar(errorMsg).also {
-                    BibleIQDataModel.clearErrorSnackBar()
-                }
-                BibleIQDataModel.showHomePage = true
-            }
-        }
+    val localScaffoldState = remember { scaffoldState }
+
+    LaunchedEffect(BibleIQDataModel.showHomePage) {
+        localScaffoldState.bottomSheetState.collapse()
     }
+
+    BottomSheetScaffold(
+        snackbarHost = {
+            CustomSnackbarHost(snackbarHostState = scaffoldState.snackbarHostState)
+        },
+        scaffoldState = scaffoldState,
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        sheetPeekHeight = 0.dp,
+        sheetContent = {
+            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary)
+        },
+        content = ({
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                BibleBibleTopBar(
+                    onClick = BibleIQDataModel.onHomeClick,
+                    showBottomSheet = {
+                        scope.launch {
+                            if (localScaffoldState.bottomSheetState.isExpanded) {
+                                localScaffoldState.bottomSheetState.collapse()
+                            } else {
+                                localScaffoldState.bottomSheetState.expand()
+                            }
+                        }
+                    }
+                )
+                if (BibleIQDataModel.showHomePage) {
+                    BibleBookList(
+                        bookData = BibleAPIDataModel.uiBooks.data,
+                    )
+                } else {
+                    BibleIQDataModel.bibleChapter?.let { it1 ->
+                        BibleScripturesPager(
+                            chapters = it1,
+                            bibleVersion = BibleIQDataModel.selectedVersion,
+                            selectedBook = BibleIQDataModel.selectedBook,
+                            isAISummaryLoading = GeminiModel.isLoading,
+                            showAISummary = GeminiModel.showSummary,
+                            bottomSheetScaffoldState = localScaffoldState
+                        )
+                    }
+                }
+            }
+            if (errorMsg.isNotEmpty()) {
+                scope.launch {
+                    localScaffoldState.snackbarHostState.showSnackbar(errorMsg).also {
+                        BibleIQDataModel.clearErrorSnackBar()
+                    }
+//                    BibleIQDataModel.showHomePage = true
+                }
+            }
+        })
+    )
 }
 
 @Composable
-internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
-    val scope = rememberCoroutineScope()
+internal fun BibleBookList(
+    bookData: List<BookData>?,
+    lazyGridState: LazyGridState = rememberLazyGridState(),
+) {
     AnimatedVisibility(
         visible = BibleIQDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
@@ -107,6 +125,7 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
         bookData?.let { bookDataList ->
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
+                    state = lazyGridState,
                     columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(10.dp),
                     userScrollEnabled = true,
@@ -126,14 +145,15 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                    .height(IntrinsicSize.Min)
                                     .defaultMinSize(
                                         minWidth = 100.dp,
                                         minHeight = 40.dp
-                                    ) // Set a minimum size
+                                    )
                             ) {
                                 it.cleanedName?.let { name ->
                                     Text(
+                                        fontFamily = MaterialTheme.typography.h3.fontFamily,
                                         text = name,
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colors.onPrimary,

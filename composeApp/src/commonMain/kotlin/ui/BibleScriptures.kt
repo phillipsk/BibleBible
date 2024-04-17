@@ -15,10 +15,6 @@ import data.bibleIQ.BibleChapterUIState
 internal fun BibleScriptures(
     chapters: BibleChapterUIState, scrollState: ScrollState, selectedFontSize: TextUnit
 ) {
-/*    val scope = rememberCoroutineScope()
-    scope.launch {
-        scrollState.scrollTo(0)
-    }*/
     Column(modifier = Modifier.verticalScroll(scrollState)) {
         chapters.text?.let {
             Text(

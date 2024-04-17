@@ -3,6 +3,8 @@ package data.gemini
 import data.GeminiModel
 import data.httpClientGemini
 import email.kevinphillips.biblebible.BuildKonfig
+import email.kevinphillips.biblebible.cache.DriverFactory
+import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.request.parameter
@@ -12,6 +14,7 @@ import io.ktor.client.request.url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -37,4 +40,26 @@ suspend fun generateContent(content: String) {
     } catch (e: Exception) {
         Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
     }
+}
+
+suspend fun checkAnimationLastCalled(): Boolean {
+    return DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+        var showAnimation = false
+        try {
+            withContext(Dispatchers.IO) {
+                val lastCalledQuery = database.bibleBibleDatabaseQueries.getLastCalled()
+                val lastCalledTime = lastCalledQuery.executeAsOneOrNull()?.time ?: 0
+                val currentTime = Clock.System.now().toEpochMilliseconds()
+
+                // Check if animation was called more than a day ago
+                showAnimation = currentTime - lastCalledTime > 24 * 60 * 60 * 1000
+                if (showAnimation) {
+                    database.bibleBibleDatabaseQueries.insertLastCalled(time = currentTime)
+                }
+            }
+        } catch (e: Exception) {
+            Napier.e("Error in checkAnimationLastCalled: ${e.message}", tag = "HomeTopBar")
+        }
+        showAnimation
+    } ?: false
 }
