@@ -15,7 +15,7 @@ import ui.BibleHomeScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun App() {
+fun App() {
     initializeNapier()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(true) {
