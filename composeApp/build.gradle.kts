@@ -62,9 +62,6 @@ kotlin {
             implementation(libs.generativeai)
         }
     }
-    configurations.all {
-        resolutionStrategy.force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    }
 }
 
 android {
@@ -79,8 +76,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 5
-        versionName = "5"
+        versionCode = 6
+        versionName = "6"
     }
     packaging {
         resources {
