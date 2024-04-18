@@ -16,7 +16,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "email.kevinphillips.biblebible.MainKt"
+        mainClass = "email.kevinphillips.biblebible.BibleBibleKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
