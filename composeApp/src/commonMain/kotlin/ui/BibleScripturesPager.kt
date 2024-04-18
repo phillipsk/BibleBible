@@ -154,13 +154,14 @@ internal fun BibleScripturesPager(
         ) {
             Column {
                 ScrollableTabRow(
+                    backgroundColor = MaterialTheme.colors.onSurface,
                     selectedTabIndex = pagerState.currentPage,
                     edgePadding = 16.dp,
                     indicator = { tabPositions ->
                         if (pagerState.currentPage < tabPositions.size) {
                             TabRowDefaults.Indicator(
                                 modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                color = MaterialTheme.colors.primary
+                                color = MaterialTheme.colors.surface
                             )
                         } else {
                             Napier.e(

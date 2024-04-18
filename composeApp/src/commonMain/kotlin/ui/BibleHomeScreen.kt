@@ -142,7 +142,7 @@ internal fun BibleBookList(
                                     BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.onSurface),
                                 modifier = Modifier
                                     .padding(2.dp)
                                     .height(IntrinsicSize.Min)

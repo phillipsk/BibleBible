@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,7 +23,7 @@ internal fun TopBarTitle(title: String, showHomePage: Boolean = true, onClick: (
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back to Home",
-                tint = Color.White,
+                tint = MaterialTheme.colors.onBackground,
                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
             )
         }
@@ -35,7 +34,7 @@ internal fun TopBarTitle(title: String, showHomePage: Boolean = true, onClick: (
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 3.1.sp,
-                color = Color.White,
+                color = MaterialTheme.colors.onBackground,
             ),
             maxLines = 1,
             overflow = TextOverflow.Visible,

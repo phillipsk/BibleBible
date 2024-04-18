@@ -31,8 +31,7 @@ internal fun BibleBibleTheme(
     val colorPalette = if (isSystemInDarkTheme()) {
         DarkColorPalette
     } else {
-//        LightColorPalette
-        DarkColorPalette
+        LightColorPalette
     }
 
     MaterialTheme(
@@ -47,12 +46,12 @@ private val LightColorPalette = lightColors(
     primary = Color(0xFF3A5F8F), // Dark Blue
     primaryVariant = Color(0xFF8A9BB3), // Light Blue for the pages
     secondary = Color(0xFF3A5F8F), // Dark Blue
-    background = Color.White,
-    surface = Color.White,
+    background = Color(0xFF3A5F8F).copy(alpha = 0.2f), // Even Darker Blue for dark theme background
+    surface = Color.White, // Even Darker Blue for dark theme surface
     onPrimary = Color.White,
     onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+    onBackground = Color(0xFF3A5F8F), // Dark Blue
+    onSurface = Color(0xFF3A5F8F).copy(alpha = 0.8f)
 )
 
 private val DarkColorPalette = darkColors(
