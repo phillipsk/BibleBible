@@ -14,11 +14,6 @@ class MainActivity : ComponentActivity() {
         DriverFactory.context = applicationContext
 
         setContent {
-/*            LaunchedEffect(true) {
-                Napier.d("MainActivity onCreate", tag = "MainActivity")
-                GeminiAndroidService().collectContentStream()
-                Napier.d("MainActivity onCreate after collectContentStream", tag = "MainActivity")
-            }*/
             App()
         }
     }

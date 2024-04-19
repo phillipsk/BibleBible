@@ -31,6 +31,7 @@ import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
+import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -194,7 +195,8 @@ internal fun BibleScripturesPager(
 //                    key = { page -> selectedBook.bookId + page.toString()},
                     state = pagerState,
                     verticalAlignment = Alignment.Top,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    userScrollEnabled = !isDesktopPlatform()
                 ) { page ->
                     Napier.v(
                         "HorizontalPager: currentPage: ${pagerState.currentPage} + Pager LoadingScreen: $isAISummaryLoading $showAISummary",
