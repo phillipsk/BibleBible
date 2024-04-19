@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQDataModel
@@ -72,14 +71,14 @@ internal fun SortBibleBooksToggle() {
             checked = it
         },
         colors = SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = Color.White.copy(alpha = 0.5f),
-            uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = Color.White.copy(alpha = 0.5f)
+            checkedThumbColor = MaterialTheme.colors.onBackground,
+            checkedTrackColor = MaterialTheme.colors.onBackground.copy(alpha = 0.5f),
+            uncheckedThumbColor = MaterialTheme.colors.onBackground,
+            uncheckedTrackColor = MaterialTheme.colors.onBackground.copy(alpha = 0.5f)
         )
     )
     Text(
         text = AnnotatedString(BibleIQDataModel.selectedSortType),
-        style = MaterialTheme.typography.subtitle2.copy(fontSize = 12.sp, color = Color.White),
+        style = MaterialTheme.typography.subtitle1.copy(fontSize = 12.sp, color = MaterialTheme.colors.onBackground),
     )
 }

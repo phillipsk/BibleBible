@@ -4,6 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ internal fun BibleScriptures(
     Column(modifier = Modifier.verticalScroll(scrollState)) {
         chapters.text?.let {
             Text(
+                color = MaterialTheme.colors.onBackground,
                 text = it,
                 fontSize = selectedFontSize,
                 modifier = Modifier.padding(4.dp)

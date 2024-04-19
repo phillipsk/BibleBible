@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,7 +41,7 @@ internal fun HomeTitle(onClick: () -> Unit) {
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 3.1.sp,
-                color = Color.White,
+                color = MaterialTheme.colors.onBackground,
             ),
             maxLines = 1,
             overflow = TextOverflow.Visible,
