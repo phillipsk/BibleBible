@@ -45,9 +45,12 @@ Despite these considerations, I am excited about the potential of this app. As I
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
 
 ## Previews
-### Android (left) and iOS (right)
-![Android demo](previews/demo_android.gif)
-![iOS demo](previews/demo_ios.gif)
+### Android (top) and iOS (bottom)
+https://github.com/phillipsk/BibleBible/assets/7585083/a41d07b4-9dd4-447c-a873-49963f12f51d
+
+https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-13e7cac5d439
+
+
 
 ## Backlog
 *   ~~socket timeout and api/db retries~~
