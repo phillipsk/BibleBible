@@ -82,7 +82,7 @@ https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-1
 *   window insets on iOS
 *   ~~back arrow on front layer page~~
 *   data class for AI Summary UI state
-*   update README.md with screenshots
+*   ~~update README.md with screenshots~~
 *   ~~font libraries added to shared module~~
 *   persist user settings
 *   Select text to copy and paste does not work
