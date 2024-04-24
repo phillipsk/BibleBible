@@ -41,7 +41,6 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
         refreshing = true
         if (pullToRefresh) {
             GeminiModel.generateAISummary(pullToRefresh = true)
-            scrollState.scrollTo(0)
         }
         withContext(Dispatchers.Main) {
             if (GeminiModel.geminiDataText?.isEmpty() == false) {
@@ -53,6 +52,7 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
 //                BibleIQDataModel.showHomePage = true
                 GeminiModel.showSummary = false
             }
+            scrollState.scrollTo(0)
             refreshing = false
         }
     }
