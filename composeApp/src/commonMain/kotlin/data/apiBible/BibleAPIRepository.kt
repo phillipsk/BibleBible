@@ -3,6 +3,9 @@ package data.apiBible
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClientBibleAPI
+import email.kevinphillips.biblebible.cache.DriverFactory
+import email.kevinphillips.biblebible.db.BibleBibleDatabase
+import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -94,5 +97,25 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             Napier.e(it, tag = "BB2452")
         }
         null
+    }
+}
+
+suspend fun getReadingHistory() {
+    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+        val readingHistory: List<SelectReadingHistory>
+        try {
+            withContext(Dispatchers.IO) {
+                readingHistory =
+                    database.bibleBibleDatabaseQueries.selectReadingHistory().executeAsList()
+                Napier.v("readingHistory: $readingHistory", tag = "IQ094")
+            }
+            withContext(Dispatchers.Main) {
+                BibleAPIDataModel.updateReadingHistory(readingHistory)
+            }
+        } catch (e: Exception) {
+            Napier.e("Error: ${e.message}", tag = "IQ094")
+        } finally {
+            DriverFactory.closeDB()
+        }
     }
 }

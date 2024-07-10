@@ -29,6 +29,10 @@ selectVersesById:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
 
+selectReadingHistory:
+SELECT DISTINCT BibleVerses.b, BibleVerses.c
+FROM BibleVerses ORDER BY BibleVerses.created_at DESC LIMIT 50;
+
 selectVersesByBookId:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE b = ? AND c = ? AND version = ?;

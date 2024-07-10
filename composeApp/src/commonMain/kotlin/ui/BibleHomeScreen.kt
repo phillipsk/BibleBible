@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.apiBible.getReadingHistory
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
@@ -53,6 +54,7 @@ internal fun BibleHomeScreen(
 
     LaunchedEffect(BibleIQDataModel.showHomePage) {
         localScaffoldState.bottomSheetState.collapse()
+        getReadingHistory()
     }
 
     BottomSheetScaffold(
@@ -63,8 +65,11 @@ internal fun BibleHomeScreen(
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions,
-                showAISummary = GeminiModel.showSummary)
+            BottomSheetConfigs(
+                bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary,
+                readingHistory = BibleAPIDataModel.readingHistory
+            )
         },
         content = ({
             Column(

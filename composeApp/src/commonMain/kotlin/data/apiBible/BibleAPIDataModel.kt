@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.bibleIQ.BibleIQDataModel
+import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
 import kotlin.native.concurrent.ThreadLocal
 
@@ -66,6 +67,20 @@ object BibleAPIDataModel {
     internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
+    }
+
+
+    var readingHistory by mutableStateOf<List<ReadingHistoryUIState>?>(null)
+        private set
+
+    fun updateReadingHistory(newHistory: List<SelectReadingHistory>) {
+        readingHistory = newHistory.map {
+            if (it.b == null || it.c == null) return@map ReadingHistoryUIState()
+            ReadingHistoryUIState(
+                bookName = bibleBooks.data?.get(it.b.toInt())?.name,
+                chapterId = it.c.toInt()
+            )
+        }
     }
 
 
