@@ -40,7 +40,7 @@ import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
-import ui.configs.BottomSheetConfigs
+import ui.configs.BottomSheetConfigView
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -63,7 +63,7 @@ internal fun BibleHomeScreen(
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions,
+            BottomSheetConfigView(bibleVersionsList = BibleIQDataModel.bibleVersions,
                 showAISummary = GeminiModel.showSummary)
         },
         content = ({

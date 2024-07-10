@@ -30,7 +30,7 @@ SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
 
 selectReadingHistory:
-SELECT DISTINCT BibleVerses.b, BibleVerses.c
+SELECT DISTINCT BibleVerses.b, BibleVerses.c, DATE(BibleVerses.created_at)
 FROM BibleVerses ORDER BY BibleVerses.created_at DESC LIMIT 50;
 
 selectVersesByBookId:

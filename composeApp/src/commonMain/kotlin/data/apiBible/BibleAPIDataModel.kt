@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import data.bibleIQ.BibleIQDataModel
 import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.LocalDate
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
@@ -77,11 +78,16 @@ object BibleAPIDataModel {
         readingHistory = newHistory.map {
             if (it.b == null || it.c == null) return@map ReadingHistoryUIState()
             ReadingHistoryUIState(
-                bookName = bibleBooks.data?.get(it.b.toInt())?.name,
-                chapterId = it.c.toInt()
+                bookName = bibleBooks.data?.get(it.b.toInt() - 1)?.name,
+                chapterId = it.c.toInt(),
+                date = transformDate(it.DATE)
             )
         }
     }
 
+    private fun transformDate(dateString: String): String {
+        val localDate = LocalDate.parse(dateString)
+        return localDate.month.name.lowercase().replaceFirstChar { it.uppercase() } + " " + localDate.dayOfMonth + ", " + localDate.year
+    }
 
 }

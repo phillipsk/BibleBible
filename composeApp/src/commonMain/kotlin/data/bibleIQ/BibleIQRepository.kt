@@ -4,6 +4,7 @@ import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
 import data.apiBible.BookData
+import data.apiBible.getReadingHistory
 import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -110,6 +111,7 @@ internal suspend fun getChapterBibleIQ(
                 BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
             }
         }
+        getReadingHistory()
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
