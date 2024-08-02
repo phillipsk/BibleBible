@@ -110,6 +110,7 @@ internal suspend fun getChapterBibleIQ(
                 Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
                 BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
             }
+            updateTimestampBibleVerses(cachedData.firstOrNull(), version)
         }
         getReadingHistory()
     } catch (e: IOException) {
@@ -176,6 +177,29 @@ private suspend fun insertBibleVerses(
                 }
             }
 
+        } catch (e: Exception) {
+            Napier.e("Error: ${e.message}", tag = "IQ093")
+        } finally {
+            DriverFactory.closeDB()
+        }
+    }
+}
+
+private suspend fun updateTimestampBibleVerses(
+    bibleChapter: BibleChapter?,
+    version: String?
+) {
+    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+        try {
+            withContext(Dispatchers.IO) {
+                database.transaction {
+                    database.bibleBibleDatabaseQueries.updateVerseTimestamp(
+                        b = bibleChapter?.b ?: "",
+                        c = bibleChapter?.c ?: "",
+                        version = version?.lowercase() ?: "",
+                    )
+                }
+            }
         } catch (e: Exception) {
             Napier.e("Error: ${e.message}", tag = "IQ093")
         } finally {

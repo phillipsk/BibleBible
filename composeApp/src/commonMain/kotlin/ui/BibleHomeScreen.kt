@@ -38,6 +38,7 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
@@ -63,8 +64,11 @@ internal fun BibleHomeScreen(
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            BottomSheetConfigView(bibleVersionsList = BibleIQDataModel.bibleVersions,
-                showAISummary = GeminiModel.showSummary)
+            BottomSheetConfigView(
+                bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary,
+                readingHistory = BibleAPIDataModel.readingHistory
+            )
         },
         content = ({
             Column(
@@ -78,6 +82,7 @@ internal fun BibleHomeScreen(
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
                             } else {
+                                Napier.v("BibleAPIDataModel.readingHistory :: ${BibleAPIDataModel.readingHistory}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()
                             }
                         }

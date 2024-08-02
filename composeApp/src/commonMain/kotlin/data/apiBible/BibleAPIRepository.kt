@@ -107,7 +107,7 @@ suspend fun getReadingHistory() {
             withContext(Dispatchers.IO) {
                 readingHistory =
                     database.bibleBibleDatabaseQueries.selectReadingHistory().executeAsList()
-                Napier.v("readingHistory: $readingHistory", tag = "IQ094")
+                Napier.v("readingHistory: ${readingHistory.take(100)}", tag = "IQ094")
             }
             withContext(Dispatchers.Main) {
                 BibleAPIDataModel.updateReadingHistory(readingHistory)
