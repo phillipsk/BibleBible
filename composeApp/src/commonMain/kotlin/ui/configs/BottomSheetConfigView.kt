@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
+import data.apiBible.ReadingHistoryUIState
 import data.apiBible.getReadingHistory
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
