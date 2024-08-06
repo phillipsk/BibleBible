@@ -21,6 +21,7 @@ import data.bibleIQ.BibleIQVersions
 internal fun BottomSheetConfigView(
     bibleVersionsList: BibleIQVersions,
     showAISummary: Boolean,
+    readingHistory: List<ReadingHistoryUIState>?,
 ) {
     LaunchedEffect(true) {
         getReadingHistory()
