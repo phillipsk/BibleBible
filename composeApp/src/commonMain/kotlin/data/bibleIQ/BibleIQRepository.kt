@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
-val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 100L
+val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000L
 
 internal suspend fun getBooksBibleIQ() {
     try {
@@ -86,7 +86,7 @@ internal suspend fun getChapterBibleIQ(
                     ).body<List<BibleChapter>>()
                 Napier.v(
                     "getChapterBibleIQ: ${chapterVerses.firstOrNull()?.t?.take(100)}",
-                    tag = "IQ093"
+                    tag = "BB2452"
                 )
                 if (chapterVerses.isEmpty()) {
                     throw IOException("Error fetching chapter")
