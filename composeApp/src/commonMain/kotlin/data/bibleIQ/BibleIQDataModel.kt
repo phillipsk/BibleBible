@@ -62,7 +62,7 @@ object BibleIQDataModel {
         bibleBooks = newBooks
     }
 
-    var sortAZ by mutableStateOf(true)
+    var sortAZ by mutableStateOf(false)
         internal set
 
     val selectedSortType get() = if (sortAZ) "A-Z" else "OT-NT"
