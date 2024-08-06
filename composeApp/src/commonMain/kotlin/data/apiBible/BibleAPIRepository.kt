@@ -102,7 +102,7 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
 
 suspend fun getReadingHistory() {
     DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        val readingHistory: List<SelectReadingHistory>
+        val readingHistory: List<SelectReadingHistory>?
         try {
             withContext(Dispatchers.IO) {
                 readingHistory =
@@ -110,7 +110,9 @@ suspend fun getReadingHistory() {
                 Napier.v("readingHistory: ${readingHistory.take(100)}", tag = "IQ094")
             }
             withContext(Dispatchers.Main) {
-                BibleAPIDataModel.updateReadingHistory(readingHistory)
+                readingHistory?.let {
+                    BibleAPIDataModel.updateReadingHistory(it)
+                }
             }
         } catch (e: Exception) {
             Napier.e("Error: ${e.message}", tag = "IQ094")
