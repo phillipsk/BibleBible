@@ -1,5 +1,7 @@
 package data.apiBible
 
+import androidx.compose.material.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,18 +41,19 @@ object BibleAPIDataModel {
     private val darkPurple = Color(0x806B5B95)
     private val defaultColor = Color(0x80FFFFFF)
 
+    @Composable
     fun getBibleBookColor(ordinal: Int): Color {
         return when (ordinal) {
             in pentateuch -> lightGreen
-            in historicalBooks -> lightBlue
-            in poetryAndWisdom -> yellow
-            in majorProphets -> orange
-            in minorProphets -> lightPurple
+            in historicalBooks -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else lightBlue
+            in poetryAndWisdom -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else yellow
+            in majorProphets -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else orange
+            in minorProphets -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else lightPurple
             in gospels -> red
             in acts -> lightRed
-            in paulineEpistles -> darkBlue
-            in generalEpistles -> darkGreen
-            in apocalypticLiterature -> darkPurple
+            in paulineEpistles -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkBlue
+            in generalEpistles -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkGreen
+            in apocalypticLiterature -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkPurple
             else -> defaultColor
         }
     }
