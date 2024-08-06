@@ -1,3 +1,4 @@
+package ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -35,9 +36,6 @@ import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import ui.BibleScriptures
-import ui.GeminiSummary
-import ui.LoadingScreen
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
@@ -65,7 +63,7 @@ internal fun BibleScripturesPager(
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 50L  // 300 ms for debounce duration
     val uiStateReady =
-        BibleIQDataModel.getAPIBibleCardinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
+        BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
     LaunchedEffect(selectedBook) {
 //    TODO: calling and updating BibleChapterUIState on selectedBook change

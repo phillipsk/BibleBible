@@ -110,10 +110,9 @@ suspend fun getReadingHistory() {
                     database.bibleBibleDatabaseQueries.selectReadingHistory().executeAsList()
                 Napier.v("readingHistory: ${readingHistory.take(100)}", tag = "IQ094")
                 // set of books with only one chapter
-                val singleChapterBooks = setOf("31", "57", "63", "64", "65")
                 // filter the first chapter as the UX lands a user on chapter 1
                 filteredReadingHistory = readingHistory.filterIndexed { index, currentRecord ->
-                    if (currentRecord.c == "1" && index > 0 && currentRecord.b !in singleChapterBooks) {
+                    if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleAPIDataModel.singleChapterBooksOrdinal) {
                         val previousRecord = readingHistory[index - 1]
                         currentRecord.b == previousRecord.b && previousRecord.c == "2"
                     } else {

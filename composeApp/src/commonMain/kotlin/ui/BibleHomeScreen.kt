@@ -1,6 +1,5 @@
 package ui
 
-import BibleScripturesPager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -147,7 +146,11 @@ internal fun BibleBookList(
                                     BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = BibleAPIDataModel.getBibleBookColor(
+                                        BibleIQDataModel.getAPIBibleOrdinal(it.bookId)
+                                    )
+                                ),
                                 modifier = Modifier
                                     .padding(2.dp)
                                     .height(IntrinsicSize.Min)

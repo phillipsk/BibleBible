@@ -102,7 +102,7 @@ object BibleIQDataModel {
         }
     }
 
-    fun getAPIBibleCardinal(chapterNumber: String): Int {
+    fun getAPIBibleOrdinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
         return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
     }
