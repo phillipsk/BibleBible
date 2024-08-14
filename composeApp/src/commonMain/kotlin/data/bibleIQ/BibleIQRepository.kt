@@ -5,6 +5,7 @@ import JSON_VERSIONS
 import data.GeminiModel
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
+import data.apiBible.getTimeZone
 import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -18,6 +19,8 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
@@ -130,6 +133,7 @@ suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int, version
                         b = bookId.toString(),
                         version = version.lowercase(),
                         chapterCount = chapterCount.chapterCount,
+                        created_at = getTimeZone(),
                     )
                 }
             }
@@ -170,7 +174,9 @@ private suspend fun insertBibleVerses(
                                 v = it.v ?: "",
                                 t = it.t ?: "",
                                 version = version.lowercase(),
-                                chapterCount = chapterCount?.chapterCount ?: 0
+                                chapterCount = chapterCount?.chapterCount ?: 0,
+                                created_at = getTimeZone(),
+                                updated_at = getTimeZone()
                             )
                         }
                     }
@@ -194,6 +200,7 @@ private suspend fun updateTimestampBibleVerses(
             withContext(Dispatchers.IO) {
                 database.transaction {
                     database.bibleBibleDatabaseQueries.updateVerseTimestamp(
+                        updated_at = getTimeZone(),
                         b = bibleChapter?.b ?: "",
                         c = bibleChapter?.c ?: "",
                         version = version?.lowercase() ?: "",

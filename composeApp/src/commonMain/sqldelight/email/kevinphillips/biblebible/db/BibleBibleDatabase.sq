@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS BibleVerses (
     t TEXT,
     version TEXT,
     chapterCount INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT,
+    updated_at TEXT
 );
 
 insertVerse:
@@ -20,8 +20,10 @@ INSERT INTO BibleVerses (
                 v,
                 t,
                 version,
-                chapterCount
-            ) VALUES (?,?,?,?,?,?,?,?);
+                chapterCount,
+                created_at,
+                updated_at
+            ) VALUES (?,?,?,?,?,?,?,?, ?, ?);
 
 cleanBibleVerses:
 DELETE FROM BibleVerses WHERE created_at < date('now', '-60 days');
@@ -35,7 +37,7 @@ SELECT DISTINCT BibleVerses.b, BibleVerses.c, DATE(BibleVerses.updated_at)
 FROM BibleVerses ORDER BY BibleVerses.updated_at DESC LIMIT 50;
 
 updateVerseTimestamp:
-UPDATE BibleVerses SET updated_at = CURRENT_TIMESTAMP WHERE b = ? AND c = ? AND version = ?;
+UPDATE BibleVerses SET updated_at = ? WHERE b = ? AND c = ? AND version = ?;
 
 selectVersesByBookId:
 SELECT BibleVerses.*
@@ -61,7 +63,7 @@ CREATE TABLE IF NOT EXISTS ChapterCounts (
     b TEXT,
     version TEXT,
     chapterCount INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT
 );
 
 insertChapterCount:
@@ -69,8 +71,9 @@ INSERT INTO ChapterCounts (
                 uuid,
                 b,
                 version,
-                chapterCount
-            ) VALUES (?,?,?,?);
+                chapterCount,
+                created_at
+            ) VALUES (?,?,?,?, ?);
 
 CREATE TABLE IF NOT EXISTS LastCalled (
     id INTEGER PRIMARY KEY,

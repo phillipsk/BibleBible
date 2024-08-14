@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS BibleVerses_new (
     t TEXT,
     version TEXT,
     chapterCount INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT,
+    updated_at TEXT
 );
 
 -- Step 2: Copy data from the old table to the new table
