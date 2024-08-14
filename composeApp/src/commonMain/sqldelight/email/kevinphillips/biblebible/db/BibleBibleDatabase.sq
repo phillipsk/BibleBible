@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS BibleVerses (
     t TEXT,
     version TEXT,
     chapterCount INTEGER,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 insertVerse:
@@ -30,11 +31,11 @@ SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
 
 selectReadingHistory:
-SELECT DISTINCT BibleVerses.b, BibleVerses.c, DATE(BibleVerses.created_at)
-FROM BibleVerses ORDER BY BibleVerses.created_at DESC LIMIT 50;
+SELECT DISTINCT BibleVerses.b, BibleVerses.c, DATE(BibleVerses.updated_at)
+FROM BibleVerses ORDER BY BibleVerses.updated_at DESC LIMIT 50;
 
 updateVerseTimestamp:
-UPDATE BibleVerses SET created_at = CURRENT_TIMESTAMP WHERE b = ? AND c = ? AND version = ?;
+UPDATE BibleVerses SET updated_at = CURRENT_TIMESTAMP WHERE b = ? AND c = ? AND version = ?;
 
 selectVersesByBookId:
 SELECT BibleVerses.*
