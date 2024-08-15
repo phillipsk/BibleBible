@@ -32,10 +32,6 @@ selectVersesById:
 SELECT BibleVerses.*
 FROM BibleVerses WHERE id = ? AND version = ?;
 
-selectReadingHistory:
-SELECT DISTINCT BibleVerses.b, BibleVerses.c, DATE(BibleVerses.updated_at)
-FROM BibleVerses ORDER BY BibleVerses.updated_at DESC LIMIT 50;
-
 updateVerseTimestamp:
 UPDATE BibleVerses SET updated_at = ? WHERE b = ? AND c = ? AND version = ?;
 

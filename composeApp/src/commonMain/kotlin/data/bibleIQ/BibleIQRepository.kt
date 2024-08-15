@@ -19,8 +19,6 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
@@ -115,11 +113,32 @@ internal suspend fun getChapterBibleIQ(
             }
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
         }
+        insertReadingHistory(bookId, chapter)
         getReadingHistory()
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ093")
+    }
+}
+
+suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
+    try {
+        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+            withContext(Dispatchers.IO) {
+                database.transaction {
+                    database.bibleBibleDatabaseQueries.insertReadingHistory(
+                        created_at = getTimeZone(),
+                        b = bookId.toString(),
+                        c = chapter.toString(),
+                    )
+                }
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+    } finally {
+        DriverFactory.closeDB()
     }
 }
 
