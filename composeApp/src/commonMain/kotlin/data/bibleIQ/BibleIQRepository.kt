@@ -116,6 +116,7 @@ internal suspend fun getChapterBibleIQ(
         }
         insertReadingHistory(bookId, chapter)
         getReadingHistory()
+        Napier.v("getReadingHistory :: BibleIQRepository", tag = "RH1283")
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {

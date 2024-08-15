@@ -65,8 +65,7 @@ internal fun BibleHomeScreen(
         sheetContent = {
             BottomSheetConfigView(
                 bibleVersionsList = BibleIQDataModel.bibleVersions,
-                showAISummary = GeminiModel.showSummary,
-                readingHistory = BibleAPIDataModel.readingHistory
+                showAISummary = GeminiModel.showSummary
             )
         },
         content = ({

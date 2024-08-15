@@ -13,19 +13,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
-import data.apiBible.ReadingHistoryUIState
 import data.apiBible.getReadingHistory
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
+import io.github.aakira.napier.Napier
 
 @Composable
 internal fun BottomSheetConfigView(
     bibleVersionsList: BibleIQVersions,
     showAISummary: Boolean,
-    readingHistory: List<ReadingHistoryUIState>?,
 ) {
     LaunchedEffect(true) {
         getReadingHistory()
+        Napier.v("getReadingHistory :: LaunchedEffect", tag = "RH1283")
     }
     val readingHistory = BibleAPIDataModel.readingHistory
     Column(modifier = Modifier.padding(4.dp).height(550.dp)) {
