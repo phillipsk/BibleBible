@@ -84,3 +84,28 @@ SELECT * FROM LastCalled WHERE id = 1;
 
 cleanLastCalled:
 DELETE FROM LastCalled;
+
+CREATE TABLE IF NOT EXISTS ReadingHistory (
+    created_at TEXT PRIMARY KEY,
+    b TEXT,
+    c TEXT
+);
+
+insertReadingHistory:
+INSERT INTO ReadingHistory (
+                created_at,
+                b,
+                c
+            ) VALUES (?,?,?);
+
+cleanReadingHistory:
+DELETE FROM ReadingHistory
+WHERE created_at IN (
+    SELECT created_at FROM ReadingHistory
+    ORDER BY created_at ASC
+    LIMIT (SELECT COUNT(*) FROM ReadingHistory) - ?
+);
+
+selectReadingHistory:
+SELECT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
+FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC LIMIT 50;

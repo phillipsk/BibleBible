@@ -23,6 +23,7 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000L
+val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 10L
 
 internal suspend fun getBooksBibleIQ() {
     try {
@@ -327,6 +328,21 @@ internal suspend fun checkDatabaseSize() {
             }
         }
 
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
+
+internal suspend fun cleanReadingHistory() {
+    try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+                val max = DATABASE_RETENTION_READING_HISTORY
+                database.bibleBibleDatabaseQueries.cleanReadingHistory(max)
+            }
+        }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
     } finally {

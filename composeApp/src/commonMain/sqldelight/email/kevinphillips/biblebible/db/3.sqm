@@ -30,14 +30,3 @@ CREATE TABLE IF NOT EXISTS ReadingHistory (
     b TEXT,
     c TEXT
 );
-
--- Step 6: Insert data into ReadingHistory table
-INSERT INTO ReadingHistory (created_at, b, c)
-SELECT created_at, b, c FROM ReadingHistory;
-
--- Step 7: Clean up old records in ReadingHistory
-DELETE FROM ReadingHistory WHERE created_at < date('now', '-60 days');
-
--- Step 8: Select reading history
-SELECT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
-FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC LIMIT 50;
