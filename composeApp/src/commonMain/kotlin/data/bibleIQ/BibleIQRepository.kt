@@ -3,6 +3,7 @@ package data.bibleIQ
 import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
+import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
 import data.apiBible.getTimeZone
@@ -23,7 +24,7 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000L
-val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 10L
+val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 30L
 
 internal suspend fun getBooksBibleIQ() {
     try {
@@ -116,7 +117,7 @@ internal suspend fun getChapterBibleIQ(
         }
         insertReadingHistory(bookId, chapter)
         getReadingHistory()
-        Napier.v("getReadingHistory :: BibleIQRepository", tag = "RH1283")
+        Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
@@ -339,13 +340,29 @@ internal suspend fun checkDatabaseSize() {
 internal suspend fun cleanReadingHistory() {
     try {
         withContext(Dispatchers.IO) {
-            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-                val max = DATABASE_RETENTION_READING_HISTORY
-                database.bibleBibleDatabaseQueries.cleanReadingHistory(max)
+            val count = countReadingHistory()
+            val max = DATABASE_RETENTION_READING_HISTORY
+            if (count != null && (count > max)) {
+                DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                    ?.bibleBibleDatabaseQueries?.cleanReadingHistory((count - max))
             }
         }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "BB2452")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
+
+private suspend fun countReadingHistory(): Long? {
+    return try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                ?.bibleBibleDatabaseQueries?.countReadingHistory()?.executeAsOne()
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "BB2452")
+        null
     } finally {
         DriverFactory.closeDB()
     }

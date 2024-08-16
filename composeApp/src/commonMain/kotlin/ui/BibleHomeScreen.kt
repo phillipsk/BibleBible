@@ -80,7 +80,7 @@ internal fun BibleHomeScreen(
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
                             } else {
-                                Napier.v("BibleAPIDataModel.readingHistory :: ${BibleAPIDataModel.readingHistory}", tag = "RH1283")
+                                Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()
                             }
                         }
