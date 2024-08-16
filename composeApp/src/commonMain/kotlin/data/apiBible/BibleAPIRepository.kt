@@ -32,13 +32,21 @@ internal suspend fun getBiblesBibleAPI() {
 }
 
 internal suspend fun getBooksBibleAPI() {
+    if (BibleAPIDataModel.bibleBooks.data?.isNotEmpty() == true) {
+        Napier.v("getBooksBibleAPI() :: already loaded", tag = "AL792")
+        return
+    }
     try {
         val getBooksAPIBible = if (LOCAL_DATA) {
-            Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
+            withContext(Dispatchers.IO) {
+                Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
+            }
         } else {
             httpClientBibleAPI.get(GetBooksAPIBible()).body<BibleAPIBook>()
         }
-        BibleAPIDataModel.updateBooks(getBooksAPIBible)
+        withContext(Dispatchers.Main) {
+            BibleAPIDataModel.updateBooks(getBooksAPIBible)
+        }
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {

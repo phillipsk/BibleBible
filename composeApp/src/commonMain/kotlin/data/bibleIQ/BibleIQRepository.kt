@@ -40,13 +40,21 @@ internal suspend fun getBooksBibleIQ() {
 }
 
 internal suspend fun getVersionsBibleIQ() {
+    if (BibleIQDataModel.bibleVersions.data.isNotEmpty()) {
+        Napier.v("getVersionsBibleIQ() :: already loaded", tag = "AL792")
+        return
+    }
     try {
         val versions = if (LOCAL_DATA) {
-            Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
+            withContext(Dispatchers.IO) {
+                Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
+            }
         } else {
             httpClientBibleIQ.get(GetVersions()).body<List<BibleIQVersion>>()
         }
-        BibleIQDataModel.updateBibleVersions(BibleIQVersions(versions))
+        withContext(Dispatchers.Main) {
+            BibleIQDataModel.updateBibleVersions(BibleIQVersions(versions))
+        }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ092")
     }
