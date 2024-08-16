@@ -37,6 +37,7 @@ import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
+import kotlinx.coroutines.flow.receiveAsFlow
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
@@ -47,12 +48,18 @@ import ui.configs.BottomSheetConfigView
 internal fun BibleHomeScreen(
     scaffoldState: BottomSheetScaffoldState,
 ) {
-    val errorMsg = BibleIQDataModel.errorSnackBar
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
+    val channel = remember { BibleIQDataModel.snackBarChannel }
 
     LaunchedEffect(BibleIQDataModel.showHomePage) {
         localScaffoldState.bottomSheetState.collapse()
+    }
+
+    LaunchedEffect(Unit) {
+        channel.receiveAsFlow().collect { errorMsg ->
+            localScaffoldState.snackbarHostState.showSnackbar(message = errorMsg)
+        }
     }
 
     BottomSheetScaffold(
@@ -101,14 +108,6 @@ internal fun BibleHomeScreen(
                             bottomSheetScaffoldState = localScaffoldState
                         )
                     }
-                }
-            }
-            if (errorMsg.isNotEmpty()) {
-                scope.launch {
-                    localScaffoldState.snackbarHostState.showSnackbar(errorMsg).also {
-                        BibleIQDataModel.clearErrorSnackBar()
-                    }
-//                    BibleIQDataModel.showHomePage = true
                 }
             }
         })

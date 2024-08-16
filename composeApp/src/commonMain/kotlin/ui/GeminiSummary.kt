@@ -11,6 +11,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import data.GeminiModel
+import data.GeminiModel.showSummary
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +47,7 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
                 content = GeminiModel.geminiDataText
 
             } else {
+                Napier.e("showSummary :: $showSummary :: AI Summary could not connect. Please try again later.", tag = "Gem7624")
                 BibleIQDataModel.updateErrorSnackBar("AI Summary could not connect. Please try again later.")
 //                BibleIQDataModel.showHomePage = true
                 GeminiModel.showSummary = false
@@ -54,8 +57,15 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: TextUnit) {
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            GeminiModel.showSummary = false
+        }
+    }
+
     val state = rememberPullRefreshState(refreshing, { refresh(pullToRefresh = true) })
     LaunchedEffect(true) {
+        Napier.d("GeminiSummary: LaunchedEffect", tag = "Gem7624")
         refresh()
     }
 

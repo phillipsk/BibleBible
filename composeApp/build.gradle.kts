@@ -85,8 +85,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 6
-        versionName = "6"
+        versionCode = 8
+        versionName = "6.2"
     }
     packaging {
         resources {

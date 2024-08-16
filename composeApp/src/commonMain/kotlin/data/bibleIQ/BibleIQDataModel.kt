@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.channels.Channel
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
@@ -22,6 +23,8 @@ object BibleIQDataModel {
     var bottomSheetViewCount by mutableStateOf(0)
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+
+    val snackBarChannel = Channel<String>(capacity = 1)
 
     @OptIn(ExperimentalMaterialApi::class)
     val bottomSheetScaffoldState
@@ -112,15 +115,9 @@ object BibleIQDataModel {
         BibleIQDataModel.showHomePage = true
     }
 
-    var errorSnackBar: String by mutableStateOf("")
-        private set
 
     internal fun updateErrorSnackBar(error: String) {
-        Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
-        errorSnackBar = error
-    }
-
-    internal fun clearErrorSnackBar() {
-        errorSnackBar = ""
+        Napier.v("snackBarChannel :: updateErrorSnackBar: $error", tag = "BB2452")
+        snackBarChannel.trySend(error)
     }
 }
