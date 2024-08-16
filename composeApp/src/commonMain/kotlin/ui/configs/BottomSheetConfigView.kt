@@ -2,14 +2,17 @@ package ui.configs
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BibleAPIDataModel
@@ -25,9 +28,9 @@ internal fun BottomSheetConfigView(
 ) {
     LaunchedEffect(true) {
         getReadingHistory()
-        Napier.v("getReadingHistory :: LaunchedEffect", tag = "RH1283")
     }
     val readingHistory = BibleAPIDataModel.readingHistory
+    Napier.v("LaunchedEffect :: count :: ${readingHistory?.size}", tag = "RH1283")
     Column(modifier = Modifier.padding(4.dp).height(550.dp)) {
         if (!showAISummary) {
             BibleMenu(
@@ -37,8 +40,12 @@ internal fun BottomSheetConfigView(
         }
         FontSizeSlider(BibleIQDataModel.fontSizeOptions, BibleIQDataModel.selectedFontSize)
         if (!readingHistory.isNullOrEmpty()) {
-            Text(text = "Reading History", fontSize = 20.sp)
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Text(text = "Reading History",
+                fontFamily = MaterialTheme.typography.h1.fontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxWidth()) {
                 readingHistory.forEach {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = it.toString())

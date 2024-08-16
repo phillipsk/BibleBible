@@ -39,9 +39,9 @@ internal fun HomeTitle(onClick: () -> Unit) {
             text = "BibleBible",
             style = TextStyle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
                 letterSpacing = 3.1.sp,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
                 color = Color.White,
             ),
             maxLines = 1,
