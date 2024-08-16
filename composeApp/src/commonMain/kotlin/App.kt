@@ -13,6 +13,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
+import ui.LoadingScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -30,7 +31,7 @@ fun App() {
 
     BibleBibleTheme {
         if (isLoading.value) {
-            // Loading screen
+            LoadingScreen(true)
         } else {
             BibleHomeScreen(
                 scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,
