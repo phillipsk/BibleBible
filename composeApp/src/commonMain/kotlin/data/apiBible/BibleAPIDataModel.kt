@@ -1,15 +1,67 @@
 package data.apiBible
 
+import androidx.compose.material.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import data.bibleIQ.BibleIQDataModel
+import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
+import kotlinx.datetime.LocalDate
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleAPIDataModel {
+    val singleChapterBooksOrdinal = setOf("31", "57", "63", "64", "65")
+
+    private val pentateuch = setOf(1, 2, 3, 4, 5)
+    private val historicalBooks = setOf(6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17)
+    private val poetryAndWisdom = setOf(18, 19, 20, 21, 22)
+    private val majorProphets = setOf(23, 24, 25, 26, 27)
+    private val minorProphets = setOf(28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39)
+    private val gospels = setOf(40, 41, 42, 43)
+    private val acts = setOf(44)
+    private val paulineEpistles = setOf(45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57)
+    private val generalEpistles = setOf(58, 59, 60, 61, 62, 63, 64, 65)
+    private val apocalypticLiterature = setOf(66)
+
+
+    private val lightGreen = Color(0x80CCFFCC)
+    private val lightBlue = Color(0x8080D4EA)
+    private val yellow = Color(0x80FFFF99)
+    private val orange = Color(0x80FFCC99)
+    private val lightPurple = Color(0x80E0B0FF)
+    private val red = Color(0x80FF9999)
+    private val lightRed = Color(0x80FFA07A)
+    private val darkBlue = Color(0x808B9DC3)
+    private val darkGreen = Color(0x809CCEA0)
+    private val darkPurple = Color(0x806B5B95)
+    private val defaultColor = Color(0x80FFFFFF)
+
+    @Composable
+    fun getBibleBookColor(ordinal: Int): Color {
+        val colorCache = remember { mutableMapOf<Int, Color>() }
+        return colorCache.getOrPut(ordinal) {
+            when (ordinal) {
+                in pentateuch -> lightGreen
+                in historicalBooks -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else lightBlue
+                in poetryAndWisdom -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else yellow
+                in majorProphets -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else orange
+                in minorProphets -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else lightPurple
+                in gospels -> red
+                in acts -> lightRed
+                in paulineEpistles -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkBlue
+                in generalEpistles -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkGreen
+                in apocalypticLiterature -> if (BibleIQDataModel.sortAZ) MaterialTheme.colors.primary else darkPurple
+                else -> defaultColor
+            }
+        }
+    }
+
     const val DEFAULT_BIBLE_ID = "de4e12af7f28f599-02"
     private var _selectedLanguage: MutableState<String> = mutableStateOf("eng")
     val selectedLanguage by _selectedLanguage
@@ -68,5 +120,24 @@ object BibleAPIDataModel {
         _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
     }
 
+
+    var readingHistory by mutableStateOf<List<ReadingHistoryUIState>?>(null)
+        private set
+
+    fun updateReadingHistory(newHistory: List<SelectReadingHistory>) {
+        readingHistory = newHistory.map {
+            if (it.b == null || it.c == null) return@map ReadingHistoryUIState()
+            ReadingHistoryUIState(
+                bookName = bibleBooks.data?.get(it.b.toInt() - 1)?.name,
+                chapterId = it.c.toInt(),
+                date = transformDate(it.DATE)
+            )
+        }
+    }
+
+    private fun transformDate(dateString: String): String {
+        val localDate = LocalDate.parse(dateString)
+        return localDate.month.name.lowercase().replaceFirstChar { it.uppercase() } + " " + localDate.dayOfMonth + ", " + localDate.year
+    }
 
 }

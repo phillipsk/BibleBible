@@ -7,11 +7,13 @@ import androidx.compose.runtime.remember
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
+import data.bibleIQ.cleanReadingHistory
 import data.bibleIQ.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
+import ui.LoadingScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -24,11 +26,12 @@ fun App() {
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
+        cleanReadingHistory()
     }
 
     BibleBibleTheme {
         if (isLoading.value) {
-            // Loading screen
+            LoadingScreen(true)
         } else {
             BibleHomeScreen(
                 scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,

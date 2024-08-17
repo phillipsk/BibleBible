@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQDataModel
@@ -31,14 +32,15 @@ internal fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Font Size: ",
+            text = "Font Size ",
+            fontFamily = MaterialTheme.typography.h1.fontFamily,
+            fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             letterSpacing = 1.5.sp,
             color = MaterialTheme.colors.onSurface,
-            fontFamily = MaterialTheme.typography.h2.fontFamily,
         )
         Slider(
-            modifier = Modifier.width(180.dp).padding(top = 8.dp),
+            modifier = Modifier.width(180.dp),
             value = sliderPosition,
             onValueChange = {
                 sliderPosition = it

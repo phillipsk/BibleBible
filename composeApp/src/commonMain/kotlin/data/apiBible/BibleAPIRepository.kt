@@ -3,6 +3,9 @@ package data.apiBible
 import data.apiBible.json.JSON_BIBLES_API_BIBLE_SELECT
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.httpClientBibleAPI
+import email.kevinphillips.biblebible.cache.DriverFactory
+import email.kevinphillips.biblebible.db.BibleBibleDatabase
+import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -29,13 +32,21 @@ internal suspend fun getBiblesBibleAPI() {
 }
 
 internal suspend fun getBooksBibleAPI() {
+    if (BibleAPIDataModel.bibleBooks.data?.isNotEmpty() == true) {
+        Napier.v("getBooksBibleAPI() :: already loaded", tag = "AL792")
+        return
+    }
     try {
         val getBooksAPIBible = if (LOCAL_DATA) {
-            Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
+            withContext(Dispatchers.IO) {
+                Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
+            }
         } else {
             httpClientBibleAPI.get(GetBooksAPIBible()).body<BibleAPIBook>()
         }
-        BibleAPIDataModel.updateBooks(getBooksAPIBible)
+        withContext(Dispatchers.Main) {
+            BibleAPIDataModel.updateBooks(getBooksAPIBible)
+        }
     } catch (e: Exception) {
         println("Error: ${e.message}")
     } finally {
@@ -94,5 +105,39 @@ private suspend fun fetchChapter(chapter: String, bibleId: String): ChapterConte
             Napier.e(it, tag = "BB2452")
         }
         null
+    }
+}
+
+suspend fun getReadingHistory() {
+    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+        val readingHistory: List<SelectReadingHistory>?
+        val filteredReadingHistory: List<SelectReadingHistory>?
+        try {
+            withContext(Dispatchers.IO) {
+                readingHistory =
+                    database.bibleBibleDatabaseQueries.selectReadingHistory().executeAsList()
+                Napier.v("readingHistory: ${readingHistory.take(100)}", tag = "IQ094")
+                // set of books with only one chapter
+                // filter the first chapter as the UX lands a user on chapter 1
+                filteredReadingHistory = readingHistory.filterIndexed { index, currentRecord ->
+                    if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleAPIDataModel.singleChapterBooksOrdinal) {
+                        val previousRecord = readingHistory[index - 1]
+                        currentRecord.b == previousRecord.b && previousRecord.c == "2"
+                    } else {
+                        true
+                    }
+                }
+                Napier.v("filteredReadingHistory: ${filteredReadingHistory.take(100)}", tag = "IQ094")
+            }
+            withContext(Dispatchers.Main) {
+                filteredReadingHistory?.let {
+                    BibleAPIDataModel.updateReadingHistory(it)
+                }
+            }
+        } catch (e: Exception) {
+            Napier.e("Error: ${e.message}", tag = "IQ094")
+        } finally {
+            DriverFactory.closeDB()
+        }
     }
 }

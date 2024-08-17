@@ -1,19 +1,24 @@
+package ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ScrollableTabRow
 import androidx.compose.material.Tab
-import androidx.compose.material.TabRowDefaults
 import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.apiBible.BookData
@@ -35,9 +41,6 @@ import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import ui.BibleScriptures
-import ui.GeminiSummary
-import ui.LoadingScreen
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
@@ -65,7 +68,7 @@ internal fun BibleScripturesPager(
     var lastTabClickTime by remember { mutableStateOf(0L) }
     val debounceDuration = 50L  // 300 ms for debounce duration
     val uiStateReady =
-        BibleIQDataModel.getAPIBibleCardinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
+        BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
     LaunchedEffect(selectedBook) {
 //    TODO: calling and updating BibleChapterUIState on selectedBook change
@@ -159,9 +162,13 @@ internal fun BibleScripturesPager(
                     edgePadding = 16.dp,
                     indicator = { tabPositions ->
                         if (pagerState.currentPage < tabPositions.size) {
-                            TabRowDefaults.Indicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
-                                color = MaterialTheme.colors.primary
+                            Box(
+                                Modifier
+                                    .tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                    .padding(horizontal = 16.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(50)) // Make it rounded
+                                    .background(MaterialTheme.colors.primary)
                             )
                         } else {
                             Napier.e(

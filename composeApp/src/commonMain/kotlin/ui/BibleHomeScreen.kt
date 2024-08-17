@@ -1,6 +1,5 @@
 package ui
 
-import BibleScripturesPager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -39,9 +38,10 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.flow.receiveAsFlow
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
-import ui.configs.BottomSheetConfigs
+import ui.configs.BottomSheetConfigView
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -70,8 +70,10 @@ internal fun BibleHomeScreen(
         sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            BottomSheetConfigs(bibleVersionsList = BibleIQDataModel.bibleVersions,
-                showAISummary = GeminiModel.showSummary)
+            BottomSheetConfigView(
+                bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary
+            )
         },
         content = ({
             Column(
@@ -85,6 +87,7 @@ internal fun BibleHomeScreen(
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
                             } else {
+                                Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()
                             }
                         }
@@ -141,7 +144,11 @@ internal fun BibleBookList(
                                     BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = BibleAPIDataModel.getBibleBookColor(
+                                        BibleIQDataModel.getAPIBibleOrdinal(it.bookId)
+                                    )
+                                ),
                                 modifier = Modifier
                                     .padding(2.dp)
                                     .height(IntrinsicSize.Min)

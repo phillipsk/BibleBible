@@ -77,29 +77,29 @@ https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-1
 *   ~~No light mode only dark mode~~
 *   ~~sort Books A-Z, disable selectedBook on homeScreen~~
 *   ~~add strikethrough backlog~~
-*   open/close database connection pools
+*   ~~open/close database connection pools~~
 *   ~~revert AI summary on double tap~~
 *   window insets on iOS
 *   ~~back arrow on front layer page~~
-*   data class for AI Summary UI state
-*   ~~update README.md with screenshots~~
+*   ~~data class for AI Summary UI state~~
+*   update README.md with screenshots
 *   ~~font libraries added to shared module~~
 *   persist user settings
 *   Select text to copy and paste does not work
-*   separate http config clients
+*   ~~separate http config clients~~
 
 ## Nice to have
-*   add some UI home screen uniform design
-*   only need to query database by newly created databaseKey
+*   ~~add some UI home screen uniform design~~
+*   ~~only need to query database by newly created databaseKey~~
 *   ~~obfuscation, R8, Proguard~~
 *   log api call stats, analytics
 *   refactor database object model
 *   review HTML, JSON, Text api queries
-*   pinch to zoom scriptures
+*   ~~pinch to zoom scriptures~~
 *   ~~increase font size dynamically~~
 *   Fill white space in the book of Psalms
 *   Multi window debug/ PiP debug
-*   Color code parables on BookList composable; add Parables section
+*   ~~Color code parables on BookList composable; add Parables section~~
 *   expect/actual for connectivityManager
 
 ## Checklist
