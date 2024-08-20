@@ -151,7 +151,7 @@ sqldelight {
     databases {
         create("BibleBibleDatabase") {
             packageName.set("email.kevinphillips.biblebible.db")
-            version = 3
+            version = 4
         }
     }
 }
