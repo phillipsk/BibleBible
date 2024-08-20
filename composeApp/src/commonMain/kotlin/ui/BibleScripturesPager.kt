@@ -94,7 +94,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         if (uiStateReady) {
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1, updateReadingHistory = false)
         }
     }
 
