@@ -85,8 +85,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 8
-        versionName = "6.2"
+        versionCode = 11
+        versionName = "6.4"
     }
     packaging {
         resources {
@@ -151,7 +151,7 @@ sqldelight {
     databases {
         create("BibleBibleDatabase") {
             packageName.set("email.kevinphillips.biblebible.db")
-            version = 3
+            version = 4
         }
     }
 }

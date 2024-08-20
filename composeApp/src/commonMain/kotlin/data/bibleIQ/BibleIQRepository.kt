@@ -63,7 +63,8 @@ internal suspend fun getVersionsBibleIQ() {
 internal suspend fun getChapterBibleIQ(
     book: BookData,
     chapter: Int = 1,
-    version: String = BibleIQDataModel.selectedVersion
+    version: String = BibleIQDataModel.selectedVersion,
+    updateReadingHistory: Boolean = true,
 ) {
     try {
         GeminiModel.showSummary = false
@@ -123,8 +124,10 @@ internal suspend fun getChapterBibleIQ(
             }
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
         }
-        insertReadingHistory(bookId, chapter)
-        getReadingHistory()
+        if (updateReadingHistory) {
+            insertReadingHistory(bookId, chapter)
+            getReadingHistory()
+        }
         Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")

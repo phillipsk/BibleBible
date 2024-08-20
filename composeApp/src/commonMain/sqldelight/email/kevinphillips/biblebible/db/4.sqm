@@ -1,0 +1,7 @@
+-- Remove existing duplicates
+DELETE FROM ReadingHistory
+WHERE rowid NOT IN (
+    SELECT MIN(rowid)
+    FROM ReadingHistory
+    GROUP BY b, c
+);
