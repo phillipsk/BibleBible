@@ -108,7 +108,7 @@ WHERE created_at IN (
 
 selectReadingHistory:
 SELECT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
-FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC LIMIT 50;
+FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC;
 
 countReadingHistory:
 SELECT COUNT(*) FROM ReadingHistory;

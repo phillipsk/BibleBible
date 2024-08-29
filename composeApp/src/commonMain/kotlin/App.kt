@@ -47,7 +47,7 @@ private val napierInitialized: Boolean by lazy {
 
 internal fun initializeNapier() {
     if (BibleIQDataModel.RELEASE_BUILD) {
-        println("Release build :: ${BibleIQDataModel.RELEASE_BUILD} :: BB2452")
+        println("Release build")
     } else {
         if (!napierInitialized) {
             println("Napier initialization error: Napier is not initialized.")
