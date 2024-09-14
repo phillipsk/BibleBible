@@ -49,7 +49,7 @@ internal fun BibleScriptures(
                             val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
                             localFontSize = newFontSize
                             onFontSizeChanged(newFontSize)
-//                            scale = 1f
+                            scale = 1f
                         }
                     }
                 }
