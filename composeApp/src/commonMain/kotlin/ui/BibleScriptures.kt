@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,13 +22,17 @@ import data.bibleIQ.BibleChapterUIState
 internal fun BibleScriptures(
     chapters: BibleChapterUIState,
     scrollState: ScrollState,
-    fontSize: Float,
+    selectedFontSize: Float,
     onFontSizeChanged: (Float) -> Unit
 ) {
-    var localFontSize by remember { mutableStateOf(fontSize) }
+    var localFontSize by remember { mutableStateOf(selectedFontSize) }
     val minTextSize = 12f
     val maxTextSize = 40f
     var scale by remember { mutableStateOf(1f) }
+
+    LaunchedEffect(selectedFontSize) {
+        localFontSize = selectedFontSize
+    }
 
     Column(
         modifier = Modifier
@@ -44,7 +49,7 @@ internal fun BibleScriptures(
                             val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
                             localFontSize = newFontSize
                             onFontSizeChanged(newFontSize)
-                            scale = 1f
+//                            scale = 1f
                         }
                     }
                 }
@@ -53,7 +58,7 @@ internal fun BibleScriptures(
         chapters.text?.let {
             Text(
                 text = it,
-                fontSize = localFontSize.sp,
+                fontSize = selectedFontSize.sp,
                 modifier = Modifier.padding(4.dp)
             )
         }

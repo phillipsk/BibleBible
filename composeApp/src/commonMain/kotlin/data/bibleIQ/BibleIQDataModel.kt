@@ -70,8 +70,8 @@ object BibleIQDataModel {
 
     val selectedSortType get() = if (sortAZ) "A-Z" else "OT-NT"
 
-    val fontSizeOptions = listOf(16, 18, 20, 22, 24, 26, 28, 30)
-    var selectedFontSize by mutableStateOf(20)
+    val fontSizeOptions = listOf(16f, 18f, 20f, 22f, 24f, 26f, 28f, 30f)
+    var selectedFontSize by mutableStateOf(20f)
 
     var selectedBook by mutableStateOf(BookData())
         private set
