@@ -1,5 +1,10 @@
 package data.bibleIQ
 
+import androidx.compose.material.BottomSheetValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.rememberBottomSheetScaffoldState
+import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -7,12 +12,26 @@ import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.channels.Channel
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleIQDataModel {
     const val RELEASE_BUILD = false
     const val DEFAULT_BIBLE_ID = "kjv"
+
+    var bottomSheetViewCount by mutableStateOf(0)
+    var isFirstLaunch by mutableStateOf(true)
+    var showHomePage by mutableStateOf(true)
+
+    val snackBarChannel = Channel<String>(capacity = 1)
+
+    @OptIn(ExperimentalMaterialApi::class)
+    val bottomSheetScaffoldState
+        @Composable
+        get() = rememberBottomSheetScaffoldState(
+            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed),
+        )
     var bibleVersions by mutableStateOf(BibleIQVersions())
         private set
 
@@ -21,7 +40,7 @@ object BibleIQDataModel {
             it.abbreviation == "KJV" || it.abbreviation == "ASV"
                     || it.abbreviation == "RV1909" || it.abbreviation == "SVD"
         }
-        bibleVersions = BibleIQVersions(data = list)
+        bibleVersions = BibleIQVersions(data = newVersions.data)
     }
 
     private var _selectedVersion: MutableState<String> = mutableStateOf("")
@@ -46,6 +65,14 @@ object BibleIQDataModel {
         bibleBooks = newBooks
     }
 
+    var sortAZ by mutableStateOf(false)
+        internal set
+
+    val selectedSortType get() = if (sortAZ) "A-Z" else "OT-NT"
+
+    val fontSizeOptions = listOf(16, 18, 20, 22, 24, 26, 28, 30)
+    var selectedFontSize by mutableStateOf(20)
+
     var selectedBook by mutableStateOf(BookData())
         private set
 
@@ -56,13 +83,21 @@ object BibleIQDataModel {
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
-    fun updateBibleChapter(newChapter: List<BibleChapter>, chapterCount: ChapterCount?) {
+    fun updateBibleChapter(
+        newChapter: List<BibleChapter>,
+        chapterCount: ChapterCount?,
+        version: String
+    ) {
         bibleChapter = newChapter.firstOrNull()?.b?.toInt()?.let { bookId ->
             BibleChapterUIState(
                 id = newChapter.firstOrNull()?.id,
                 bookId = bookId,
                 chapterId = newChapter.firstOrNull()?.c?.toInt(),
-                text = newChapter.joinToString(" ") { "[${it.v}] ${it.t}" },
+                text = if (version.uppercase() == "SVD") {
+                    newChapter.joinToString("\n") { "${it.v} ${it.t}" }
+                } else {
+                    newChapter.joinToString(" ") { "[${it.v}] ${it.t}" }
+                },
                 chapterList = chapterCount?.chapterCount?.let { count ->
                     (1..count).toList()
                 }
@@ -70,23 +105,19 @@ object BibleIQDataModel {
         }
     }
 
-    fun getAPIBibleCardinal(chapterNumber: String): Int {
+    fun getAPIBibleOrdinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
-        return (BibleAPIDataModel.books.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
+        return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
     }
 
     val onHomeClick: () -> Unit = {
         Napier.v("onHomeClick", tag = "BB2452")
-        BibleAPIDataModel.showHomePage = true
+        BibleIQDataModel.showHomePage = true
     }
 
-    var errorSnackBar: String by mutableStateOf("")
-        private set
+
     internal fun updateErrorSnackBar(error: String) {
-        Napier.v("updateErrorSnackBar: $error", tag = "BB2452")
-        errorSnackBar = error
-    }
-    internal fun clearErrorSnackBar() {
-        errorSnackBar = ""
+        Napier.v("snackBarChannel :: updateErrorSnackBar: $error", tag = "BB2452")
+        snackBarChannel.trySend(error)
     }
 }

@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleChapterUIState
 
 @Composable
-internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState) {
+internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState, ) {
     var fontSize by remember { mutableStateOf(16f) }
     val minTextSize = 16f
     var scale by remember(chapters.chapterId) { mutableStateOf(1f) }

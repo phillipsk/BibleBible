@@ -1,6 +1,5 @@
 package ui
 
-import BibleScripturesPager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -13,17 +12,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.BottomSheetScaffold
+import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -31,63 +33,101 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
+import kotlinx.coroutines.flow.receiveAsFlow
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import ui.configs.BibleBibleTopBar
+import ui.configs.BottomSheetConfigView
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun BibleHomeScreen() {
-    val errorMsg = BibleIQDataModel.errorSnackBar
-    val snackbarHostState = remember { SnackbarHostState() }
+internal fun BibleHomeScreen(
+    scaffoldState: BottomSheetScaffoldState,
+) {
     val scope = rememberCoroutineScope()
-    Scaffold(
-        topBar = { HomeTopBar(onClick = { BibleIQDataModel.onHomeClick() }) },
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (BibleAPIDataModel.showHomePage) {
-                BibleBookList(
-                    bookData = BibleAPIDataModel.books.data,
-                    selectedChapter = BibleAPIDataModel.selectedChapter,
-                    bibleId = BibleIQDataModel.selectedVersion
-                )
-            } else {
-                BibleIQDataModel.bibleChapter?.let { it1 ->
-                    BibleScripturesPager(
-                        chapters = it1,
-                        bibleVersion = BibleIQDataModel.selectedVersion,
-                        selectedBook = BibleIQDataModel.selectedBook
-                    )
-                }
-            }
-        }
-        if (errorMsg.isNotEmpty()) {
-            scope.launch {
-                snackbarHostState.showSnackbar(errorMsg).also {
-                    BibleIQDataModel.clearErrorSnackBar()
-                }
-            }
+    val localScaffoldState = remember { scaffoldState }
+    val channel = remember { BibleIQDataModel.snackBarChannel }
+
+    LaunchedEffect(BibleIQDataModel.showHomePage) {
+        localScaffoldState.bottomSheetState.collapse()
+    }
+
+    LaunchedEffect(Unit) {
+        channel.receiveAsFlow().collect { errorMsg ->
+            localScaffoldState.snackbarHostState.showSnackbar(message = errorMsg)
         }
     }
+
+    BottomSheetScaffold(
+        snackbarHost = {
+            CustomSnackbarHost(snackbarHostState = scaffoldState.snackbarHostState)
+        },
+        scaffoldState = scaffoldState,
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        sheetPeekHeight = 0.dp,
+        sheetContent = {
+            BottomSheetConfigView(
+                bibleVersionsList = BibleIQDataModel.bibleVersions,
+                showAISummary = GeminiModel.showSummary
+            )
+        },
+        content = ({
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                BibleBibleTopBar(
+                    onClick = BibleIQDataModel.onHomeClick,
+                    showBottomSheet = {
+                        scope.launch {
+                            if (localScaffoldState.bottomSheetState.isExpanded) {
+                                localScaffoldState.bottomSheetState.collapse()
+                            } else {
+                                Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
+                                localScaffoldState.bottomSheetState.expand()
+                            }
+                        }
+                    }
+                )
+                if (BibleIQDataModel.showHomePage) {
+                    BibleBookList(
+                        bookData = BibleAPIDataModel.uiBooks.data,
+                    )
+                } else {
+                    BibleIQDataModel.bibleChapter?.let { it1 ->
+                        BibleScripturesPager(
+                            chapters = it1,
+                            bibleVersion = BibleIQDataModel.selectedVersion,
+                            selectedBook = BibleIQDataModel.selectedBook,
+                            isAISummaryLoading = GeminiModel.isLoading,
+                            showAISummary = GeminiModel.showSummary,
+                            bottomSheetScaffoldState = localScaffoldState
+                        )
+                    }
+                }
+            }
+        })
+    )
 }
 
 @Composable
-internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, bibleId: String) {
-    val scope = rememberCoroutineScope()
+internal fun BibleBookList(
+    bookData: List<BookData>?,
+    lazyGridState: LazyGridState = rememberLazyGridState(),
+) {
     AnimatedVisibility(
-        visible = BibleAPIDataModel.showHomePage,
+        visible = BibleIQDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         bookData?.let { bookDataList ->
             Column(modifier = Modifier.padding(4.dp)) {
                 LazyVerticalGrid(
+                    state = lazyGridState,
                     columns = GridCells.Fixed(3),
                     contentPadding = PaddingValues(10.dp),
                     userScrollEnabled = true,
@@ -101,20 +141,25 @@ internal fun BibleBookList(bookData: List<BookData>?, selectedChapter: String, b
                                         updateSelectedChapter(it.remoteKey)
                                     }
                                     BibleIQDataModel.updateSelectedBook(it)
-                                    BibleAPIDataModel.showHomePage = false
+                                    BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
-                                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = BibleAPIDataModel.getBibleBookColor(
+                                        BibleIQDataModel.getAPIBibleOrdinal(it.bookId)
+                                    )
+                                ),
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .height(IntrinsicSize.Min) // Allow the button to expand to fit the text
+                                    .height(IntrinsicSize.Min)
                                     .defaultMinSize(
                                         minWidth = 100.dp,
                                         minHeight = 40.dp
-                                    ) // Set a minimum size
+                                    )
                             ) {
                                 it.cleanedName?.let { name ->
                                     Text(
+                                        fontFamily = MaterialTheme.typography.h3.fontFamily,
                                         text = name,
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colors.onPrimary,

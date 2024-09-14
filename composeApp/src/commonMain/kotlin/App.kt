@@ -1,4 +1,5 @@
 
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -6,14 +7,17 @@ import androidx.compose.runtime.remember
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
+import data.bibleIQ.cleanReadingHistory
 import data.bibleIQ.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
+import ui.LoadingScreen
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun App() {
+fun App() {
     initializeNapier()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(true) {
@@ -22,13 +26,16 @@ internal fun App() {
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
+        cleanReadingHistory()
     }
 
     BibleBibleTheme {
         if (isLoading.value) {
-            // Loading screen
+            LoadingScreen(true)
         } else {
-            BibleHomeScreen()
+            BibleHomeScreen(
+                scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,
+            )
         }
     }
 }
@@ -40,7 +47,7 @@ private val napierInitialized: Boolean by lazy {
 
 internal fun initializeNapier() {
     if (BibleIQDataModel.RELEASE_BUILD) {
-        println("Release build :: ${BibleIQDataModel.RELEASE_BUILD} :: BB2452")
+        println("Release build")
     } else {
         if (!napierInitialized) {
             println("Napier initialization error: Napier is not initialized.")

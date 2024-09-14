@@ -13,9 +13,9 @@ androidx-test-junit = "1.1.5"
 compose = "1.5.4"
 compose-material3 = "1.1.2"
 compose-compiler = "1.5.6"
-compose-plugin = "1.5.11"
+compose-plugin = "1.6.1"
 junit = "4.13.2"
-kotlin = "1.9.21"
+kotlin = "1.9.23"
 buildKonfig = "0.15.1"
 kotlinxCoroutines = "1.7.3"
 kotlinx-json = "1.6.0"
@@ -23,6 +23,7 @@ ktor = "2.3.7"
 napier = "2.6.1"
 sqlDelight = "2.0.1"
 kotlinxDateTime = "0.5.0"
+generativeai = "0.2.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -41,6 +42,7 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "compose" }
 compose-material = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 kotlinX-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlinX-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinX-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-json" }
 kotlinX-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDateTime" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -56,6 +58,7 @@ ktor-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 sqlDelight-driver-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqlDelight" }
 sqlDelight-driver-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqlDelight" }
+generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

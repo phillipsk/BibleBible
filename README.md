@@ -3,13 +3,23 @@ This is a Bible reading compose multiplatform app that demonstrates the power of
 
 Contributions by Kevin Phillips
 
-## About the App
+## Download
+[![App Store](previews/app_store_badge.svg)](https://apps.apple.com/us/app/my-biblebible/id6478799350)
+
+<a href='https://play.google.com/store/apps/details?id=email.kevinphillips.biblebible'>
+<img src="https://play.google.com/intl/en_gb/badges/static/images/badges/en_badge_web_generic.png" width=240 />
+</a>
+
+## Run the App
 I am currently prioritizing the development of a minimal viable product (MVP) for this app. This means that the app's core functionality is the primary focus, and I will be adding additional features over time.
 
-To run the app, you will need to provide your own API key from [IQ Bible](https://rapidapi.com/vibrantmiami/api/iq-bible). Once you have your API key, add the key to the file `local.properties` in the root directory of the project:
+To run the app, you will need to provide your own API key from [IQ Bible](https://rapidapi.com/vibrantmiami/api/iq-bible) 
+Additionally an API key from [Gemini AI](https://ai.google.dev/) will be needed for the AI summary feature
+Once you have your API keys, add them to the file `local.properties` in the root directory of the project:
 ```
 # local.properties
-api_key=YOUR_API_KEY_HERE
+IQ_BIBLE_API_KEY=[YOUR_API_KEY_HERE]
+GEMINI_API_KEY=[YOUR_API_KEY_HERE]
 ```
 
 ## Approach
@@ -35,49 +45,62 @@ Despite these considerations, I am excited about the potential of this app. As I
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)
 
 ## Previews
-### Android (left) and iOS (right)
-![Android demo](previews/demo_android.gif)
-![iOS demo](previews/demo_ios.gif)
+### Android (top) and iOS (bottom)
+https://github.com/phillipsk/BibleBible/assets/7585083/a41d07b4-9dd4-447c-a873-49963f12f51d
+
+https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-13e7cac5d439
+
+
 
 ## Backlog
-*   socket timeout and api/db retries
-*   handle UI when chapter is not cached and remote call fails
-*   Context Switching: Remember, switching between dispatchers involves context switching, 
-*   which can have a slight performance overhead. Minimize unnecessary switching for optimal performance.
+*   ~~socket timeout and api/db retries~~
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
 *   is not cached and the remote call fails, the lazy row chapters are not visible
 *   add a compiler flag to disable GC on iOS release build
-*   other production build considerations for KMM release
-*   style UI
-*   control size of BookMenu() drop down menu and fix spacing of toolbar menus
 *   crashlytics with touchlab CrashKiOS and kermit
 *   back handler
 *   read JSON files with library
 *   remove material library in favor of material3
-*   background color on ScrollableTabRow material3
-*   add shimmer effect to scripture load
-*   merge socket timeout branch, revisit snackbar functionality
-*   A-z, OT-NT, sorted comparator
+*   ~~add shimmer effect to scripture load~~
+*   ~~merge socket timeout branch, revisit snackbar functionality~~
+*   ~~A-z, OT-NT, sorted comparator~~
 *   API success state
-*   buy iPhone
 *   UI TESTS
 *   mock errors; add Result type to API calls
 *   use immutable state with compose
-*   Fix bible book abbreviation on home screen, change sort order
+*   ~~Fix bible book abbreviation on home screen, change sort order~~
 *   handle empty list and 200 error response from Rapid API
-*   when bibleVersion changes, does a call to Chapter count need to be made
-*   review duplicate API call on launch effect
+*   ~~when bibleVersion changes, does a call to Chapter count need to be made~~
+*   ~~review duplicate API call on launch effect~~
+*   supervisorScope coroutine exception handling 
+*   Scroll bar on the right 
+*   ~~No light mode only dark mode~~
+*   ~~sort Books A-Z, disable selectedBook on homeScreen~~
+*   ~~add strikethrough backlog~~
+*   ~~open/close database connection pools~~
+*   ~~revert AI summary on double tap~~
+*   window insets on iOS
+*   ~~back arrow on front layer page~~
+*   ~~data class for AI Summary UI state~~
+*   update README.md with screenshots
+*   ~~font libraries added to shared module~~
+*   persist user settings
+*   Select text to copy and paste does not work
+*   ~~separate http config clients~~
 
 ## Nice to have
-*   add some UI home screen uniform design
-*   only need to query database by newly created databaseKey
-*   obfuscation, R8, Proguard
+*   ~~add some UI home screen uniform design~~
+*   ~~only need to query database by newly created databaseKey~~
+*   ~~obfuscation, R8, Proguard~~
 *   log api call stats, analytics
 *   refactor database object model
 *   review HTML, JSON, Text api queries
-*   pinch to zoom scriptures
-*   increase font size dynamically
+*   ~~pinch to zoom scriptures~~
+*   ~~increase font size dynamically~~
 *   Fill white space in the book of Psalms
+*   Multi window debug/ PiP debug
+*   ~~Color code parables on BookList composable; add Parables section~~
+*   expect/actual for connectivityManager
 
 ## Checklist
 *   Database retention limit
@@ -91,3 +114,4 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 *   review light vs. dark mode
 *   cut release branch
 *   set functions to internal modifier
+*   review logs
