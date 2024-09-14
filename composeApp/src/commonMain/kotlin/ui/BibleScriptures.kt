@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,11 +58,4 @@ internal fun BibleScriptures(
             )
         }
     }
-}
-
-fun PointerEvent.calculateZoom(): Float {
-    val pointers = changes.take(2)
-    val currentDistance = (pointers[0].position - pointers[1].position).getDistance()
-    val previousDistance = (pointers[0].previousPosition - pointers[1].previousPosition).getDistance()
-    return if (previousDistance != 0f) currentDistance / previousDistance else 1f
 }
