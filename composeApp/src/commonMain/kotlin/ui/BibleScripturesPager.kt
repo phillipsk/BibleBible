@@ -197,7 +197,7 @@ internal fun BibleScripturesPager(
                         )
                     }
                 }
-
+                var fontSize by remember { mutableStateOf(16f) } // Global font size state
                 HorizontalPager(
 //                    key = { page -> selectedBook.bookId + page.toString()},
                     state = pagerState,
@@ -225,7 +225,8 @@ internal fun BibleScripturesPager(
                             BibleScriptures(
                                 chapters,
                                 pagerColumnScrollState,
-                                BibleIQDataModel.selectedFontSize.sp
+                                fontSize,
+                                onFontSizeChanged = { newFontSize -> fontSize = newFontSize }
                             )
                         }
                     }

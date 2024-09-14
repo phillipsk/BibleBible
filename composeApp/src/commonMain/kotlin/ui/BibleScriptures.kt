@@ -1,9 +1,10 @@
 package ui
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -11,37 +12,58 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleChapterUIState
 
 @Composable
-internal fun BibleScriptures(chapters: BibleChapterUIState, scrollState: ScrollState, ) {
-    var fontSize by remember { mutableStateOf(16f) }
-    val minTextSize = 16f
-    var scale by remember(chapters.chapterId) { mutableStateOf(1f) }
+internal fun BibleScriptures(
+    chapters: BibleChapterUIState,
+    scrollState: ScrollState,
+    fontSize: Float,
+    onFontSizeChanged: (Float) -> Unit
+) {
+    var localFontSize by remember { mutableStateOf(fontSize) }
+    val minTextSize = 12f
+    val maxTextSize = 40f
+    var scale by remember { mutableStateOf(1f) }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
-//            .verticalScroll(scrollState)
+            .verticalScroll(scrollState)
             .pointerInput(Unit) {
-                detectTransformGestures { _, _, zoom, _ ->
-                    scale *= zoom
-                    fontSize = (fontSize * scale) //.coerceAtLeast(minTextSize)
-                    scale = 1f
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        // Detect pinch gesture with more than one finger
+                        if (event.changes.size > 1) {
+                            val zoomChange = event.calculateZoom()
+                            scale *= zoomChange
+                            // Calculate new font size based on zoom
+                            val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
+                            localFontSize = newFontSize
+                            onFontSizeChanged(newFontSize)
+                            scale = 1f
+                        }
+                    }
                 }
             }
     ) {
-
         chapters.text?.let {
-            item {
-                Text(
-                    text = it,
-                    fontSize = fontSize.sp,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
+            Text(
+                text = it,
+                fontSize = localFontSize.sp,
+                modifier = Modifier.padding(4.dp)
+            )
         }
     }
+}
+
+fun PointerEvent.calculateZoom(): Float {
+    val pointers = changes.take(2)
+    val currentDistance = (pointers[0].position - pointers[1].position).getDistance()
+    val previousDistance = (pointers[0].previousPosition - pointers[1].previousPosition).getDistance()
+    return if (previousDistance != 0f) currentDistance / previousDistance else 1f
 }
