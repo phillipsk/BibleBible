@@ -33,10 +33,10 @@ internal fun BibleScriptures(
     onFontSizeChanged: (Float) -> Unit
 ) {
     var localFontSize by remember { mutableStateOf(selectedFontSize) }
+    var previousFontSize by remember { mutableStateOf(selectedFontSize) }
     val minTextSize = 12f
     val maxTextSize = 40f
-    val doubleTapLargeTextSize = 22f
-    val doubleTapLargeTextSize = 30f
+    val doubleTapFontSize = 30f
     var scale by remember { mutableStateOf(1f) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -73,16 +73,15 @@ internal fun BibleScriptures(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        // Zoom on double tap
-                        val newFontSize = if (localFontSize == doubleTapLargeTextSize) {
-                            doubleTapRegTextSize
+                        if (localFontSize == doubleTapFontSize) {
+                            localFontSize = previousFontSize
                         } else {
-                            doubleTapLargeTextSize
+                            previousFontSize = localFontSize
+                            localFontSize = doubleTapFontSize
                         }
-                        localFontSize = newFontSize
-                        onFontSizeChanged(newFontSize)
+                        onFontSizeChanged(localFontSize)
                         coroutineScope.launch {
-                            updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                            updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
                         }
                     }
                 )
