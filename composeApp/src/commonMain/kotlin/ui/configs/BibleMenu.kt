@@ -43,6 +43,8 @@ internal fun BibleMenu(
     ) {
         bibleVersionsList.data.forEach { version ->
             if (version.abbreviation != null) {
+//                Napier.v("version.abbreviation ${version.abbreviation} " +
+//                        " equals :: selectedVersion :: $selectedVersion", tag = "AP8243")
                 val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
                 FilterChip(
                     onClick = {

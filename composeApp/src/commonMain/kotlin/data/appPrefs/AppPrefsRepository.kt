@@ -51,17 +51,20 @@ internal suspend fun getUserPreferences() {
         DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
             withContext(Dispatchers.IO) {
                 val data = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsList()
+                Napier.v("getUserPreferences :: data :: $data", tag = "AP8243")
                 if (data.isEmpty()) {
-                        database.bibleBibleDatabaseQueries.insertUserPrefs()
-                        Napier.v("init app load user prefs :: INSERT init load", tag = "AP8243")
+                    database.bibleBibleDatabaseQueries.insertUserPrefs()
+                    Napier.v("init app load user prefs :: INSERT init load", tag = "AP8243")
                 } else {
-                    BibleIQDataModel.selectedFontSize = data[0].fontSize.toFloat()
-                    BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
-                    Napier.v(
-                        "getUserPreferences :: fontSize ${BibleIQDataModel.selectedFontSize} " +
-                                " bibleVersion :: ${BibleIQDataModel.selectedVersion}",
-                        tag = "AP8243"
-                    )
+                    withContext(Dispatchers.Main) {
+                        BibleIQDataModel.selectedFontSize = data[0].fontSize.toFloat()
+                        BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
+                        Napier.v(
+                            "getUserPreferences :: fontSize ${BibleIQDataModel.selectedFontSize} " +
+                                    " bibleVersion :: ${BibleIQDataModel.selectedVersion}",
+                            tag = "AP8243"
+                        )
+                    }
                 }
             }
         }

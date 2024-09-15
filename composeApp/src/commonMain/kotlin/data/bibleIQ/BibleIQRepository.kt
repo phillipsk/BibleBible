@@ -24,7 +24,7 @@ import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000L
-val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 30L
+val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 500L
 
 internal suspend fun getBooksBibleIQ() {
     try {

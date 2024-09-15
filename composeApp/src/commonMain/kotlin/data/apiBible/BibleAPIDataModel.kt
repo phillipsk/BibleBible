@@ -100,11 +100,6 @@ object BibleAPIDataModel {
             }
             return field
         }
-    val selectedVersion: String by _selectedVersion
-    internal fun updateSelectedVersion(version: String? = null) {
-        Napier.v("updateSelectedVersion: $version", tag = "BB2452")
-        _selectedVersion.value = version ?: (selectedVersion)
-    }
 
     private var _selectedBookData = mutableStateOf(BookData())
     val selectedBookData: BookData get() = _selectedBookData.value
