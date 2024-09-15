@@ -25,13 +25,16 @@ import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleMenu(
     bibleVersionsList: BibleIQVersions,
     selectedVersion: String,
+    bottomSheetState: BottomSheetState,
 ) {
     val scope = rememberCoroutineScope { Dispatchers.IO }
     Row(
@@ -52,6 +55,10 @@ internal fun BibleMenu(
                                 tag = "AP8243"
                             )
                             updateUserPrefsBibleVersion(version.abbreviation)
+                            withContext(Dispatchers.Main) {
+                                delay(400)
+                                bottomSheetState.collapse()
+                            }
                         }
                     },
                     selected = selected,
