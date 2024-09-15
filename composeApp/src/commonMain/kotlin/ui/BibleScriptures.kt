@@ -32,7 +32,7 @@ internal fun BibleScriptures(
     selectedFontSize: Float,
     onFontSizeChanged: (Float) -> Unit
 ) {
-    var localFontSize by remember { mutableStateOf(selectedFontSize) } // TODO: change to selectedFontSize
+    var localFontSize by remember { mutableStateOf(selectedFontSize) }
     val minTextSize = 12f
     val maxTextSize = 40f
     val halfwayFontSize = (18f + maxTextSize) / 2
@@ -90,7 +90,7 @@ internal fun BibleScriptures(
         chapters.text?.let {
             Text(
                 text = it,
-                fontSize = selectedFontSize.sp,
+                fontSize = localFontSize.sp,
                 modifier = Modifier.padding(4.dp)
             )
         }
