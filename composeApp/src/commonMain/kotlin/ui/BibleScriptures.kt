@@ -2,6 +2,7 @@ package ui
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
@@ -31,9 +32,10 @@ internal fun BibleScriptures(
     selectedFontSize: Float,
     onFontSizeChanged: (Float) -> Unit
 ) {
-    var localFontSize by remember { mutableStateOf(selectedFontSize) }
+    var localFontSize by remember { mutableStateOf(selectedFontSize) } // TODO: change to selectedFontSize
     val minTextSize = 12f
     val maxTextSize = 40f
+    val halfwayFontSize = (18f + maxTextSize) / 2
     var scale by remember { mutableStateOf(1f) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -59,7 +61,6 @@ internal fun BibleScriptures(
                             // Debounce database update to avoid frequent writes
                             coroutineScope.launch {
                                 delay(300)
-//                                updateFontSizeInDb(newFontSize)
                                 Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
                                 updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
                             }
@@ -67,6 +68,23 @@ internal fun BibleScriptures(
                         }
                     }
                 }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        // Zoom to halfway font size on double-tap
+                        val newFontSize = if (localFontSize == halfwayFontSize) {
+                            22f
+                        } else {
+                            halfwayFontSize
+                        }
+                        localFontSize = newFontSize
+                        onFontSizeChanged(newFontSize)
+                        coroutineScope.launch {
+                            updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                        }
+                    }
+                )
             }
     ) {
         chapters.text?.let {
