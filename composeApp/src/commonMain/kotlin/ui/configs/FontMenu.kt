@@ -9,8 +9,8 @@ import androidx.compose.material.Slider
 import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -23,9 +23,13 @@ import androidx.compose.ui.unit.sp
 import data.bibleIQ.BibleIQDataModel
 
 @Composable
-internal fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
-    var userSelectedFontSize by remember { mutableStateOf(selectedFontSize) }
-    var sliderPosition by remember { mutableFloatStateOf(selectedFontSize.toFloat()) }
+internal fun FontSizeSlider() {
+    val fontSizes = BibleIQDataModel.fontSizeOptions
+    var sliderPosition by remember { mutableStateOf(BibleIQDataModel.selectedFontSize) }
+
+    LaunchedEffect(BibleIQDataModel.selectedFontSize) {
+        sliderPosition = BibleIQDataModel.selectedFontSize
+    }
 
     Row(
         modifier = Modifier.padding(horizontal = 4.dp).wrapContentWidth(),
@@ -44,8 +48,7 @@ internal fun FontSizeSlider(fontSizes: List<Int>, selectedFontSize: Int) {
             value = sliderPosition,
             onValueChange = {
                 sliderPosition = it
-                userSelectedFontSize = it.toInt()
-                BibleIQDataModel.selectedFontSize = userSelectedFontSize
+                BibleIQDataModel.selectedFontSize = it
             },
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colors.surface,

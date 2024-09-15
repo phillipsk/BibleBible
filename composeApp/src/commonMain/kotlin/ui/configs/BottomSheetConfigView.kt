@@ -38,7 +38,7 @@ internal fun BottomSheetConfigView(
                 selectedVersion = BibleIQDataModel.selectedVersion
             )
         }
-        FontSizeSlider(BibleIQDataModel.fontSizeOptions, BibleIQDataModel.selectedFontSize)
+        FontSizeSlider()
         if (!readingHistory.isNullOrEmpty()) {
             Text(text = "Reading History",
                 fontFamily = MaterialTheme.typography.h1.fontFamily,

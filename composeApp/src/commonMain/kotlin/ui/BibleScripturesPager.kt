@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
@@ -197,7 +196,7 @@ internal fun BibleScripturesPager(
                         )
                     }
                 }
-
+//                var fontSize by remember { mutableStateOf(16f) } // Global font size state
                 HorizontalPager(
 //                    key = { page -> selectedBook.bookId + page.toString()},
                     state = pagerState,
@@ -217,7 +216,7 @@ internal fun BibleScripturesPager(
                         showAISummary -> {
                             GeminiSummary(
                                 pagerColumnScrollState,
-                                BibleIQDataModel.selectedFontSize.sp
+                                BibleIQDataModel.selectedFontSize
                             )
                         }
 
@@ -225,7 +224,8 @@ internal fun BibleScripturesPager(
                             BibleScriptures(
                                 chapters,
                                 pagerColumnScrollState,
-                                BibleIQDataModel.selectedFontSize.sp
+                                BibleIQDataModel.selectedFontSize,
+                                onFontSizeChanged = { newFontSize -> BibleIQDataModel.selectedFontSize = newFontSize }
                             )
                         }
                     }
