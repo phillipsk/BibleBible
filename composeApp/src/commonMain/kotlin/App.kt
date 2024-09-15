@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import data.appPrefs.getUserPreferences
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
@@ -27,6 +28,7 @@ fun App() {
         isLoading.value = false
         checkDatabaseSize()
         cleanReadingHistory()
+        getUserPreferences()
     }
 
     BibleBibleTheme {
