@@ -112,3 +112,22 @@ FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC;
 
 countReadingHistory:
 SELECT COUNT(*) FROM ReadingHistory;
+
+CREATE TABLE UserPreferences (
+    uuid INTEGER PRIMARY KEY DEFAULT 1,
+    fontSize REAL NOT NULL DEFAULT 18,
+    bibleVersion TEXT NOT NULL DEFAULT 'KJV'
+);
+
+insertUserPrefs:
+INSERT INTO UserPreferences (uuid, fontSize, bibleVersion)
+VALUES (1, 18,'KJV');
+
+updateUserPrefs:
+UPDATE UserPreferences SET fontSize = ?, bibleVersion = ? WHERE uuid = 1;
+
+updateUserPrefsBibleVersion:
+UPDATE UserPreferences SET bibleVersion = ? WHERE uuid = 1;
+
+selectUserPrefs:
+SELECT * FROM UserPreferences;

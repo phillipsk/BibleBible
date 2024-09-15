@@ -136,7 +136,7 @@ internal suspend fun getChapterBibleIQ(
     }
 }
 
-suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
+internal suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
     try {
         DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
             withContext(Dispatchers.IO) {
@@ -156,7 +156,7 @@ suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
     }
 }
 
-suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int, version: String) {
+internal suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int, version: String) {
     try {
         chapterCount?.let {
             DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->

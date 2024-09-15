@@ -11,12 +11,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.appPrefs.updateUserPreferences
 import data.bibleIQ.BibleChapterUIState
+import data.bibleIQ.BibleIQDataModel
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun BibleScriptures(
@@ -29,6 +35,7 @@ internal fun BibleScriptures(
     val minTextSize = 12f
     val maxTextSize = 40f
     var scale by remember { mutableStateOf(1f) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(selectedFontSize) {
         localFontSize = selectedFontSize
@@ -49,6 +56,13 @@ internal fun BibleScriptures(
                             val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
                             localFontSize = newFontSize
                             onFontSizeChanged(newFontSize)
+                            // Debounce database update to avoid frequent writes
+                            coroutineScope.launch {
+                                delay(300)
+//                                updateFontSizeInDb(newFontSize)
+                                Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
+                                updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                            }
                             scale = 1f
                         }
                     }
