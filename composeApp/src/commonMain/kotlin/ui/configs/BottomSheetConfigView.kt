@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.BottomSheetState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -21,10 +23,12 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
 import io.github.aakira.napier.Napier
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BottomSheetConfigView(
     bibleVersionsList: BibleIQVersions,
     showAISummary: Boolean,
+    bottomSheetState: BottomSheetState,
 ) {
     LaunchedEffect(true) {
         getReadingHistory()
@@ -35,7 +39,8 @@ internal fun BottomSheetConfigView(
         if (!showAISummary) {
             BibleMenu(
                 bibleVersionsList = bibleVersionsList,
-                selectedVersion = BibleIQDataModel.selectedVersion
+                selectedVersion = BibleIQDataModel.selectedVersion,
+                bottomSheetState = bottomSheetState
             )
         }
         FontSizeSlider()
