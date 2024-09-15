@@ -56,14 +56,13 @@ internal fun BibleScriptures(
                             val zoomChange = event.calculateZoom()
                             scale *= zoomChange
                             // Calculate new font size based on zoom
-                            val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
-                            localFontSize = newFontSize
-                            onFontSizeChanged(newFontSize)
+                            localFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
+                            onFontSizeChanged(localFontSize)
                             // Debounce database update to avoid frequent writes
                             coroutineScope.launch {
                                 delay(300)
-                                Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
-                                updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                                Napier.v("BibleScriptures :: debounce fontSize $localFontSize", tag = "AP8243")
+                                updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
                             }
                             scale = 1f
                         }
