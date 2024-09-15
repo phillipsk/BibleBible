@@ -59,6 +59,9 @@ internal suspend fun getUserPreferences() {
                     withContext(Dispatchers.Main) {
                         BibleIQDataModel.selectedFontSize = data[0].fontSize.toFloat()
                         BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
+//                        TODO: is this necessary; query reading history first
+//                        BibleIQDataModel.updateSelectedBook(data[0].selectedBook.toInt())
+//                        BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
                         Napier.v(
                             "getUserPreferences :: fontSize ${BibleIQDataModel.selectedFontSize} " +
                                     " bibleVersion :: ${BibleIQDataModel.selectedVersion}",
