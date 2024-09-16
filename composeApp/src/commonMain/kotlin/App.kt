@@ -6,9 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import data.appPrefs.getUserPreferences
 import data.apiBible.getBooksBibleAPI
+import data.appPrefs.checkDatabaseSize
+import data.appPrefs.cleanReadingHistory
 import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.checkDatabaseSize
-import data.bibleIQ.cleanReadingHistory
 import data.bibleIQ.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -24,11 +24,11 @@ fun App() {
     LaunchedEffect(true) {
         getVersionsBibleIQ()
         getBooksBibleAPI()
+        getUserPreferences()
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
         cleanReadingHistory()
-        getUserPreferences()
     }
 
     BibleBibleTheme {

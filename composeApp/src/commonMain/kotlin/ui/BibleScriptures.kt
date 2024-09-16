@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.appPrefs.updateUserPreferences
+import data.appPrefs.updateUserPrefsFontSize
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
@@ -59,9 +59,8 @@ internal fun BibleScriptures(
                             // Debounce database update to avoid frequent writes
                             coroutineScope.launch {
                                 delay(300)
-//                                updateFontSizeInDb(newFontSize)
                                 Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
-                                updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                                updateUserPrefsFontSize(newFontSize)
                             }
                             scale = 1f
                         }

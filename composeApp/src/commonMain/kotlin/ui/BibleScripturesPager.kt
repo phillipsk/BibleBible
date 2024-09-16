@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
@@ -55,7 +56,8 @@ internal fun BibleScripturesPager(
     var initialLoadDone by remember { mutableStateOf(false) }
     val pagerColumnScrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
-    var selectedTabIndex by remember(selectedBook) { mutableStateOf(0) }
+    var selectedTabIndex by remember(selectedBook) { mutableStateOf(BibleAPIDataModel.selectedChapter) }
+    val chapter = BibleAPIDataModel.selectedChapter ?: (selectedTabIndex + 1)
     Napier.v(
         "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
                 " :: selectedTabIndex $selectedTabIndex", tag = "BB2460"
@@ -76,9 +78,12 @@ internal fun BibleScripturesPager(
             tag = "BB2470"
         )
         initialLoadDone = true
-        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-        pagerState.scrollToPage(0)
-        selectedTabIndex = 0
+        getChapterBibleIQ(
+            book = selectedBook,
+            chapter = chapter,
+        )
+        pagerState.scrollToPage(chapter - 1)
+        selectedTabIndex = chapter - 1
         initialLoadDone = false
         Napier.v(
             "LaunchedEffect: selectedBook :: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",

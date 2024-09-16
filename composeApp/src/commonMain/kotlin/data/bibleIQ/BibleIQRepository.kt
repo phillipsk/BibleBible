@@ -7,6 +7,8 @@ import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
 import data.apiBible.getTimeZone
+import data.appPrefs.updateUserPrefsBibleBook
+import data.appPrefs.updateUserPrefsBibleChapter
 import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -125,6 +127,9 @@ internal suspend fun getChapterBibleIQ(
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
         }
         if (updateReadingHistory) {
+//    TODO: parallel execution
+            updateUserPrefsBibleBook(bookId.toLong())
+            updateUserPrefsBibleChapter(chapter.toLong())
             insertReadingHistory(bookId, chapter)
             getReadingHistory()
         }
@@ -302,77 +307,6 @@ internal suspend fun queryBookChapterSize(bookId: Int, version: String): Chapter
         }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ093")
-        null
-    } finally {
-        DriverFactory.closeDB()
-    }
-}
-
-
-internal suspend fun checkDatabaseRetention() {
-    try {
-        withContext(Dispatchers.IO) {
-            DriverFactory.createDriver()?.let {
-                BibleBibleDatabase(driver = it)
-            }?.bibleBibleDatabaseQueries?.cleanBibleVerses()
-            DriverFactory.closeDB()
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    } finally {
-        DriverFactory.closeDB()
-    }
-}
-
-internal suspend fun checkDatabaseSize() {
-    try {
-        withContext(Dispatchers.IO) {
-            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-                val count = database.bibleBibleDatabaseQueries.countVerses().executeAsOne()
-                val max = DATABASE_RETENTION
-                if (count > max) {
-                    Napier.d(
-                        "clean database :: count $count :: max $max :: diff ${count - max}",
-                        tag = "BB2452"
-                    )
-                    database.bibleBibleDatabaseQueries.removeExcessVerses(max)
-                    DriverFactory.closeDB()
-                }
-            }
-        }
-
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    } finally {
-        DriverFactory.closeDB()
-    }
-}
-
-internal suspend fun cleanReadingHistory() {
-    try {
-        withContext(Dispatchers.IO) {
-            val count = countReadingHistory()
-            val max = DATABASE_RETENTION_READING_HISTORY
-            if (count != null && (count > max)) {
-                DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
-                    ?.bibleBibleDatabaseQueries?.cleanReadingHistory((count - max))
-            }
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
-    } finally {
-        DriverFactory.closeDB()
-    }
-}
-
-private suspend fun countReadingHistory(): Long? {
-    return try {
-        withContext(Dispatchers.IO) {
-            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
-                ?.bibleBibleDatabaseQueries?.countReadingHistory()?.executeAsOne()
-        }
-    } catch (e: Exception) {
-        Napier.e("Error: ${e.message}", tag = "BB2452")
         null
     } finally {
         DriverFactory.closeDB()
