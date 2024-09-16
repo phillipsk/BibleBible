@@ -57,7 +57,7 @@ internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
                     selectedBook = selectedBook,
                 )
                 Napier.v(
-                    "updateUserPrefsBibleVersion :: selectedVersion $selectedBook",
+                    "updateUserPrefsBibleVersion :: selectedBook $selectedBook",
                     tag = "AP8243"
                 )
             }
@@ -91,7 +91,7 @@ internal suspend fun updateUserPrefsBibleChapter(selectedChapter: Long) {
                     selectedChapter = selectedChapter,
                 )
                 Napier.v(
-                    "updateUserPrefsBibleVersion :: selectedVersion $selectedChapter",
+                    "updateUserPrefsBibleVersion :: selectedChapter $selectedChapter",
                     tag = "AP8243"
                 )
             }

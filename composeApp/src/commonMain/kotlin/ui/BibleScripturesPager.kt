@@ -82,6 +82,7 @@ internal fun BibleScripturesPager(
             book = selectedBook,
             chapter = chapter,
         )
+        Napier.v("BibleScripturesPager :: launched effect selectedBook", tag = "RC1439")
         pagerState.scrollToPage(chapter - 1)
         selectedTabIndex = chapter - 1
         initialLoadDone = false
@@ -118,6 +119,7 @@ internal fun BibleScripturesPager(
             isPageChangeFromTabClick = false
 //            bottomSheetScaffoldState.bottomSheetState.expand()
         } else if (!initialLoadDone) {
+            Napier.v("BibleScripturesPager :: launched effect pagerState.currentPage", tag = "RC1439")
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
 //            bottomSheetScaffoldState.bottomSheetState.collapse()

@@ -21,9 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
@@ -31,8 +30,8 @@ val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000
 val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 500L
 
 object BibleIQRepository {
-    private val readingHistoryMutex = Mutex()
-
+    private var lastInsertTime = 0L
+    private const val debounceTimeMillis = 5000L  // 5 seconds debounce window
     internal suspend fun getBooksBibleIQ() {
         try {
             val books = if (LOCAL_DATA) {
@@ -132,18 +131,7 @@ object BibleIQRepository {
                 updateTimestampBibleVerses(cachedData.firstOrNull(), version)
             }
             if (updateReadingHistory) {
-//    TODO: parallel execution
-                updateUserPrefsBibleBook(bookId.toLong())
-                updateUserPrefsBibleChapter(chapter.toLong())
-                Napier.v("BibleIQRepository :: updateReadingHistory :: not started", tag = "RC1439")
-                withContext(Dispatchers.IO) {
-                    readingHistoryMutex.withLock {
-                        Napier.v("BibleIQRepository :: updateReadingHistory :: start" +
-                                " bookId :: $bookId :: chapter :: $chapter", tag = "RC1439")
-                        insertReadingHistory(bookId, chapter)
-                        getReadingHistory()
-                    }
-                }
+                updateAppPrefs(bookId, chapter)
             }
             Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
         } catch (e: IOException) {
@@ -153,18 +141,33 @@ object BibleIQRepository {
         }
     }
 
+    private suspend fun updateAppPrefs(bookId: Int, chapter: Int) {
+        updateUserPrefsBibleBook(bookId.toLong())
+        updateUserPrefsBibleChapter(chapter.toLong())
+        Napier.v("BibleIQRepository :: updateReadingHistory :: not started", tag = "RC1439")
+
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        if (currentTime - lastInsertTime >= debounceTimeMillis) {
+            lastInsertTime = currentTime  // Update the last insert time
+
+            Napier.v("BibleIQRepository :: updateReadingHistory :: start", tag = "RC1439")
+            insertReadingHistory(bookId, chapter)
+            getReadingHistory()
+        } else {
+            Napier.v("BibleIQRepository :: updateReadingHistory :: debounced", tag = "RC1439")
+        }
+    }
+
     private suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
         try {
             DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 withContext(Dispatchers.IO) {
-                    readingHistoryMutex.withLock {
-                        database.transaction {
-                            database.bibleBibleDatabaseQueries.insertReadingHistory(
-                                created_at = getTimeZone(),
-                                b = bookId.toString(),
-                                c = chapter.toString(),
-                            )
-                        }
+                    database.transaction {
+                        database.bibleBibleDatabaseQueries.insertReadingHistory(
+                            created_at = getTimeZone(),
+                            b = bookId.toString(),
+                            c = chapter.toString(),
+                        )
                     }
                 }
             }
