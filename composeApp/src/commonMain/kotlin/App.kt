@@ -9,7 +9,7 @@ import data.apiBible.getBooksBibleAPI
 import data.appPrefs.checkDatabaseSize
 import data.appPrefs.cleanReadingHistory
 import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.getVersionsBibleIQ
+import data.bibleIQ.BibleIQRepository.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import ui.BibleBibleTheme

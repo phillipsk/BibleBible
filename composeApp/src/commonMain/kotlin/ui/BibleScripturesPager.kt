@@ -36,7 +36,7 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.getChapterBibleIQ
+import data.bibleIQ.BibleIQRepository.getChapterBibleIQ
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
