@@ -125,8 +125,8 @@ insertUserPrefs:
 INSERT INTO UserPreferences (uuid, fontSize, bibleVersion, selectedBook, selectedChapter)
 VALUES (1, 18,'KJV', 1, 1);
 
-updateUserPrefs:
-UPDATE UserPreferences SET fontSize = ?, bibleVersion = ? WHERE uuid = 1;
+updateUserPrefsFontSize:
+UPDATE UserPreferences SET fontSize = ? WHERE uuid = 1;
 
 updateUserPrefsBibleVersion:
 UPDATE UserPreferences SET bibleVersion = ? WHERE uuid = 1;

@@ -24,11 +24,11 @@ fun App() {
     LaunchedEffect(true) {
         getVersionsBibleIQ()
         getBooksBibleAPI()
+        getUserPreferences()
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
         checkDatabaseSize()
         cleanReadingHistory()
-        getUserPreferences()
     }
 
     BibleBibleTheme {

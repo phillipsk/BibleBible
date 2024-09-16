@@ -10,13 +10,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
-internal suspend fun updateUserPreferences(fontSize: Float, selectedVersion: String) {
+internal suspend fun updateUserPrefsFontSize(fontSize: Float) {
     try {
         DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
             withContext(Dispatchers.IO) {
-                database.bibleBibleDatabaseQueries.updateUserPrefs(
-                    fontSize = fontSize.toDouble(),
-                    bibleVersion = selectedVersion,
+                database.bibleBibleDatabaseQueries.updateUserPrefsFontSize(
+                    fontSize = fontSize.toDouble()
                 )
                 Napier.v("updateUserPrefs :: fontSize $fontSize", tag = "AP8243")
             }
