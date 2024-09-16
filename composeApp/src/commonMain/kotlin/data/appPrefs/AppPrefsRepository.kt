@@ -68,6 +68,20 @@ internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
         DriverFactory.closeDB()
     }
 }
+internal suspend fun updateUserPrefsSetHomePage() {
+    try {
+        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+            withContext(Dispatchers.IO) {
+                database.bibleBibleDatabaseQueries.updateUserPrefsSetHomePage()
+                Napier.v("updateUserPrefsSetHomePage ::", tag = "AP8243")
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "AP8243")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
 
 internal suspend fun updateUserPrefsBibleChapter(selectedChapter: Long) {
     try {

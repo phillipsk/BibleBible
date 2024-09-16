@@ -137,5 +137,8 @@ UPDATE UserPreferences SET selectedBook = ? WHERE uuid = 1;
 updateUserPrefsSelectedChapter:
 UPDATE UserPreferences SET selectedChapter = ? WHERE uuid = 1;
 
+updateUserPrefsSetHomePage:
+UPDATE UserPreferences SET selectedBook = NULL, selectedChapter = NULL WHERE uuid = 1;
+
 selectUserPrefs:
 SELECT * FROM UserPreferences;

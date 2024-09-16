@@ -82,7 +82,11 @@ internal fun BibleHomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 BibleBibleTopBar(
-                    onClick = BibleIQDataModel.onHomeClick,
+                    onClick = {
+                        scope.launch {
+                            BibleIQDataModel.onHomeClick()
+                        }
+                    },
                     showBottomSheet = {
                         scope.launch {
                             if (localScaffoldState.bottomSheetState.isExpanded) {

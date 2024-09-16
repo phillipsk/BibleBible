@@ -11,8 +11,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.appPrefs.updateUserPrefsSetHomePage
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withContext
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
@@ -110,9 +114,12 @@ object BibleIQDataModel {
         return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
     }
 
-    val onHomeClick: () -> Unit = {
+    internal suspend fun onHomeClick() {
         Napier.v("onHomeClick", tag = "BB2452")
         BibleIQDataModel.showHomePage = true
+        withContext(Dispatchers.IO) {
+            updateUserPrefsSetHomePage()
+        }
     }
 
 
