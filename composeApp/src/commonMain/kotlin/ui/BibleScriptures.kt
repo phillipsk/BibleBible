@@ -59,7 +59,6 @@ internal fun BibleScriptures(
                             // Debounce database update to avoid frequent writes
                             coroutineScope.launch {
                                 delay(300)
-//                                updateFontSizeInDb(newFontSize)
                                 Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
                                 updateUserPrefsFontSize(newFontSize)
                             }

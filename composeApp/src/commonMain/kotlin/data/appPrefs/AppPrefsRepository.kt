@@ -47,6 +47,46 @@ internal suspend fun updateUserPrefsBibleVersion(selectedVersion: String) {
     }
 }
 
+internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
+    try {
+        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+            withContext(Dispatchers.IO) {
+                database.bibleBibleDatabaseQueries.updateUserPrefsSelectedBook(
+                    selectedBook = selectedBook,
+                )
+                Napier.v(
+                    "updateUserPrefsBibleVersion :: selectedVersion $selectedBook",
+                    tag = "AP8243"
+                )
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "AP8243")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
+
+internal suspend fun updateUserPrefsBibleChapter(selectedChapter: Long) {
+    try {
+        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
+            withContext(Dispatchers.IO) {
+                database.bibleBibleDatabaseQueries.updateUserPrefsSelectedChapter(
+                    selectedChapter = selectedChapter,
+                )
+                Napier.v(
+                    "updateUserPrefsBibleVersion :: selectedVersion $selectedChapter",
+                    tag = "AP8243"
+                )
+            }
+        }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "AP8243")
+    } finally {
+        DriverFactory.closeDB()
+    }
+}
+
 internal suspend fun getUserPreferences() {
     try {
         DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
