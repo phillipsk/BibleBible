@@ -13,7 +13,7 @@ import data.bibleIQ.getVersionsBibleIQ
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 import ui.LoadingScreen
@@ -24,14 +24,17 @@ fun App() {
     initializeNapier()
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(true) {
-        listOf(
-            async { getVersionsBibleIQ() },
-            async { getBooksBibleAPI() },
-            async { getUserPreferences() },
-            async { checkDatabaseSize() },
-            async { cleanReadingHistory() },
-            // Add other suspend functions here
-        ).awaitAll()
+        launch {
+            async { checkDatabaseSize() }
+            async { cleanReadingHistory() }
+        }
+        val versionsJob = async { getVersionsBibleIQ() }
+        val booksJob = async { getBooksBibleAPI() }
+        versionsJob.await()
+        booksJob.await()
+
+        getUserPreferences()
+
         Napier.v("App :: LaunchedEffect", tag = "BB2452")
         isLoading.value = false
     }
