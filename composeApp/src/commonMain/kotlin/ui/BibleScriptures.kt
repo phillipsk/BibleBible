@@ -2,6 +2,7 @@ package ui
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
@@ -32,8 +33,10 @@ internal fun BibleScriptures(
     onFontSizeChanged: (Float) -> Unit
 ) {
     var localFontSize by remember { mutableStateOf(selectedFontSize) }
+    var previousFontSize by remember { mutableStateOf(selectedFontSize) }
     val minTextSize = 12f
     val maxTextSize = 40f
+    val doubleTapFontSize = 30f
     var scale by remember { mutableStateOf(1f) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -53,26 +56,40 @@ internal fun BibleScriptures(
                             val zoomChange = event.calculateZoom()
                             scale *= zoomChange
                             // Calculate new font size based on zoom
-                            val newFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
-                            localFontSize = newFontSize
-                            onFontSizeChanged(newFontSize)
+                            localFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
+                            onFontSizeChanged(localFontSize)
                             // Debounce database update to avoid frequent writes
                             coroutineScope.launch {
                                 delay(300)
-//                                updateFontSizeInDb(newFontSize)
-                                Napier.v("BibleScriptures :: debounce fontSize $newFontSize", tag = "AP8243")
-                                updateUserPreferences(newFontSize, BibleIQDataModel.selectedVersion)
+                                Napier.v("BibleScriptures :: debounce fontSize $localFontSize", tag = "AP8243")
+                                updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
                             }
                             scale = 1f
                         }
                     }
                 }
             }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        if (localFontSize == doubleTapFontSize) {
+                            localFontSize = previousFontSize
+                        } else {
+                            previousFontSize = localFontSize
+                            localFontSize = doubleTapFontSize
+                        }
+                        onFontSizeChanged(localFontSize)
+                        coroutineScope.launch {
+                            updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
+                        }
+                    }
+                )
+            }
     ) {
         chapters.text?.let {
             Text(
                 text = it,
-                fontSize = selectedFontSize.sp,
+                fontSize = localFontSize.sp,
                 modifier = Modifier.padding(4.dp)
             )
         }
