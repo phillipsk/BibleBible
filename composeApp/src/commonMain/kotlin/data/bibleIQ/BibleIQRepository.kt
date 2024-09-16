@@ -142,6 +142,7 @@ object BibleIQRepository {
     }
 
     private suspend fun updateAppPrefs(bookId: Int, chapter: Int) {
+//        TODO: review parallel execution
         updateUserPrefsBibleBook(bookId.toLong())
         updateUserPrefsBibleChapter(chapter.toLong())
         Napier.v("BibleIQRepository :: updateReadingHistory :: not started", tag = "RC1439")
