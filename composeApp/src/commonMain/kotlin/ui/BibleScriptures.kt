@@ -62,7 +62,7 @@ internal fun BibleScriptures(
                             coroutineScope.launch {
                                 delay(300)
                                 Napier.v("BibleScriptures :: debounce fontSize $localFontSize", tag = "AP8243")
-                                updateUserPrefsFontSize(localFontSize, BibleIQDataModel.selectedVersion)
+                                updateUserPrefsFontSize(localFontSize)
                             }
                             scale = 1f
                         }
@@ -80,7 +80,7 @@ internal fun BibleScriptures(
                         }
                         onFontSizeChanged(localFontSize)
                         coroutineScope.launch {
-                            updateUserPrefsFontSize(localFontSize, BibleIQDataModel.selectedVersion)
+                            updateUserPrefsFontSize(localFontSize)
                         }
                     }
                 )
