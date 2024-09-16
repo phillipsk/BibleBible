@@ -137,12 +137,7 @@ internal fun BibleBookList(
                         it.let {
                             Button(
                                 onClick = {
-                                    BibleAPIDataModel.run {
-                                        updateBookData(it)
-                                        updateSelectedChapter(it.remoteKey)
-                                    }
-                                    BibleIQDataModel.updateSelectedBook(it)
-                                    BibleIQDataModel.showHomePage = false
+                                    initBookLoad(it)
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(
@@ -175,4 +170,14 @@ internal fun BibleBookList(
             }
         }
     }
+}
+
+fun initBookLoad(bookData: BookData, selectedChapter: Int = 1) {
+    BibleAPIDataModel.run {
+        updateBookData(bookData)
+        updateSelectedChapter(selectedChapter)
+
+    }
+    BibleIQDataModel.updateSelectedBook(bookData)
+    BibleIQDataModel.showHomePage = false
 }

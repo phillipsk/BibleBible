@@ -7,6 +7,8 @@ import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
 import data.apiBible.getTimeZone
+import data.appPrefs.updateUserPrefsBibleBook
+import data.appPrefs.updateUserPrefsBibleChapter
 import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -125,6 +127,9 @@ internal suspend fun getChapterBibleIQ(
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
         }
         if (updateReadingHistory) {
+//    TODO: parallel execution
+            updateUserPrefsBibleBook(bookId.toLong())
+            updateUserPrefsBibleChapter(chapter.toLong())
             insertReadingHistory(bookId, chapter)
             getReadingHistory()
         }

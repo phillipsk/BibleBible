@@ -1,5 +1,6 @@
 package data.appPrefs
 
+import data.apiBible.BibleAPIDataModel
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.DATABASE_RETENTION
 import data.bibleIQ.DATABASE_RETENTION_READING_HISTORY
@@ -9,6 +10,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import ui.initBookLoad
 
 internal suspend fun updateUserPrefsFontSize(fontSize: Float) {
     try {
@@ -100,9 +102,16 @@ internal suspend fun getUserPreferences() {
                     withContext(Dispatchers.Main) {
                         BibleIQDataModel.selectedFontSize = data[0].fontSize.toFloat()
                         BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
-//                        TODO: is this necessary; query reading history first
-//                        BibleIQDataModel.updateSelectedBook(data[0].selectedBook.toInt())
-//                        BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
+                        val selectedBook = data[0].selectedBook?.toInt()?.minus(1)
+                        val selectedChapter = data[0].selectedChapter?.toInt() ?: 1
+                        if (selectedBook != null && BibleAPIDataModel.uiBooks.data != null) {
+                            withContext(Dispatchers.Main) {
+                                BibleAPIDataModel.uiBooks.data?.get(selectedBook)
+                                    ?.run {
+                                        initBookLoad(this, selectedChapter)
+                                    }
+                            }
+                        }
                         Napier.v(
                             "getUserPreferences :: fontSize ${BibleIQDataModel.selectedFontSize} " +
                                     " bibleVersion :: ${BibleIQDataModel.selectedVersion}",
