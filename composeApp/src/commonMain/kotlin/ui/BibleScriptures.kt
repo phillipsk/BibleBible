@@ -38,6 +38,7 @@ internal fun BibleScriptures(
     val maxTextSize = 40f
     val doubleTapFontSize = 30f
     var scale by remember { mutableStateOf(1f) }
+    var previousScrollPosition by remember { mutableStateOf(0) } // Track scroll position
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(selectedFontSize) {
@@ -53,6 +54,7 @@ internal fun BibleScriptures(
                         val event = awaitPointerEvent()
                         // Detect pinch gesture with more than one finger
                         if (event.changes.size > 1) {
+                            previousScrollPosition = scrollState.value
                             val zoomChange = event.calculateZoom()
                             scale *= zoomChange
                             // Calculate new font size based on zoom
@@ -65,6 +67,9 @@ internal fun BibleScriptures(
                                 updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
                             }
                             scale = 1f
+                            coroutineScope.launch {
+                                scrollState.scrollTo(previousScrollPosition)
+                            }
                         }
                     }
                 }
@@ -72,6 +77,7 @@ internal fun BibleScriptures(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
+                        previousScrollPosition = scrollState.value
                         if (localFontSize == doubleTapFontSize) {
                             localFontSize = previousFontSize
                         } else {
@@ -81,6 +87,7 @@ internal fun BibleScriptures(
                         onFontSizeChanged(localFontSize)
                         coroutineScope.launch {
                             updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
+                            scrollState.scrollTo(previousScrollPosition)
                         }
                     }
                 )
