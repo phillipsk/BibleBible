@@ -11,11 +11,11 @@ actual fun isDesktopPlatform(): Boolean {
 
 @Composable
 actual fun SetSystemBarColor(darkColor: Color) {
-    val uiColor = UIColor.yellowColor()
+/*    val uiColor = UIColor.yellowColor()
     val keyWindow = UIApplication.sharedApplication.keyWindow
     keyWindow?.backgroundColor = uiColor
 
     // Optional: change the status bar appearance (iOS 13+)
     // This approach modifies the appearance of the top status bar.
-    keyWindow?.rootViewController?.setNeedsStatusBarAppearanceUpdate()
+    keyWindow?.rootViewController?.setNeedsStatusBarAppearanceUpdate()*/
 }
