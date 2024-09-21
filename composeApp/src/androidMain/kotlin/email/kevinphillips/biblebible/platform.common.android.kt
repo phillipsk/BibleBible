@@ -19,7 +19,7 @@ actual fun SetSystemBarColor(darkColor: Color) {
 
         // Ensure icons are visible if using a dark color for the nav bar
         WindowInsetsControllerCompat(this, this.decorView).apply {
-            isAppearanceLightNavigationBars = false // Set false for dark color
+            isAppearanceLightNavigationBars = false
         }
     }
 }

@@ -26,7 +26,6 @@ fun App() {
         initializeNapier()
         val isLoading = remember { mutableStateOf(true) }
 
-        //TODO: inside coroutine?
         SetSystemBarColor(MaterialTheme.colors.background)
 
         LaunchedEffect(true) {
