@@ -39,7 +39,7 @@ internal fun BibleScriptures(
     val doubleTapFontSize = 30f
     var scale by remember { mutableStateOf(1f) }
     var isZooming by remember { mutableStateOf(false) }
-    var relativeScrollPosition by remember { mutableStateOf(0f) }
+    var scrollPositionBeforeZoom by remember { mutableStateOf(0f) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(selectedFontSize) {
@@ -55,7 +55,8 @@ internal fun BibleScriptures(
                         val event = awaitPointerEvent()
                         if (event.changes.size > 1) {
                             isZooming = true
-                            relativeScrollPosition = scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+                            Napier.v("BibleScriptures :: isZooming $isZooming", tag = "ZZ1943")
+                            scrollPositionBeforeZoom = scrollState.value.toFloat() / scrollState.maxValue.toFloat()
 
                             val zoomChange = event.calculateZoom()
                             scale *= zoomChange
@@ -65,14 +66,15 @@ internal fun BibleScriptures(
                             scale = 1f
                         } else if (isZooming && event.changes.size == 1) {
                             isZooming = false
+                            Napier.v("BibleScriptures :: isZooming $isZooming", tag = "ZZ1943")
 
                             coroutineScope.launch {
-                                val newScrollPosition = (relativeScrollPosition * scrollState.maxValue).toInt()
-                                scrollState.scrollTo(newScrollPosition)  // Update scroll position after zoom ends
+                                val newScrollPosition = (scrollPositionBeforeZoom * scrollState.maxValue).toInt()
+                                scrollState.scrollTo(newScrollPosition)
                             }
 
                             coroutineScope.launch {
-                                delay(300)  // Debounce to avoid frequent database writes
+                                delay(300)
                                 Napier.v("BibleScriptures :: debounce fontSize $localFontSize", tag = "AP8243")
                                 updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
                             }
@@ -83,7 +85,7 @@ internal fun BibleScriptures(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        relativeScrollPosition = scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+                        scrollPositionBeforeZoom = scrollState.value.toFloat() / scrollState.maxValue.toFloat()
 
                         if (localFontSize == doubleTapFontSize) {
                             localFontSize = previousFontSize
@@ -94,7 +96,7 @@ internal fun BibleScriptures(
                         onFontSizeChanged(localFontSize)
 
                         coroutineScope.launch {
-                            val newScrollPosition = (relativeScrollPosition * scrollState.maxValue).toInt()
+                            val newScrollPosition = (scrollPositionBeforeZoom * scrollState.maxValue).toInt()
                             scrollState.scrollTo(newScrollPosition)
                         }
 
