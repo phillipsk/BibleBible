@@ -55,21 +55,23 @@ internal fun BibleScriptures(
                         // Detect pinch gesture with more than one finger
                         if (event.changes.size > 1) {
                             previousScrollPosition = scrollState.value
+                            val oldFontSize = localFontSize
+
                             val zoomChange = event.calculateZoom()
                             scale *= zoomChange
                             // Calculate new font size based on zoom
                             localFontSize = (localFontSize * scale).coerceIn(minTextSize, maxTextSize)
                             onFontSizeChanged(localFontSize)
-                            // Debounce database update to avoid frequent writes
+                            val fontSizeRatio = localFontSize / oldFontSize
                             coroutineScope.launch {
-                                delay(300)
+                                delay(300) // Debounce to avoid frequent database writes
                                 Napier.v("BibleScriptures :: debounce fontSize $localFontSize", tag = "AP8243")
                                 updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
+
+                                val adjustedScrollPosition = (scrollState.value * fontSizeRatio).toInt()
+                                scrollState.scrollTo(adjustedScrollPosition)
                             }
                             scale = 1f
-                            coroutineScope.launch {
-                                scrollState.scrollTo(previousScrollPosition)
-                            }
                         }
                     }
                 }
@@ -78,6 +80,8 @@ internal fun BibleScriptures(
                 detectTapGestures(
                     onDoubleTap = {
                         previousScrollPosition = scrollState.value
+                        val oldFontSize = localFontSize
+
                         if (localFontSize == doubleTapFontSize) {
                             localFontSize = previousFontSize
                         } else {
@@ -85,9 +89,12 @@ internal fun BibleScriptures(
                             localFontSize = doubleTapFontSize
                         }
                         onFontSizeChanged(localFontSize)
+
+                        val fontSizeRatio = localFontSize / oldFontSize
                         coroutineScope.launch {
                             updateUserPreferences(localFontSize, BibleIQDataModel.selectedVersion)
-                            scrollState.scrollTo(previousScrollPosition)
+                            val adjustedScrollPosition = (scrollState.value * fontSizeRatio).toInt()
+                            scrollState.scrollTo(adjustedScrollPosition)
                         }
                     }
                 )
