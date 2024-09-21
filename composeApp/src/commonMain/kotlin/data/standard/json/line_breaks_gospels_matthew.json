@@ -1,0 +1,190 @@
+{
+  "Matthew": {
+    "1": [
+      { "verses": [1, 6], "title": "The Genealogy of Jesus" },
+      { "verses": [7, 17], "title": "From Abraham to Jesus" }
+    ],
+    "2": [
+      { "verses": [1, 5], "title": "The Visit of the Wise Men" },
+      { "verses": [6, 12], "title": "Flight to Egypt and Return" }
+    ],
+    "3": [
+      { "verses": [1, 4], "title": "John the Baptist Prepares the Way" },
+      { "verses": [5, 6], "title": "People Confess Their Sins" },
+      { "verses": [7, 12], "title": "John’s Warning to the Pharisees" }
+    ],
+    "4": [
+      { "verses": [1, 4], "title": "The Temptation of Jesus" },
+      { "verses": [5, 11], "title": "Jesus Resists Satan" },
+      { "verses": [12, 16], "title": "Jesus Begins His Ministry" }
+    ],
+    "5": [
+      { "verses": [1, 3], "title": "The Beatitudes" },
+      { "verses": [4, 10], "title": "Blessings for the Poor and Persecuted" },
+      { "verses": [11, 16], "title": "Salt and Light" },
+      { "verses": [17, 20], "title": "Jesus and the Law" },
+      { "verses": [21, 26], "title": "Teachings on Anger" },
+      { "verses": [27, 32], "title": "Teachings on Adultery" },
+      { "verses": [33, 37], "title": "Teachings on Oaths" },
+      { "verses": [38, 42], "title": "Love for Enemies" }
+    ],
+    "6": [
+      { "verses": [1, 5], "title": "Giving to the Needy" },
+      { "verses": [6, 10], "title": "The Lord’s Prayer" },
+      { "verses": [11, 16], "title": "Fasting" },
+      { "verses": [17, 21], "title": "Treasures in Heaven" }
+    ],
+    "7": [
+      { "verses": [1, 6], "title": "Judging Others" },
+      { "verses": [7, 12], "title": "Ask, Seek, Knock" },
+      { "verses": [13, 20], "title": "The Narrow and Wide Gates" }
+    ],
+    "8": [
+      { "verses": [1, 4], "title": "Jesus Heals a Leper" },
+      { "verses": [5, 10], "title": "The Faith of the Centurion" },
+      { "verses": [11, 17], "title": "Jesus Heals Many" },
+      { "verses": [18, 22], "title": "The Cost of Following Jesus" },
+      { "verses": [23, 27], "title": "Jesus Calms the Storm" },
+      { "verses": [28, 34], "title": "Jesus Heals Two Demon-Possessed Men" }
+    ],
+    "9": [
+      { "verses": [1, 6], "title": "Jesus Heals a Paralytic" },
+      { "verses": [7, 13], "title": "Jesus Calls Matthew" },
+      { "verses": [14, 22], "title": "Questions About Fasting" },
+      { "verses": [23, 31], "title": "Jesus Raises a Dead Girl and Heals a Sick Woman" }
+    ],
+    "10": [
+      { "verses": [1, 5], "title": "Jesus Sends Out the Twelve" },
+      { "verses": [6, 15], "title": "Persecution Will Come" },
+      { "verses": [16, 23], "title": "Do Not Fear" },
+      { "verses": [24, 31], "title": "Acknowledging Christ Before Men" },
+      { "verses": [32, 42], "title": "The Cost of Discipleship" }
+    ],
+    "11": [
+      { "verses": [1, 6], "title": "John the Baptist’s Doubts" },
+      { "verses": [7, 19], "title": "Jesus Praises John the Baptist" },
+      { "verses": [20, 27], "title": "Woe to the Unrepentant Cities" },
+      { "verses": [28, 30], "title": "Rest for the Weary" }
+    ],
+    "12": [
+      { "verses": [1, 8], "title": "Jesus is Lord of the Sabbath" },
+      { "verses": [9, 14], "title": "Jesus Heals on the Sabbath" },
+      { "verses": [15, 21], "title": "God’s Chosen Servant" },
+      { "verses": [22, 32], "title": "Jesus and Beelzebub" },
+      { "verses": [33, 37], "title": "A Tree and Its Fruit" },
+      { "verses": [38, 45], "title": "The Sign of Jonah" },
+      { "verses": [46, 50], "title": "Jesus’ Mother and Brothers" }
+    ],
+    "13": [
+      { "verses": [1, 9], "title": "The Parable of the Sower" },
+      { "verses": [10, 17], "title": "The Purpose of Parables" },
+      { "verses": [18, 23], "title": "The Parable of the Sower Explained" },
+      { "verses": [24, 30], "title": "The Parable of the Weeds" },
+      { "verses": [31, 32], "title": "The Parable of the Mustard Seed" },
+      { "verses": [33, 35], "title": "The Parable of the Yeast" },
+      { "verses": [36, 43], "title": "The Parable of the Weeds Explained" },
+      { "verses": [44, 46], "title": "The Parables of the Hidden Treasure and Pearl" },
+      { "verses": [47, 52], "title": "The Parable of the Net" },
+      { "verses": [53, 58], "title": "A Prophet Without Honor" }
+    ],
+    "14": [
+      { "verses": [1, 12], "title": "The Death of John the Baptist" },
+      { "verses": [13, 21], "title": "Jesus Feeds the Five Thousand" },
+      { "verses": [22, 33], "title": "Jesus Walks on the Water" },
+      { "verses": [34, 36], "title": "Jesus Heals Many at Gennesaret" }
+    ],
+    "15": [
+      { "verses": [1, 9], "title": "That Which Defiles" },
+      { "verses": [10, 20], "title": "Jesus Teaches About Clean and Unclean" },
+      { "verses": [21, 28], "title": "The Faith of a Canaanite Woman" },
+      { "verses": [29, 39], "title": "Jesus Feeds the Four Thousand" }
+    ],
+    "16": [
+      { "verses": [1, 4], "title": "The Demand for a Sign" },
+      { "verses": [5, 12], "title": "The Yeast of the Pharisees and Sadducees" },
+      { "verses": [13, 20], "title": "Peter Declares That Jesus Is the Messiah" },
+      { "verses": [21, 28], "title": "Jesus Predicts His Death" }
+    ],
+    "17": [
+      { "verses": [1, 13], "title": "The Transfiguration" },
+      { "verses": [14, 21], "title": "Jesus Heals a Demon-Possessed Boy" },
+      { "verses": [22, 23], "title": "Jesus Predicts His Death Again" },
+      { "verses": [24, 27], "title": "The Temple Tax" }
+    ],
+    "18": [
+      { "verses": [1, 5], "title": "The Greatest in the Kingdom of Heaven" },
+      { "verses": [6, 9], "title": "Causing to Stumble" },
+      { "verses": [10, 14], "title": "The Parable of the Wandering Sheep" },
+      { "verses": [15, 20], "title": "Dealing With Sin in the Church" },
+      { "verses": [21, 35], "title": "The Parable of the Unmerciful Servant" }
+    ],
+    "19": [
+      { "verses": [1, 12], "title": "Divorce" },
+      { "verses": [13, 15], "title": "The Little Children and Jesus" },
+      { "verses": [16, 30], "title": "The Rich and the Kingdom of God" }
+    ],
+    "20": [
+      { "verses": [1, 16], "title": "The Parable of the Workers in the Vineyard" },
+      { "verses": [17, 19], "title": "Jesus Predicts His Death a Third Time" },
+      { "verses": [20, 28], "title": "A Mother’s Request" },
+      { "verses": [29, 34], "title": "Two Blind Men Receive Sight" }
+    ],
+    "21": [
+      { "verses": [1, 11], "title": "Jesus Comes to Jerusalem as King" },
+      { "verses": [12, 17], "title": "Jesus at the Temple" },
+      { "verses": [18, 22], "title": "Jesus Curses a Fig Tree" },
+      { "verses": [23, 27], "title": "The Authority of Jesus Questioned" },
+      { "verses": [28, 32], "title": "The Parable of the Two Sons" },
+      { "verses": [33, 46], "title": "The Parable of the Tenants" }
+    ],
+    "22": [
+      { "verses": [1, 14], "title": "The Parable of the Wedding Banquet" },
+      { "verses": [15, 22], "title": "Paying the Imperial Tax to Caesar" },
+      { "verses": [23, 33], "title": "Marriage at the Resurrection" },
+      { "verses": [34, 40], "title": "The Greatest Commandment" },
+      { "verses": [41, 46], "title": "Whose Son is the Messiah?" }
+    ],
+    "23": [
+      { "verses": [1, 12], "title": "A Warning Against Hypocrisy" },
+      { "verses": [13, 36], "title": "Seven Woes on the Teachers of the Law and the Pharisees" },
+      { "verses": [37, 39], "title": "Lament Over Jerusalem" }
+    ],
+    "24": [
+      { "verses": [1, 14], "title": "The Destruction of the Temple and Signs of the End Times" },
+      { "verses": [15, 28], "title": "The Great Tribulation" },
+      { "verses": [29, 35], "title": "The Coming of the Son of Man" },
+      { "verses": [36, 44], "title": "The Day and Hour Unknown" },
+      { "verses": [45, 51], "title": "The Faithful and Wise Servant" }
+    ],
+    "25": [
+      { "verses": [1, 13], "title": "The Parable of the Ten Virgins" },
+      { "verses": [14, 30], "title": "The Parable of the Talents" },
+      { "verses": [31, 46], "title": "The Sheep and the Goats" }
+    ],
+    "26": [
+      { "verses": [1, 5], "title": "The Plot Against Jesus" },
+      { "verses": [6, 13], "title": "Jesus Anointed at Bethany" },
+      { "verses": [14, 16], "title": "Judas Agrees to Betray Jesus" },
+      { "verses": [17, 30], "title": "The Last Supper" },
+      { "verses": [31, 35], "title": "Jesus Predicts Peter’s Denial" },
+      { "verses": [36, 46], "title": "Gethsemane" },
+      { "verses": [47, 56], "title": "Jesus Arrested" },
+      { "verses": [57, 68], "title": "Jesus Before the Sanhedrin" },
+      { "verses": [69, 75], "title": "Peter Disowns Jesus" }
+    ],
+    "27": [
+      { "verses": [1, 10], "title": "Judas Hangs Himself" },
+      { "verses": [11, 26], "title": "Jesus Before Pilate" },
+      { "verses": [27, 31], "title": "The Soldiers Mock Jesus" },
+      { "verses": [32, 44], "title": "The Crucifixion of Jesus" },
+      { "verses": [45, 56], "title": "The Death of Jesus" },
+      { "verses": [57, 61], "title": "The Burial of Jesus" },
+      { "verses": [62, 66], "title": "The Guard at the Tomb" }
+    ],
+    "28": [
+      { "verses": [1, 10], "title": "Jesus Has Risen" },
+      { "verses": [11, 15], "title": "The Guards’ Report" },
+      { "verses": [16, 20], "title": "The Great Commission" }
+    ]
+  }
+}
