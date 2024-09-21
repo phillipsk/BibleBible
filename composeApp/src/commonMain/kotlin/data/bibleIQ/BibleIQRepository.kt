@@ -138,8 +138,8 @@ internal suspend fun getChapterBibleIQ(
 
 internal suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.transaction {
                     database.bibleBibleDatabaseQueries.insertReadingHistory(
                         created_at = getTimeZone(),
@@ -158,17 +158,18 @@ internal suspend fun insertReadingHistory(bookId: Int, chapter: Int) {
 
 internal suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int, version: String) {
     try {
-        chapterCount?.let {
-            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-                withContext(Dispatchers.IO) {
-                    database.bibleBibleDatabaseQueries.insertChapterCount(
-                        uuid = bookId.toString() + "-" + version.lowercase(),
-                        b = bookId.toString(),
-                        version = version.lowercase(),
-                        chapterCount = chapterCount.chapterCount,
-                        created_at = getTimeZone(),
-                    )
-                }
+        withContext(Dispatchers.IO) {
+            chapterCount?.let {
+                DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                    ?.let { database ->
+                        database.bibleBibleDatabaseQueries.insertChapterCount(
+                            uuid = bookId.toString() + "-" + version.lowercase(),
+                            b = bookId.toString(),
+                            version = version.lowercase(),
+                            chapterCount = chapterCount.chapterCount,
+                            created_at = getTimeZone(),
+                        )
+                    }
             }
         }
     } catch (e: Exception) {
@@ -189,38 +190,41 @@ private suspend fun insertBibleVerses(
     version: String,
     chapterCount: ChapterCount?
 ) {
-    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        try {
-            withContext(Dispatchers.IO) {
-                Napier.d("inside insert load before delay", tag = "IQ093")
-                Napier.d("inside insert load end delay", tag = "IQ093")
-                Napier.v("insertVerse bookId  :: ${chapterContent.firstOrNull()?.b}", tag = "IQ093")
-                chapterContent.let {
+    try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                ?.let { database ->
+                    Napier.d("inside insert load before delay", tag = "IQ093")
+                    Napier.d("inside insert load end delay", tag = "IQ093")
+                    Napier.v(
+                        "insertVerse bookId  :: ${chapterContent.firstOrNull()?.b}",
+                        tag = "IQ093"
+                    )
+                    chapterContent.let {
 //                        delay(3000)
-                    database.transaction {
-                        it.forEach {
-                            database.bibleBibleDatabaseQueries.insertVerse(
-                                uuid = it.id + "-" + version.lowercase(),
-                                id = it.id ?: "",
-                                b = it.b ?: "",
-                                c = it.c ?: "",
-                                v = it.v ?: "",
-                                t = it.t ?: "",
-                                version = version.lowercase(),
-                                chapterCount = chapterCount?.chapterCount ?: 0,
-                                created_at = getTimeZone(),
-                                updated_at = getTimeZone()
-                            )
+                        database.transaction {
+                            it.forEach {
+                                database.bibleBibleDatabaseQueries.insertVerse(
+                                    uuid = it.id + "-" + version.lowercase(),
+                                    id = it.id ?: "",
+                                    b = it.b ?: "",
+                                    c = it.c ?: "",
+                                    v = it.v ?: "",
+                                    t = it.t ?: "",
+                                    version = version.lowercase(),
+                                    chapterCount = chapterCount?.chapterCount ?: 0,
+                                    created_at = getTimeZone(),
+                                    updated_at = getTimeZone()
+                                )
+                            }
                         }
                     }
                 }
-            }
-
-        } catch (e: Exception) {
-            Napier.e("Error: ${e.message}", tag = "IQ093")
-        } finally {
-            DriverFactory.closeDB()
         }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+    } finally {
+        DriverFactory.closeDB()
     }
 }
 
@@ -228,23 +232,24 @@ private suspend fun updateTimestampBibleVerses(
     bibleChapter: BibleChapter?,
     version: String?
 ) {
-    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        try {
-            withContext(Dispatchers.IO) {
-                database.transaction {
-                    database.bibleBibleDatabaseQueries.updateVerseTimestamp(
-                        updated_at = getTimeZone(),
-                        b = bibleChapter?.b ?: "",
-                        c = bibleChapter?.c ?: "",
-                        version = version?.lowercase() ?: "",
-                    )
+    try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                ?.let { database ->
+                    database.transaction {
+                        database.bibleBibleDatabaseQueries.updateVerseTimestamp(
+                            updated_at = getTimeZone(),
+                            b = bibleChapter?.b ?: "",
+                            c = bibleChapter?.c ?: "",
+                            version = version?.lowercase() ?: "",
+                        )
+                    }
                 }
-            }
-        } catch (e: Exception) {
-            Napier.e("Error: ${e.message}", tag = "IQ093")
-        } finally {
-            DriverFactory.closeDB()
         }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+    } finally {
+        DriverFactory.closeDB()
     }
 }
 
@@ -253,40 +258,43 @@ private suspend fun loadVerseData(
     chapter: Int,
     version: String
 ): List<BibleChapter>? {
-    DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        return try {
-            withContext(Dispatchers.IO) {
-                Napier.d("inside start load before delay", tag = "IQ093")
+    return try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
+                ?.let { database ->
+                    Napier.d("inside start load before delay", tag = "IQ093")
 //                 delay(3000)
-                Napier.d("inside start load end delay", tag = "IQ093")
+                    Napier.d("inside start load end delay", tag = "IQ093")
 
-                val bibleQueries = database.bibleBibleDatabaseQueries
-                    .selectVersesByBookId(
-                        bookId.toString(),
-                        chapter.toString(),
-                        version.lowercase()
+                    val bibleQueries = database.bibleBibleDatabaseQueries
+                        .selectVersesByBookId(
+                            bookId.toString(),
+                            chapter.toString(),
+                            version.lowercase()
+                        )
+                        .executeAsList()
+
+                    Napier.v(
+                        "bibleQueries selectedChapter $bookId :: hello world",
+                        tag = "IQ093"
                     )
-                    .executeAsList()
+                    Napier.v(
+                        "bibleQueries ${bibleQueries.firstOrNull()?.v?.take(100)}",
+                        tag = "IQ093"
+                    )
 
-                Napier.v("bibleQueries selectedChapter $bookId :: hello world", tag = "IQ093")
-                Napier.v(
-                    "bibleQueries ${bibleQueries.firstOrNull()?.v?.take(100)}",
-                    tag = "IQ093"
-                )
-
-                val list = bibleQueries.map {
-                    BibleChapter(id = it.id, b = it.b, c = it.c, v = it.v, t = it.t)
+                    val list = bibleQueries.map {
+                        BibleChapter(id = it.id, b = it.b, c = it.c, v = it.v, t = it.t)
+                    }
+                    list
                 }
-                list
-            }
-        } catch (e: Exception) {
-            Napier.e("Error: ${e.message}", tag = "IQ093")
-            null
-        } finally {
-            DriverFactory.closeDB()
         }
+    } catch (e: Exception) {
+        Napier.e("Error: ${e.message}", tag = "IQ093")
+        null
+    } finally {
+        DriverFactory.closeDB()
     }
-    return null
 }
 
 internal suspend fun queryBookChapterSize(bookId: Int, version: String): ChapterCount? {

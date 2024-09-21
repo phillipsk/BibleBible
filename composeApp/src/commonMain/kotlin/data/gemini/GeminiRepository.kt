@@ -20,7 +20,6 @@ import kotlinx.serialization.json.Json
 
 
 const val GEMINI_PRO = "gemini-pro"
-const val GEMINI_PRO_VISION = "gemini-pro-vision"
 suspend fun generateContent(content: String) {
     val parts = mutableListOf<RequestPart>()
     parts.add(RequestPart(text = content))
@@ -43,10 +42,10 @@ suspend fun generateContent(content: String) {
 }
 
 suspend fun checkAnimationLastCalled(): Boolean {
-    return DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-        var showAnimation = false
-        try {
-            withContext(Dispatchers.IO) {
+    var showAnimation = false
+    try {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 val lastCalledQuery = database.bibleBibleDatabaseQueries.getLastCalled()
                 val lastCalledTime = lastCalledQuery.executeAsOneOrNull()?.time ?: 0
                 val currentTime = Clock.System.now().toEpochMilliseconds()
@@ -57,9 +56,9 @@ suspend fun checkAnimationLastCalled(): Boolean {
                     database.bibleBibleDatabaseQueries.insertLastCalled(time = currentTime)
                 }
             }
-        } catch (e: Exception) {
-            Napier.e("Error in checkAnimationLastCalled: ${e.message}", tag = "HomeTopBar")
         }
-        showAnimation
-    } ?: false
+    } catch (e: Exception) {
+        Napier.e("Error in checkAnimationLastCalled: ${e.message}", tag = "HomeTopBar")
+    }
+    return showAnimation
 }

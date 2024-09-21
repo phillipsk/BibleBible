@@ -10,8 +10,8 @@ import kotlinx.coroutines.withContext
 
 internal suspend fun updateUserPreferences(fontSize: Float, selectedVersion: String) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefs(
                     fontSize = fontSize.toDouble(),
                     bibleVersion = selectedVersion,
@@ -28,8 +28,8 @@ internal suspend fun updateUserPreferences(fontSize: Float, selectedVersion: Str
 
 internal suspend fun updateUserPrefsBibleVersion(selectedVersion: String) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsBibleVersion(
                     bibleVersion = selectedVersion,
                 )
@@ -48,8 +48,8 @@ internal suspend fun updateUserPrefsBibleVersion(selectedVersion: String) {
 
 internal suspend fun getUserPreferences() {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 val data = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsList()
                 Napier.v("getUserPreferences :: data :: $data", tag = "AP8243")
                 if (data.isEmpty()) {
