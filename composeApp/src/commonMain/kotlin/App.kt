@@ -14,6 +14,8 @@ import data.bibleIQ.getVersionsBibleIQ
 import email.kevinphillips.biblebible.SetSystemBarColor
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 import ui.LoadingScreen
@@ -29,13 +31,19 @@ fun App() {
         SetSystemBarColor(MaterialTheme.colors.background)
 
         LaunchedEffect(true) {
-            getVersionsBibleIQ()
-            getBooksBibleAPI()
+            launch {
+                async { checkDatabaseSize() }
+                async { cleanReadingHistory() }
+            }
+            val versionsJob = async { getVersionsBibleIQ() }
+            val booksJob = async { getBooksBibleAPI() }
+            versionsJob.await()
+            booksJob.await()
+
+            getUserPreferences()
+
             Napier.v("App :: LaunchedEffect", tag = "BB2452")
             isLoading.value = false
-            checkDatabaseSize()
-            cleanReadingHistory()
-            getUserPreferences()
         }
 
         if (isLoading.value) {
