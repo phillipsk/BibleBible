@@ -66,6 +66,7 @@ kotlin {
             implementation(libs.generativeai)
         }
         desktopMain.dependencies {
+            implementation(libs.sqlDelight.driver.desktop)
             implementation(compose.desktop.currentOs)
             implementation(libs.ktor.client.cio)
             implementation(libs.kotlinX.coroutines.swing)
