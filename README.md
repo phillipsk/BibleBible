@@ -51,6 +51,10 @@ https://github.com/phillipsk/BibleBible/assets/7585083/a41d07b4-9dd4-447c-a873-4
 https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-13e7cac5d439
 
 
+### API Usage Notice
+This application uses the IQ Bible API to fetch Bible content. Use of this API is subject to the IQ Bible API's [Terms of Service](https://example.com). You may not use this API for commercial purposes or create a competing service based on this API data. Ensure compliance with their terms when using or modifying this application.
+
+
 
 ## Backlog
 *   ~~socket timeout and api/db retries~~
