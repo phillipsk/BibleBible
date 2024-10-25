@@ -12,11 +12,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 
 @Composable
 fun LoadingScreen(isAppStartup: Boolean = false) {
     Box(contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize().testTag("LoadingScreen")
             .background(color = if (isAppStartup) MaterialTheme.colors.surface else Color.Transparent)
     ) {
         AnimatedVisibility(visible = true, enter = fadeIn(), exit = slideOutVertically()) {
