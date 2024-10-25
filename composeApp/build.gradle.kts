@@ -2,6 +2,8 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -44,6 +46,10 @@ kotlin {
             implementation(libs.sqlDelight.driver.android)
             implementation(libs.generativeai)
         }
+        androidTarget {
+            @OptIn(ExperimentalKotlinGradlePluginApi::class)
+            instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
+        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -59,6 +65,11 @@ kotlin {
             implementation(libs.ktor.serialization)
             implementation(libs.kotlinX.serialization)
             implementation(libs.napier)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+            implementation(compose.uiTest)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -87,6 +98,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 13
         versionName = "6.6"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     packaging {
         resources {
@@ -109,6 +121,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     dependencies {
+        androidTestImplementation(libs.androidx.ui.test.junit4.android)
+        debugImplementation(libs.androidx.ui.test.manifest)
         debugImplementation(libs.compose.ui.tooling)
     }
 }

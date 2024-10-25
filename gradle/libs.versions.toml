@@ -24,8 +24,12 @@ napier = "2.6.1"
 sqlDelight = "2.0.1"
 kotlinxDateTime = "0.5.0"
 generativeai = "0.2.2"
+uiTestManifest = "1.6.8"
+uiTestJunit4Android = "1.6.8"
 
 [libraries]
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "uiTestManifest" }
+androidx-ui-test-junit4-android = { module = "androidx.compose.ui:ui-test-junit4-android", version.ref = "uiTestJunit4Android" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
