@@ -280,7 +280,6 @@ private suspend fun updateTimestampBibleVerses(
         DriverFactory.closeDB()
     }
 }
-}
 
 private suspend fun loadVerseData(
     bookId: Int,
@@ -342,5 +341,4 @@ internal suspend fun queryBookChapterSize(bookId: Int, version: String): Chapter
     } finally {
         DriverFactory.closeDB()
     }
-}
 }

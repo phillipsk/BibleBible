@@ -2,6 +2,8 @@ package data.appPrefs
 
 import data.apiBible.BibleAPIDataModel
 import data.bibleIQ.BibleIQDataModel
+import data.bibleIQ.DATABASE_RETENTION
+import data.bibleIQ.DATABASE_RETENTION_READING_HISTORY
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
