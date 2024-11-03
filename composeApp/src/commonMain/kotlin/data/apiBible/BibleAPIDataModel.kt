@@ -44,7 +44,7 @@ object BibleAPIDataModel {
 
     @Composable
     fun getBibleBookColor(ordinal: Int): Color {
-        val colorCache = remember { mutableMapOf<Int, Color>() }
+        val colorCache = mutableMapOf<Int, Color>()
         return colorCache.getOrPut(ordinal) {
             when (ordinal) {
                 in pentateuch -> lightGreen

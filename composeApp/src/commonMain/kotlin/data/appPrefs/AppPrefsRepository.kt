@@ -2,8 +2,6 @@ package data.appPrefs
 
 import data.apiBible.BibleAPIDataModel
 import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.DATABASE_RETENTION
-import data.bibleIQ.DATABASE_RETENTION_READING_HISTORY
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
@@ -14,8 +12,8 @@ import ui.initBookLoad
 
 internal suspend fun updateUserPrefsFontSize(fontSize: Float) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsFontSize(
                     fontSize = fontSize.toDouble()
                 )
@@ -31,8 +29,8 @@ internal suspend fun updateUserPrefsFontSize(fontSize: Float) {
 
 internal suspend fun updateUserPrefsBibleVersion(selectedVersion: String) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsBibleVersion(
                     bibleVersion = selectedVersion,
                 )
@@ -68,6 +66,7 @@ internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
         DriverFactory.closeDB()
     }
 }
+
 internal suspend fun updateUserPrefsSetHomePage() {
     try {
         DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
@@ -105,8 +104,8 @@ internal suspend fun updateUserPrefsBibleChapter(selectedChapter: Long) {
 
 internal suspend fun getUserPreferences() {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 val data = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsList()
                 Napier.v("getUserPreferences :: data :: $data", tag = "AP8243")
                 if (data.isEmpty()) {
