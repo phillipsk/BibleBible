@@ -51,8 +51,8 @@ internal suspend fun updateUserPrefsBibleVersion(selectedVersion: String) {
 
 internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsSelectedBook(
                     selectedBook = selectedBook,
                 )
@@ -71,8 +71,8 @@ internal suspend fun updateUserPrefsBibleBook(selectedBook: Long) {
 
 internal suspend fun updateUserPrefsSetHomePage() {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsSetHomePage()
                 Napier.v("updateUserPrefsSetHomePage ::", tag = "AP8243")
             }
@@ -86,8 +86,8 @@ internal suspend fun updateUserPrefsSetHomePage() {
 
 internal suspend fun updateUserPrefsBibleChapter(selectedChapter: Long) {
     try {
-        DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }?.let { database ->
                 database.bibleBibleDatabaseQueries.updateUserPrefsSelectedChapter(
                     selectedChapter = selectedChapter,
                 )
