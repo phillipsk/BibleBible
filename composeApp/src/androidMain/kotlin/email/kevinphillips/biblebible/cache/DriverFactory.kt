@@ -17,7 +17,7 @@ actual object DriverFactory {
     }
 
     internal actual fun closeDB() {
-        driver?.close()
-        driver = null
+//        driver?.close()
+//        driver = null
     }
 }
