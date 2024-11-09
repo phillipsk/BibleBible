@@ -21,8 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
@@ -31,7 +31,7 @@ val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500
 
 object BibleIQRepository {
     private var lastInsertTime = 0L
-    private const val debounceTimeMillis = 5000L  // 5 seconds debounce window
+    private const val debounceTimeMillis = 1000L  // 5 seconds debounce window
     internal suspend fun getBooksBibleIQ() {
         try {
             val books = if (LOCAL_DATA) {
@@ -143,19 +143,19 @@ object BibleIQRepository {
 
     private suspend fun updateAppPrefs(bookId: Int, chapter: Int) {
 //        TODO: review parallel execution
-        updateUserPrefsBibleBook(bookId.toLong())
-        updateUserPrefsBibleChapter(chapter.toLong())
-        Napier.v("BibleIQRepository :: updateReadingHistory :: not started", tag = "RC1439")
+        coroutineScope {
+            val bookUpdate = async { updateUserPrefsBibleBook(bookId.toLong()) }
+            val chapterUpdate = async { updateUserPrefsBibleChapter(chapter.toLong()) }
 
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        if (currentTime - lastInsertTime >= debounceTimeMillis) {
-            lastInsertTime = currentTime  // Update the last insert time
+            bookUpdate.await()
+            chapterUpdate.await()
+        }
 
+        withContext(Dispatchers.IO) {
+            delay(debounceTimeMillis)
             Napier.v("BibleIQRepository :: updateReadingHistory :: start", tag = "RC1439")
             insertReadingHistory(bookId, chapter)
-            getReadingHistory()
-        } else {
-            Napier.v("BibleIQRepository :: updateReadingHistory :: debounced", tag = "RC1439")
+//            getReadingHistory()
         }
     }
 

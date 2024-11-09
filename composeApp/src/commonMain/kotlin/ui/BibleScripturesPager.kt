@@ -156,7 +156,11 @@ internal fun BibleScripturesPager(
         bottomSheetScaffoldState.bottomSheetState.collapse()
     }
 
-    if (chapters.bookId != null) {
+    if (chapters.bookId != null && chapters.chapterList != null) {
+        Napier.v(
+            "tabPosition check: ${chapters.bookId} ${chapters.chapterList.size} $chapter",
+            tag = "BB2411"
+        )
         AnimatedVisibility(
             visible = true,
             enter = fadeIn(initialAlpha = 0.4f),
@@ -185,7 +189,7 @@ internal fun BibleScripturesPager(
                     }
                 ) {
                     Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
-                    chapters.chapterList?.forEachIndexed { index, e ->
+                    chapters.chapterList.forEachIndexed { index, e ->
                         Tab(
                             selected = pagerState.currentPage == index,
                             onClick = {

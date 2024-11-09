@@ -107,7 +107,7 @@ WHERE created_at IN (
 );
 
 selectReadingHistory:
-SELECT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
+SELECT DISTINCT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
 FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC;
 
 countReadingHistory:
