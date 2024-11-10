@@ -111,7 +111,7 @@ object BibleAPIDataModel {
     val selectedChapter: Int by _selectedChapter
 
     internal fun updateSelectedChapter(chapter: Int) {
-        Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
+        Napier.v("updateSelectedChapter: $chapter", tag = "FF6290")
         _selectedChapter.value = chapter
     }
 

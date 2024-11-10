@@ -3,6 +3,7 @@ package data.bibleIQ
 import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
+import data.apiBible.BibleAPIDataModel
 import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
@@ -74,17 +75,17 @@ object BibleIQRepository {
     ) {
         try {
             GeminiModel.showSummary = false
-            withContext(Dispatchers.Main) {
-                Napier.v("getChapterBibleIQ :: apiRunning :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
-                if (BibleIQDataModel.apiRunning) {
-                    return@withContext
-                }
-                BibleIQDataModel.apiRunning = true
-                Napier.v("getChapterBibleIQ :: apiRunning :: starting :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
-            }
+//            withContext(Dispatchers.Main) {
+//                Napier.v("getChapterBibleIQ :: apiRunning :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
+//                if (BibleIQDataModel.apiRunning) {
+//                    return@withContext
+//                }
+//                BibleIQDataModel.apiRunning = true
+//                Napier.v("getChapterBibleIQ :: apiRunning :: starting :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
+//            }
             GeminiModel.updateGeminiData(GeminiResponseDto())
             val bookId = BibleIQDataModel.getAPIBibleOrdinal(book.remoteKey)
-            Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
+            Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "FF6290")
             val chapterVerses: List<BibleChapter>
             var chapterCount: ChapterCount?
 
@@ -138,6 +139,7 @@ object BibleIQRepository {
                 }
                 updateTimestampBibleVerses(cachedData.firstOrNull(), version)
             }
+            BibleAPIDataModel.updateSelectedChapter(chapter)
             if (updateReadingHistory) {
                 updateAppPrefs(bookId, chapter)
             }
@@ -150,10 +152,13 @@ object BibleIQRepository {
         }
         finally {
             withContext(Dispatchers.Main) {
-                BibleIQDataModel.apiRunning = false
+//                BibleIQDataModel.apiRunning = false
+//                Napier.v(
+//                    "getChapterBibleIQ :: finally :: apiRunning :: ${BibleIQDataModel.apiRunning}",
+//                    tag = "FF6290"
+//                )
                 Napier.v(
-                    "getChapterBibleIQ :: finally :: apiRunning :: ${BibleIQDataModel.apiRunning}",
-                    tag = "FF6290"
+                    "getChapterBibleIQ :: finally", tag = "FF6290"
                 )
             }
         }
