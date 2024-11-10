@@ -176,7 +176,7 @@ internal fun BibleBookList(
     }
 }
 
-fun initBookLoad(bookData: BookData, selectedChapter: Int = 1) {
+fun initBookLoad(bookData: BookData, selectedChapter: Int = 1, fromAppPrefs: Boolean = false) {
     BibleAPIDataModel.run {
         updateBookData(bookData)
         updateSelectedChapter(selectedChapter)
@@ -184,4 +184,5 @@ fun initBookLoad(bookData: BookData, selectedChapter: Int = 1) {
     }
     BibleIQDataModel.updateSelectedBook(bookData)
     BibleIQDataModel.showHomePage = false
+    BibleIQDataModel.fromAppPrefs = fromAppPrefs
 }

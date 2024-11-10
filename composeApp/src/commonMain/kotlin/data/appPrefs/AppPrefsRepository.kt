@@ -123,7 +123,11 @@ internal suspend fun getUserPreferences() {
                             withContext(Dispatchers.Main) {
                                 BibleAPIDataModel.uiBooks.data?.get(selectedBook)
                                     ?.run {
-                                        initBookLoad(this, selectedChapter)
+                                        initBookLoad(
+                                            bookData = this,
+                                            selectedChapter = selectedChapter,
+                                            fromAppPrefs = true
+                                        )
                                     }
                             }
                         }
