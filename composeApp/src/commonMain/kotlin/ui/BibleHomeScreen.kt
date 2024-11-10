@@ -91,6 +91,7 @@ internal fun BibleHomeScreen(
                         scope.launch {
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
+                                Napier.v("BibleHomeScreen :: bottomSheetState.collapse() ", tag = "FF6290")
                             } else {
                                 Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()

@@ -31,7 +31,7 @@ val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500
 
 object BibleIQRepository {
     private var lastInsertTime = 0L
-    private const val debounceTimeMillis = 1000L  // 5 seconds debounce window
+    private const val debounceTimeMillis = 5000L  // 5 seconds debounce window
     internal suspend fun getBooksBibleIQ() {
         try {
             val books = if (LOCAL_DATA) {
@@ -74,6 +74,14 @@ object BibleIQRepository {
     ) {
         try {
             GeminiModel.showSummary = false
+            withContext(Dispatchers.Main) {
+                Napier.v("getChapterBibleIQ :: apiRunning :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
+                if (BibleIQDataModel.apiRunning) {
+                    return@withContext
+                }
+                BibleIQDataModel.apiRunning = true
+                Napier.v("getChapterBibleIQ :: apiRunning :: starting :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
+            }
             GeminiModel.updateGeminiData(GeminiResponseDto())
             val bookId = BibleIQDataModel.getAPIBibleOrdinal(book.remoteKey)
             Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
@@ -133,11 +141,21 @@ object BibleIQRepository {
             if (updateReadingHistory) {
                 updateAppPrefs(bookId, chapter)
             }
+            Napier.v("getChapterBibleIQ :: updateReadingHistory :: $updateReadingHistory", tag = "FF6290")
             Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
         } catch (e: IOException) {
             BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
         } catch (e: Exception) {
             Napier.e("Error: ${e.message}", tag = "IQ093")
+        }
+        finally {
+            withContext(Dispatchers.Main) {
+                BibleIQDataModel.apiRunning = false
+                Napier.v(
+                    "getChapterBibleIQ :: finally :: apiRunning :: ${BibleIQDataModel.apiRunning}",
+                    tag = "FF6290"
+                )
+            }
         }
     }
 
@@ -155,7 +173,7 @@ object BibleIQRepository {
             delay(debounceTimeMillis)
             Napier.v("BibleIQRepository :: updateReadingHistory :: start", tag = "RC1439")
             insertReadingHistory(bookId, chapter)
-//            getReadingHistory()
+            getReadingHistory()
         }
     }
 

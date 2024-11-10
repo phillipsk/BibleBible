@@ -27,6 +27,8 @@ object BibleIQDataModel {
     var bottomSheetViewCount by mutableStateOf(0)
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+    var fromAppPrefs by mutableStateOf(false)
+    var apiRunning by mutableStateOf(false)
 
     val snackBarChannel = Channel<String>(capacity = 1)
 

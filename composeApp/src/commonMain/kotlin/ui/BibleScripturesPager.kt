@@ -28,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,7 +40,11 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQRepository.getChapterBibleIQ
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
@@ -58,6 +63,7 @@ internal fun BibleScripturesPager(
     val scope = rememberCoroutineScope()
     var selectedTabIndex by remember(selectedBook) { mutableStateOf(BibleAPIDataModel.selectedChapter) }
     val chapter = BibleAPIDataModel.selectedChapter ?: (selectedTabIndex + 1)
+    var lastLoadedChapter by remember { mutableStateOf<Int?>(null) }
     Napier.v(
         "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
                 " :: selectedTabIndex $selectedTabIndex", tag = "BB2460"
@@ -71,7 +77,20 @@ internal fun BibleScripturesPager(
     val uiStateReady =
         BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
+//    val isSameBook = BibleIQDataModel.selectedBook. ==
+//            BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey)
+//    val isSameChapter = BibleIQDataModel.bibleChapter?.chapterId == chapter
+//    Napier.v("isSameBook: $isSameBook :: isSameChapter: $isSameChapter", tag = "IQ093")
+//    val skipAPICall = isSameBook && isSameChapter
+
     LaunchedEffect(selectedBook) {
+        withContext(Dispatchers.Main) {
+            Napier.v(
+                "LaunchedEffect: selectedBook :: " +
+                        "apiRunning: ${BibleIQDataModel.apiRunning}", tag = "FF6290"
+            )
+            if (BibleIQDataModel.apiRunning) return@withContext
+        }
 //    TODO: calling and updating BibleChapterUIState on selectedBook change
         Napier.v(
             "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
@@ -81,19 +100,33 @@ internal fun BibleScripturesPager(
         getChapterBibleIQ(
             book = selectedBook,
             chapter = chapter,
+            updateReadingHistory = !BibleIQDataModel.fromAppPrefs
         )
         Napier.v("BibleScripturesPager :: launched effect selectedBook", tag = "RC1439")
-        pagerState.scrollToPage(chapter - 1)
-        selectedTabIndex = chapter - 1
-        initialLoadDone = false
+        withContext(Dispatchers.Main) {
+            Napier.v("LaunchedEffect: selectedBook :: scrollToPage: start :: chapter $chapter", tag = "FF6290")
+            pagerState.scrollToPage(chapter - 1)
+            selectedTabIndex = chapter - 1
+            initialLoadDone = false
+            lastLoadedChapter = chapter
+            Napier.v("LaunchedEffect: selectedBook :: scrollToPage: end :: chapter $chapter", tag = "FF6290")
+        }
+
         Napier.v(
             "LaunchedEffect: selectedBook :: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
-            tag = "BB2470"
+            tag = "FF6290"
         )
         BibleIQDataModel.bottomSheetViewCount = 0
     }
 
     LaunchedEffect(bibleVersion) {
+        withContext(Dispatchers.Main) {
+            Napier.v(
+                "LaunchedEffect: bibleVersion :: " +
+                        "apiRunning: ${BibleIQDataModel.apiRunning}", tag = "FF6290"
+            )
+            if (BibleIQDataModel.apiRunning) return@withContext
+        }
         Napier.v(
             "LaunchedEffect: bibleVersion: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
             tag = "BB2460"
@@ -103,52 +136,67 @@ internal fun BibleScripturesPager(
         }
     }
 
-    LaunchedEffect(pagerState.currentPage) {
-        Napier.v(
-            "LaunchedEffect: currentPage: ${pagerState.currentPage} initialLoadDone $initialLoadDone",
-            tag = "BB2470"
-        )
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        if (isPageChangeFromTabClick) {
-            val time = currentTime - lastTabClickTime
-            Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
-            if (time > debounceDuration) {
-                selectedTabIndex = pagerState.currentPage
-                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-            }
-            isPageChangeFromTabClick = false
-//            bottomSheetScaffoldState.bottomSheetState.expand()
-        } else if (!initialLoadDone) {
-            Napier.v("BibleScripturesPager :: launched effect pagerState.currentPage", tag = "RC1439")
-            selectedTabIndex = pagerState.currentPage
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-//            bottomSheetScaffoldState.bottomSheetState.collapse()
-        }
-        bottomSheetScaffoldState.bottomSheetState.collapse()
-        pagerColumnScrollState.scrollTo(0)
-//        GeminiModel.showSummary = false // done in API call
-    }
-
-    /*    LaunchedEffect(pagerColumnScrollState.canScrollBackward) {
-            Napier.v(
-                "LaunchedEffect: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
-                tag = "BB2470"
-            )
-            if (pagerColumnScrollState.canScrollBackward || showAISummary) {
-                bottomSheetScaffoldState.bottomSheetState.collapse()
-            } else if (BibleIQDataModel.bottomSheetViewCount < 3) {
-                bottomSheetScaffoldState.bottomSheetState.expand()
-                BibleIQDataModel.bottomSheetViewCount++
-            }
-        }*/
 
     LaunchedEffect(Unit) {
+        snapshotFlow { pagerState.currentPage }
+            .filter { newPage -> newPage + 1 != lastLoadedChapter }  // Filter out duplicate chapters
+            .collectLatest { newPage ->
+                withContext(Dispatchers.Main) {
+                    Napier.v(
+                        "LaunchedEffect: pagerState.currentPage :: " +
+                                "apiRunning: ${BibleIQDataModel.apiRunning} or :: !initialLoadDone :: ${!initialLoadDone}", tag = "FF6290"
+                    )
+                    if (!initialLoadDone) return@withContext
+                    if (BibleIQDataModel.apiRunning) return@withContext
+                }
+                Napier.v(
+                    "LaunchedEffect: currentPage: ${pagerState.currentPage} initialLoadDone $initialLoadDone",
+                    tag = "FF6290"
+                )
+                val currentTime = Clock.System.now().toEpochMilliseconds()
+                if (isPageChangeFromTabClick) {
+                    val time = currentTime - lastTabClickTime
+                    Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
+                    if (time > debounceDuration) {
+                        selectedTabIndex = pagerState.currentPage
+                        lastLoadedChapter = newPage + 1
+                        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+                    }
+                    isPageChangeFromTabClick = false
+                } else if (!initialLoadDone) {
+                    Napier.v("BibleScripturesPager :: launched effect pagerState.currentPage", tag = "RC1439")
+                    selectedTabIndex = pagerState.currentPage
+                    lastLoadedChapter = newPage + 1
+                    getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+                }
+                bottomSheetScaffoldState.bottomSheetState.collapse()
+                Napier.v("snapshotFlow { pagerState.currentPage } :: bottomSheetState.collapse() ", tag = "FF6290")
+                pagerColumnScrollState.scrollTo(0)
+            }
+    }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.Main) {
+            Napier.v(
+                "LaunchedEffect: Unit :: " +
+                        "apiRunning: ${BibleIQDataModel.apiRunning}", tag = "FF6290"
+            )
+            if (BibleIQDataModel.apiRunning) return@withContext
+        }
         pagerColumnScrollState.interactionSource.interactions.collect {
             bottomSheetScaffoldState.bottomSheetState.collapse()
+            Napier.v("interactionSource :: bottomSheetState.collapse() ", tag = "FF6290")
         }
     }
 
     LaunchedEffect(isAISummaryLoading || showAISummary) {
+        withContext(Dispatchers.Main) {
+            Napier.v(
+                "LaunchedEffect: AISummary :: " +
+                        "apiRunning: ${BibleIQDataModel.apiRunning}", tag = "FF6290"
+            )
+            if (BibleIQDataModel.apiRunning) return@withContext
+        }
         Napier.v(
             "LaunchedEffect: isAISummaryLoading: $isAISummaryLoading showAISummary: $showAISummary",
             tag = "BB2470"
