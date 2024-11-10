@@ -75,6 +75,7 @@ object BibleIQRepository {
     ) {
         try {
             GeminiModel.showSummary = false
+            BibleIQDataModel.fromAppPrefs = false
 //            withContext(Dispatchers.Main) {
 //                Napier.v("getChapterBibleIQ :: apiRunning :: ${BibleIQDataModel.apiRunning}", tag = "FF6290")
 //                if (BibleIQDataModel.apiRunning) {
@@ -140,6 +141,7 @@ object BibleIQRepository {
                 updateTimestampBibleVerses(cachedData.firstOrNull(), version)
             }
             BibleAPIDataModel.updateSelectedChapter(chapter)
+            Napier.v("getChapterBibleIQ :: updateSelectedChapter :: $chapter", tag = "FF6290")
             if (updateReadingHistory) {
                 updateAppPrefs(bookId, chapter)
             }
