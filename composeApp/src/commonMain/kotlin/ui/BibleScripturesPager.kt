@@ -169,7 +169,7 @@ internal fun BibleScripturesPager(
                     lastLoadedChapter = newPage + 1
                     getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
                 }
-                bottomSheetScaffoldState.bottomSheetState.collapse()
+//                bottomSheetScaffoldState.bottomSheetState.collapse()
                 Napier.v("snapshotFlow { pagerState.currentPage } :: bottomSheetState.collapse() ", tag = "FF6290")
                 pagerColumnScrollState.scrollTo(0)
             }
