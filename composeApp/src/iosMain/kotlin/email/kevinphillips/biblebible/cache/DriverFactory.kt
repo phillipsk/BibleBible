@@ -15,6 +15,6 @@ actual object DriverFactory {
     }
 
     internal actual fun closeDB() {
-        driverRef = null
+//        driverRef = null
     }
 }

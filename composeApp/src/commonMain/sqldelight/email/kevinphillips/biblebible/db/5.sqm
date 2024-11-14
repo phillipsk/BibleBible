@@ -1,5 +1,7 @@
 CREATE TABLE UserPreferences (
     uuid INTEGER PRIMARY KEY DEFAULT 1,
     fontSize REAL NOT NULL DEFAULT 18,
-    bibleVersion TEXT NOT NULL DEFAULT 'KJV'
+    bibleVersion TEXT NOT NULL DEFAULT 'KJV',
+    selectedBook INTEGER,
+    selectedChapter INTEGER
 );

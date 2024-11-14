@@ -60,6 +60,7 @@ internal fun BibleMenu(
                             withContext(Dispatchers.Main) {
                                 delay(400)
                                 bottomSheetState.collapse()
+                                Napier.v("BibleMenu :: bottomSheetState.collapse() ", tag = "FF6290")
                             }
                         }
                     },

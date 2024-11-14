@@ -82,11 +82,16 @@ internal fun BibleHomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 BibleBibleTopBar(
-                    onClick = BibleIQDataModel.onHomeClick,
+                    onClick = {
+                        scope.launch {
+                            BibleIQDataModel.onHomeClick()
+                        }
+                    },
                     showBottomSheet = {
                         scope.launch {
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
+                                Napier.v("BibleHomeScreen :: bottomSheetState.collapse() ", tag = "FF6290")
                             } else {
                                 Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()
@@ -137,12 +142,7 @@ internal fun BibleBookList(
                         it.let {
                             Button(
                                 onClick = {
-                                    BibleAPIDataModel.run {
-                                        updateBookData(it)
-                                        updateSelectedChapter(it.remoteKey)
-                                    }
-                                    BibleIQDataModel.updateSelectedBook(it)
-                                    BibleIQDataModel.showHomePage = false
+                                    initBookLoad(it)
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(
@@ -175,4 +175,15 @@ internal fun BibleBookList(
             }
         }
     }
+}
+
+fun initBookLoad(bookData: BookData, selectedChapter: Int = 1, fromAppPrefs: Boolean = false) {
+    BibleAPIDataModel.run {
+        updateBookData(bookData)
+        updateSelectedChapter(selectedChapter)
+
+    }
+    BibleIQDataModel.updateSelectedBook(bookData)
+    BibleIQDataModel.showHomePage = false
+    BibleIQDataModel.fromAppPrefs = fromAppPrefs
 }

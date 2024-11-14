@@ -107,12 +107,12 @@ object BibleAPIDataModel {
         _selectedBookData.value = newBookData
     }
 
-    private var _selectedChapter: MutableState<String> = mutableStateOf("")
-    val selectedChapter: String by _selectedChapter
+    private var _selectedChapter: MutableState<Int> = mutableStateOf(1)
+    val selectedChapter: Int by _selectedChapter
 
-    internal fun updateSelectedChapter(chapter: String? = null) {
-        Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
-        _selectedChapter.value = chapter ?: (selectedBookData.bookId + ".1")
+    internal fun updateSelectedChapter(chapter: Int) {
+        Napier.v("updateSelectedChapter: $chapter", tag = "FF6290")
+        _selectedChapter.value = chapter
     }
 
 

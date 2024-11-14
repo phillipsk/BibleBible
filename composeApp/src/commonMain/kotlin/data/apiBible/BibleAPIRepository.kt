@@ -136,7 +136,7 @@ suspend fun getReadingHistory() {
                     )
                 }
             withContext(Dispatchers.Main) {
-                filteredReadingHistory?.let {
+                filteredReadingHistory.let {
                     BibleAPIDataModel.updateReadingHistory(it)
                 }
             }
