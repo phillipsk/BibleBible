@@ -9,13 +9,14 @@ actual object DriverFactory {
     private var driverRef: SqlDriver? = null
 
     internal actual fun createDriver(): SqlDriver? {
-        if (driverRef == null) {
+        return null
+/*        if (driverRef == null) {
             driverRef = JdbcSqliteDriver(
                 "jdbc:sqlite:BibleBibleDB.db", Properties(),
                 BibleBibleDatabase.Schema
             )
         }
-        return driverRef!!
+        return driverRef!!*/
     }
 
     internal actual fun closeDB() {
