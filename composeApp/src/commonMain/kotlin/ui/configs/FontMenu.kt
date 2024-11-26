@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material.BottomSheetState
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Slider
 import androidx.compose.material.SliderDefaults
@@ -23,13 +25,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.appPrefs.updateUserPreferences
 import data.bibleIQ.BibleIQDataModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun FontSizeSlider() {
+internal fun FontSizeSlider(bottomSheetState: BottomSheetState) {
     val fontSizes = BibleIQDataModel.fontSizeOptions
     var sliderPosition by remember { mutableStateOf(BibleIQDataModel.selectedFontSize) }
     val coroutineScope = rememberCoroutineScope()
+    var isSliding by remember { mutableStateOf(false) }
 
     LaunchedEffect(BibleIQDataModel.selectedFontSize) {
         sliderPosition = BibleIQDataModel.selectedFontSize
@@ -53,8 +58,16 @@ internal fun FontSizeSlider() {
             onValueChange = {
                 sliderPosition = it
                 BibleIQDataModel.selectedFontSize = it
+                isSliding = true
+            },
+            onValueChangeFinished = {
+                isSliding = false
                 coroutineScope.launch {
-                    updateUserPreferences(it, BibleIQDataModel.selectedVersion)
+                    delay(2000)
+                    if (!isSliding) {
+                        updateUserPreferences(sliderPosition, BibleIQDataModel.selectedVersion)
+                        bottomSheetState.collapse()
+                    }
                 }
             },
             colors = SliderDefaults.colors(
