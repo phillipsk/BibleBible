@@ -29,7 +29,7 @@ compose.desktop {
             packageName = "BibleBible"
             packageVersion = "1.0.0"
             description = "Daily Bible Reading App"
-            copyright = "© 2024 Kevin Phillips"
+            copyright = "© 2025 Kevin Phillips"
             vendor = "Kevin Phillips"
             licenseFile.set(project.file("../LICENSE.md"))
 
