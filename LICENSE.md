@@ -1,4 +1,4 @@
-# License for *My BibleBible*
+License for *My BibleBible*
 
 This Bible reading app, *My BibleBible*, by Kevin Phillips is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. To view a copy of this license, visit [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/). You are free to share and adapt the content for non-commercial purposes, provided you give appropriate credit, provide a link to the license, and indicate if changes were made.
 
