@@ -66,6 +66,7 @@ kotlin {
             implementation(libs.generativeai)
         }
         desktopMain.dependencies {
+            implementation(libs.sqlDelight.driver.desktop)
             implementation(compose.desktop.currentOs)
             implementation(libs.ktor.client.cio)
             implementation(libs.kotlinX.coroutines.swing)
@@ -113,17 +114,6 @@ android {
     }
 }
 
-compose.desktop {
-    application {
-        mainClass = "MainKt"
-
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "email.kevinphillips.biblebible"
-            packageVersion = "1.0.0"
-        }
-    }
-}
 
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"

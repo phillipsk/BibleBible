@@ -21,6 +21,7 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.getReadingHistory
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
+import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -35,7 +36,8 @@ internal fun BottomSheetConfigView(
     }
     val readingHistory = BibleAPIDataModel.readingHistory
     Napier.v("LaunchedEffect :: count :: ${readingHistory?.size}", tag = "RH1283")
-    Column(modifier = Modifier.padding(4.dp).height(550.dp)) {
+    val bottomSheetHeight = if (isDesktopPlatform()) 150.dp else 550.dp
+    Column(modifier = Modifier.padding(4.dp).height(bottomSheetHeight)) {
         if (!showAISummary) {
             BibleMenu(
                 bibleVersionsList = bibleVersionsList,
@@ -43,7 +45,7 @@ internal fun BottomSheetConfigView(
                 bottomSheetState = bottomSheetState
             )
         }
-        FontSizeSlider()
+        FontSizeSlider(bottomSheetState)
         if (!readingHistory.isNullOrEmpty()) {
             Text(text = "Reading History",
                 fontFamily = MaterialTheme.typography.h1.fontFamily,

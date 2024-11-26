@@ -17,15 +17,31 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "email.kevinphillips.biblebible.BibleBibleKt"
+        buildTypes.release.proguard {
+            obfuscate.set(true)
+            configurationFiles.from(project.file("../proguard-rules.pro"))
+        }
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+//            https://github.com/JetBrains/compose-multiplatform/blob/master/tutorials/Native_distributions_and_local_execution/README.md
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Pkg)
             packageName = "BibleBible"
             packageVersion = "1.0.0"
+            description = "Daily Bible Reading App"
+            copyright = "© 2025 Kevin Phillips"
+            vendor = "Kevin Phillips"
+            licenseFile.set(project.file("../LICENSE.md"))
 
             val iconsRoot = project.file("desktop-icons")
             macOS {
                 iconFile.set(iconsRoot.resolve("BibleBible_ico_iv_rounded.icns"))
+                bundleID = "email.kevinphillips.biblebible"
+                entitlementsFile.set(project.file("entitlements.plist"))
+                runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
+                dockName = "My BibleBible"
+                appStore = true
+                appCategory = "public.app-category.reference"
+
             }
             windows {
                 iconFile.set(iconsRoot.resolve("BibleBible_ico_iv_rounded.ico"))
