@@ -171,8 +171,8 @@ internal fun BibleScripturesPager(
                                 Modifier
                                     .tabIndicatorOffset(tabPositions[pagerState.currentPage])
                                     .padding(horizontal = 16.dp)
-                                    .height(4.dp)
-                                    .clip(RoundedCornerShape(50)) // Make it rounded
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(50))
                                     .background(MaterialTheme.colors.primary)
                             )
                         } else {
