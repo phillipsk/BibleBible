@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
 import kotlin.native.concurrent.ThreadLocal
@@ -70,7 +71,12 @@ object BibleIQDataModel {
 
     val selectedSortType get() = if (sortAZ) "A-Z" else "OT-NT"
 
-    val fontSizeOptions = listOf(16f, 18f, 20f, 22f, 24f, 26f, 28f, 30f)
+    val fontSizeOptions = if (isDesktopPlatform()) {
+        listOf(16f, 20f, 24f, 28f, 32f, 36f, 40f, 44f, 48f, 52f, 56f, 60f, 64f, 68f, 72f)
+    } else {
+        listOf(16f, 18f, 20f, 22f, 24f, 26f, 28f, 30f)
+    }
+
     var selectedFontSize by mutableStateOf(20f)
 
     var selectedBook by mutableStateOf(BookData())
