@@ -111,14 +111,20 @@ internal fun BibleScripturesPager(
                 getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
             }
             isPageChangeFromTabClick = false
-//            bottomSheetScaffoldState.bottomSheetState.expand()
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-//            bottomSheetScaffoldState.bottomSheetState.collapse()
         }
-        bottomSheetScaffoldState.bottomSheetState.collapse()
-        pagerColumnScrollState.scrollTo(0)
+        launch {
+            if (bottomSheetScaffoldState.bottomSheetState.isExpanded) {
+                bottomSheetScaffoldState.bottomSheetState.collapse()
+            }
+        }
+        launch {
+            if (pagerColumnScrollState.value != 0) {
+                pagerColumnScrollState.scrollTo(0)
+            }
+        }
 //        GeminiModel.showSummary = false // done in API call
     }
 
