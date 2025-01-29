@@ -6,13 +6,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.ExperimentalMaterialApi
@@ -31,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.apiBible.BookData
 import data.bibleIQ.BibleChapterUIState
@@ -169,11 +173,14 @@ internal fun BibleScripturesPager(
                         if (pagerState.currentPage < tabPositions.size) {
                             Box(
                                 Modifier
+                                    .padding(vertical = 8.dp)
                                     .tabIndicatorOffset(tabPositions[pagerState.currentPage])
-                                    .padding(horizontal = 16.dp)
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(MaterialTheme.colors.primary)
+                                    .size(32.dp)
+                                    .border(
+                                        width = 2.dp,
+                                        color = MaterialTheme.colors.primary,
+                                        shape = CircleShape
+                                    )
                             )
                         } else {
                             Napier.e(
@@ -198,7 +205,7 @@ internal fun BibleScripturesPager(
                                     }
                                 }
                             },
-                            text = { Text(e.toString()) }
+                            text = { Text(e.toString(), fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
