@@ -57,6 +57,8 @@ This application uses the IQ Bible API to fetch Bible content. Use of this API i
 
 
 ## Backlog
+*   K2, upgrade KMP version, compose common tests
+*   review IDE notificaitons
 *   ~~socket timeout and api/db retries~~
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
 *   is not cached and the remote call fails, the lazy row chapters are not visible
