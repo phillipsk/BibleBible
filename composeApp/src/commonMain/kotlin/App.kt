@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import data.appPrefs.getUserPreferences
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
@@ -22,7 +23,7 @@ import ui.LoadingScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun App() {
+fun App(modifier: Modifier = Modifier) {
     BibleBibleTheme {
 
         initializeNapier()
@@ -51,6 +52,7 @@ fun App() {
         } else {
             BibleHomeScreen(
                 scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,
+                modifier = modifier,
             )
         }
     }
