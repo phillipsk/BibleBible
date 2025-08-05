@@ -19,7 +19,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 
-const val GEMINI_PRO = "gemini-pro"
+const val GEMINI_PRO = "gemini-2.5-flash"
 suspend fun generateContent(content: String) {
     val parts = mutableListOf<RequestPart>()
     parts.add(RequestPart(text = content))
