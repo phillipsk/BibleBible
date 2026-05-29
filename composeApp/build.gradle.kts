@@ -75,6 +75,8 @@ kotlin {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinX.coroutines.test)
                 implementation(libs.ktor.mock)
+                @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+                implementation(compose.uiTest)
             }
         }
     }
@@ -94,6 +96,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 16
         versionName = "6.9"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
     packaging {
         resources {
@@ -117,6 +125,7 @@ android {
     }
     dependencies {
         debugImplementation(libs.compose.ui.tooling)
+        testImplementation(libs.robolectric)
     }
 }
 

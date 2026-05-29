@@ -24,6 +24,7 @@ napier = "2.7.1"
 sqlDelight = "2.0.2"
 kotlinxDateTime = "0.6.0"
 generativeai = "0.7.0"
+robolectric = "4.12.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -61,6 +62,7 @@ sqlDelight-driver-android = { module = "app.cash.sqldelight:android-driver", ver
 sqlDelight-driver-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqlDelight" }
 generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 sqlDelight-driver-desktop = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
