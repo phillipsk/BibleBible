@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.kotlinComposeCompiler)
     alias(libs.plugins.buildKonfig)
     alias(libs.plugins.kotlinX.serialization.plugin)
     alias(libs.plugins.sqlDelight)
@@ -14,10 +15,8 @@ plugins {
 
 kotlin {
     androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
-            }
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
     }
 
@@ -71,6 +70,13 @@ kotlin {
             implementation(libs.ktor.client.cio)
             implementation(libs.kotlinX.coroutines.swing)
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinX.coroutines.test)
+                implementation(libs.ktor.mock)
+            }
+        }
     }
 }
 
@@ -86,8 +92,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 15
-        versionName = "6.8"
+        versionCode = 16
+        versionName = "6.9"
     }
     packaging {
         resources {
@@ -122,17 +128,17 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir).getProperty("IQ_BIBLE_API_KEY") ?: ""
+            gradleLocalProperties(rootDir, providers).getProperty("IQ_BIBLE_API_KEY") ?: ""
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
-            gradleLocalProperties(rootDir).getProperty("api_key_api_bible") ?: ""
+            gradleLocalProperties(rootDir, providers).getProperty("api_key_api_bible") ?: ""
         )
         buildConfigField(
             STRING,
             "GEMINI_API_KEY",
-            gradleLocalProperties(rootDir).getProperty("GEMINI_API_KEY") ?: ""
+            gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY") ?: ""
         )
     }
 }

@@ -3,6 +3,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.jetbrainsCompose)
+    alias(libs.plugins.kotlinComposeCompiler)
 }
 kotlin {
     jvm()
@@ -26,7 +27,7 @@ compose.desktop {
 //            https://github.com/JetBrains/compose-multiplatform/blob/master/tutorials/Native_distributions_and_local_execution/README.md
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Pkg)
             packageName = "BibleBible"
-            packageVersion = "1.0.0"
+            packageVersion = "1.1.0"
             description = "Daily Bible Reading App"
             copyright = "© 2025 Kevin Phillips"
             vendor = "Kevin Phillips"
