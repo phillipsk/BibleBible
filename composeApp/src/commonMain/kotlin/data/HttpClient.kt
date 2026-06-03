@@ -24,13 +24,14 @@ data class HttpClientConfig(
 )
 
 const val TIMEOUT_LIMIT = 20_000L
+const val TIMEOUT_LIMIT_GEMINI = 10_000L
 
-private fun createHttpClient(config: HttpClientConfig): HttpClient {
+private fun createHttpClient(config: HttpClientConfig, timeout: Long = TIMEOUT_LIMIT): HttpClient {
     return HttpClient {
         install(HttpTimeout) {
-            requestTimeoutMillis = TIMEOUT_LIMIT
-            connectTimeoutMillis = TIMEOUT_LIMIT
-            socketTimeoutMillis = TIMEOUT_LIMIT // create separate client for GeminiService
+            requestTimeoutMillis = timeout
+            connectTimeoutMillis = timeout
+            socketTimeoutMillis = timeout
         }
         install(Resources)
         if (!BibleIQDataModel.RELEASE_BUILD) {
@@ -51,7 +52,9 @@ private fun createHttpClient(config: HttpClientConfig): HttpClient {
                 host = config.baseUrl
                 protocol = URLProtocol.HTTPS
             }
-            header(config.apiKeyHeader, config.apiKey)
+            if (config.apiKeyHeader.isNotEmpty()) {
+                header(config.apiKeyHeader, config.apiKey)
+            }
         }
     }
 }
@@ -74,8 +77,8 @@ val httpClientBibleIQ: HttpClient by lazy {
 
 val httpClientGemini: HttpClient by lazy {
     val config = HttpClientConfig(
-        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "X-RapidAPI-Key",
+        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "",
         apiKey = BuildKonfig.GEMINI_API_KEY
     )
-    createHttpClient(config)
+    createHttpClient(config, timeout = TIMEOUT_LIMIT_GEMINI)
 }
