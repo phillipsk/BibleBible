@@ -1,6 +1,9 @@
 package ui
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Snackbar
@@ -15,7 +18,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun CustomSnackbarHost(snackbarHostState: SnackbarHostState) {
-    SnackbarHost(hostState = snackbarHostState) { data ->
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+    ) { data ->
         Snackbar(
             modifier = Modifier.padding(16.dp),
             shape = RoundedCornerShape(12.dp),
