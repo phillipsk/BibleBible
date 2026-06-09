@@ -24,7 +24,7 @@ data class HttpClientConfig(
 )
 
 const val TIMEOUT_LIMIT = 20_000L
-const val TIMEOUT_LIMIT_GEMINI = 10_000L
+const val TIMEOUT_LIMIT_GEMINI = 20_000L
 
 private fun createHttpClient(config: HttpClientConfig, timeout: Long = TIMEOUT_LIMIT): HttpClient {
     return HttpClient {
