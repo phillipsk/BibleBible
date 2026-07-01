@@ -6,6 +6,7 @@ import email.kevinphillips.biblebible.BuildKonfig
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
+import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -19,8 +20,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 
-const val GEMINI_PRO = "gemini-2.5-flash"
-suspend fun generateContent(content: String) {
+/**
+ * The latest high-speed Flash model. 
+ * As of May 2026, Gemini 3.5 Flash is the state-of-the-art efficiency model.
+ */
+const val GEMINI_MODEL = "gemini-3.5-flash"
+
+suspend fun generateContent(content: String, client: HttpClient = httpClientGemini) {
     val parts = mutableListOf<RequestPart>()
     parts.add(RequestPart(text = content))
     val requestBody = RequestBody(contents = listOf(ContentItem(parts = parts)))
@@ -29,8 +35,8 @@ suspend fun generateContent(content: String) {
     try {
         val responseText: GeminiResponseDto
         withContext(Dispatchers.IO) {
-            responseText = httpClientGemini.post {
-                url("v1beta/models/$GEMINI_PRO:generateContent")
+            responseText = client.post {
+                url("v1beta/models/$GEMINI_MODEL:generateContent")
                 parameter("key", BuildKonfig.GEMINI_API_KEY)
                 setBody(Json.encodeToString(requestBody))
             }.body<GeminiResponseDto>()
