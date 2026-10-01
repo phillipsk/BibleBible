@@ -131,6 +131,15 @@ android {
 }
 
 
+fun obfuscateSecret(plain: String): String {
+    val mask = 0x5A
+    return plain.map { (it.code xor mask).toChar() }.joinToString("")
+}
+
+val rawIqKey = gradleLocalProperties(rootDir, providers).getProperty("IQ_BIBLE_API_KEY") ?: ""
+val rawApiBibleKey = gradleLocalProperties(rootDir, providers).getProperty("api_key_api_bible") ?: ""
+val rawGeminiKey = gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY") ?: ""
+
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
@@ -138,17 +147,17 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("IQ_BIBLE_API_KEY") ?: ""
+            obfuscateSecret(rawIqKey)
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
-            gradleLocalProperties(rootDir, providers).getProperty("api_key_api_bible") ?: ""
+            obfuscateSecret(rawApiBibleKey)
         )
         buildConfigField(
             STRING,
             "GEMINI_API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY") ?: ""
+            obfuscateSecret(rawGeminiKey)
         )
     }
 }

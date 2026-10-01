@@ -13,9 +13,16 @@ object GeminiModel {
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
 
+    private val summaryCache = mutableMapOf<String, GeminiResponseDto>()
+    private val currentChapterKey: String
+        get() = "${BibleIQDataModel.selectedBook.remoteKey}_${BibleIQDataModel.bibleChapter?.chapterId}"
+
     private var geminiData by mutableStateOf(GeminiResponseDto())
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
+        if (geminiDataText?.isNotEmpty() == true) {
+            summaryCache[currentChapterKey] = data
+        }
         Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
     }
     internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
@@ -35,7 +42,16 @@ object GeminiModel {
                 BibleIQDataModel.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary(pullToRefresh: Boolean = false) {
-        if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
+        val key = currentChapterKey
+        if (!pullToRefresh && summaryCache.containsKey(key)) {
+            val cached = summaryCache[key]!!
+            geminiData = cached
+            isLoading = false
+            Napier.v("generateAISummary :: served from in-memory cache for $key", tag = "GeminiModel")
+            return
+        }
+
+        if (pullToRefresh || (showSummary && isLoading && geminiDataText.isNullOrEmpty())) {
             generateContent(geminiQuery)
         }
     }

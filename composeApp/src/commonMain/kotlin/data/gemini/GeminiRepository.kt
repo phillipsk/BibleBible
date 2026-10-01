@@ -37,7 +37,7 @@ suspend fun generateContent(content: String, client: HttpClient = httpClientGemi
         withContext(Dispatchers.IO) {
             responseText = client.post {
                 url("v1beta/models/$GEMINI_MODEL:generateContent")
-                parameter("key", BuildKonfig.GEMINI_API_KEY)
+                parameter("key", data.security.SecretObfuscator.deobfuscate(BuildKonfig.GEMINI_API_KEY))
                 setBody(Json.encodeToString(requestBody))
             }.body<GeminiResponseDto>()
         }
