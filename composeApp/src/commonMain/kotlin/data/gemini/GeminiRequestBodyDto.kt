@@ -7,7 +7,16 @@ import kotlinx.serialization.Serializable
 data class ContentItem(val parts: List<RequestPart>)
 
 @Serializable
-data class RequestBody(val contents: List<ContentItem>)
+data class RequestBody(
+    val contents: List<ContentItem>,
+    val generationConfig: GenerationConfig = GenerationConfig(),
+)
+
+@Serializable
+data class GenerationConfig(
+    val maxOutputTokens: Int = 2048,
+    val candidateCount: Int = 1,
+)
 
 @Serializable
 data class RequestPart(
