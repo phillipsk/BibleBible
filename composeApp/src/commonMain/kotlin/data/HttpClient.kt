@@ -59,10 +59,12 @@ private fun createHttpClient(config: AppHttpClientConfig, timeout: Long = TIMEOU
     }
 }
 
+import data.security.SecretObfuscator
+
 val httpClientBibleAPI: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = "api.scripture.api.bible/v1", apiKeyHeader = "api-key",
-        apiKey = BuildKonfig.API_KEY_API_BIBLE
+        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY_API_BIBLE)
     )
     createHttpClient(config)
 }
@@ -70,7 +72,7 @@ val httpClientBibleAPI: HttpClient by lazy {
 val httpClientBibleIQ: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
-        apiKey = BuildKonfig.API_KEY
+        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY)
     )
     createHttpClient(config)
 }
@@ -78,7 +80,7 @@ val httpClientBibleIQ: HttpClient by lazy {
 val httpClientGemini: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "",
-        apiKey = BuildKonfig.GEMINI_API_KEY
+        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.GEMINI_API_KEY)
     )
     createHttpClient(config, timeout = TIMEOUT_LIMIT_GEMINI)
 }
