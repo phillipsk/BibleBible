@@ -51,6 +51,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(libs.kotlinX.coroutines)
             implementation(libs.kotlinX.datetime)
+            implementation(libs.ktor.core)
             implementation(libs.ktor.logging)
             implementation(libs.ktor.resources)
             implementation(libs.ktor.contentNegotiation)
