@@ -3,28 +3,35 @@ package data.bibleIQ
 import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
+import data.RequestCache
 import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
 import data.apiBible.getTimeZone
-import data.gemini.GeminiResponseDto
 import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.call.body
+import io.ktor.client.HttpClient
 import io.ktor.client.plugins.resources.get
+import io.ktor.http.isSuccess
 import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 const val LOCAL_DATA = true
 val DATABASE_RETENTION = if (BibleIQDataModel.RELEASE_BUILD) 30_000L else 30_000L
 val DATABASE_RETENTION_READING_HISTORY = if (BibleIQDataModel.RELEASE_BUILD) 500L else 500L
+
+private data class ChapterRequest(val bookId: Int, val chapter: Int, val version: String)
+private data class ChapterData(val verses: List<BibleChapter>, val count: ChapterCount?)
+private val chapterRequests = RequestCache<ChapterRequest, ChapterData>(maxEntries = 8)
+private val chapterCounts = RequestCache<Int, ChapterCount>(maxEntries = 66)
+private var currentChapterRequest: ChapterRequest? = null
 
 internal suspend fun getBooksBibleIQ() {
     try {
@@ -65,70 +72,52 @@ internal suspend fun getChapterBibleIQ(
     chapter: Int = 1,
     version: String = BibleIQDataModel.selectedVersion,
     updateReadingHistory: Boolean = true,
+    client: HttpClient = httpClientBibleIQ,
 ) {
     try {
-        GeminiModel.showSummary = false
-        GeminiModel.updateGeminiData(GeminiResponseDto())
         val bookId = BibleIQDataModel.getAPIBibleOrdinal(book.remoteKey)
-        Napier.v("getChapterBibleIQ: bookId: $bookId :: chapter $chapter", tag = "IQ093")
-        val chapterVerses: List<BibleChapter>
-        var chapterCount: ChapterCount?
-
-        Napier.i("getChapterBibleAPI: $chapter :: version $version", tag = "IQ093")
-        Napier.d("start load", tag = "IQ093")
-        val cachedData = loadVerseData(bookId, chapter, version)
-        Napier.d("end load", tag = "IQ093")
-//        val bookName = BibleIQDataModel.getAPIBibleCardinal(book.remoteKey).toString()
-        Napier.v(
-            "httpclient cachedData value: book:: ${
-                cachedData?.firstOrNull()?.b + " :: verse: " + cachedData?.firstOrNull()?.c
-            }", tag = "IQ093"
-        )
-
-        if (cachedData.isNullOrEmpty()) {
-            withContext(Dispatchers.IO) {
-//                delay(3000)
-                chapterVerses =
-                    httpClientBibleIQ.get(
-                        GetChapter(
-                            bookId = bookId,
-                            chapterId = chapter.toString(),
-                            versionId = version.lowercase()
-                        )
-                    ).body<List<BibleChapter>>()
-                Napier.v(
-                    "getChapterBibleIQ: ${chapterVerses.firstOrNull()?.t?.take(100)}",
-                    tag = "BB2452"
-                )
-                if (chapterVerses.isEmpty()) {
-                    throw IOException("Error fetching chapter")
-                }
-                chapterCount = queryBookChapterSize(bookId, version)
-                if (chapterCount?.chapterCount == 0L || chapterCount?.chapterCount == null) {
-                    Napier.v("sql :: insert chapterCount", tag = "IQ093")
-                    chapterCount = getChapterCountBibleIQ(bookId).await()
-                    insertChapterCount(chapterCount, bookId, version)
-                }
-
-                withContext(Dispatchers.Main) {
-                    Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                    BibleIQDataModel.updateBibleChapter(chapterVerses, chapterCount, version)
-                }
-                insertBibleVerses(chapterVerses, version, chapterCount)
-            }
-        } else {
-            chapterCount = queryBookChapterSize(bookId, version)
-            withContext(Dispatchers.Main) {
-                Napier.v("getChapterBibleIQ :: update UI", tag = "IQ093")
-                BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
-            }
-            updateTimestampBibleVerses(cachedData.firstOrNull(), version)
+        val key = ChapterRequest(bookId, chapter, version.lowercase())
+        if (currentChapterRequest != key) {
+            currentChapterRequest = key
+            GeminiModel.resetForChapter()
         }
+        val data = chapterRequests.get(key) {
+            withContext(Dispatchers.IO) {
+                val cached = loadVerseData(bookId, chapter, key.version)
+                var count = queryBookChapterSize(bookId, key.version)
+                if (count?.chapterCount == null || count.chapterCount == 0L) {
+                    count = getChapterCountBibleIQ(bookId, client)
+                    insertChapterCount(count, bookId, key.version)
+                }
+                if (!cached.isNullOrEmpty()) {
+                    updateTimestampBibleVerses(cached.firstOrNull(), key.version)
+                    ChapterData(cached, count)
+                } else {
+                    val response = client.get(GetChapter(bookId, chapter.toString(), key.version))
+                    if (!response.status.isSuccess()) {
+                        throw IOException("Bible chapter unavailable (HTTP ${response.status.value}).")
+                    }
+                    val verses = response.body<List<BibleChapter>>()
+                    if (verses.isEmpty()) throw IOException("Error fetching chapter")
+                    insertBibleVerses(verses, key.version, count)
+                    ChapterData(verses, count)
+                }
+            }
+        }
+        withContext(Dispatchers.Main) {
+            // A response for a chapter we have left must not replace the current chapter.
+            if (currentChapterRequest == key) {
+                BibleIQDataModel.updateBibleChapter(data.verses, data.count, key.version)
+            }
+        }
+        if (currentChapterRequest != key) return
         if (updateReadingHistory) {
             insertReadingHistory(bookId, chapter)
             getReadingHistory()
         }
         Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
@@ -179,9 +168,15 @@ internal suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int
     }
 }
 
-private suspend fun getChapterCountBibleIQ(bookId: Int) = coroutineScope {
-    async(Dispatchers.IO) {
-        httpClientBibleIQ.get(GetChapterCount(bookId)).body<ChapterCount>()
+private suspend fun getChapterCountBibleIQ(bookId: Int, client: HttpClient): ChapterCount {
+    return chapterCounts.get(bookId) {
+        val response = client.get(GetChapterCount(bookId))
+        if (!response.status.isSuccess()) {
+            throw IOException("Chapter count unavailable (HTTP ${response.status.value}).")
+        }
+        response.body<ChapterCount>().also {
+            if (it.chapterCount == null || it.chapterCount <= 0) throw IOException("Error fetching chapter count")
+        }
     }
 }
 

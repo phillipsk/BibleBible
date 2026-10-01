@@ -47,18 +47,17 @@ private fun AISummaryTopBar() {
     val scope = rememberCoroutineScope()
     AISummaryButton(
         generateAISummary = {
-            GeminiModel.isLoading = true
             if (!GeminiModel.showSummary) {
                 scope.launch {
                     GeminiModel.showSummary = true
                     GeminiModel.generateAISummary()
-                    GeminiModel.isLoading = false
                 }
             } else {
                 GeminiModel.showSummary = false
             }
         },
         isAISummarySuccessful = GeminiModel.isSuccessful,
-        showSummary = GeminiModel.showSummary
+        showSummary = GeminiModel.showSummary,
+        enabled = GeminiModel.isAvailable && !GeminiModel.isLoading,
     )
 }
