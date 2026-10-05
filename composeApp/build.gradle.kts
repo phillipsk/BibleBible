@@ -140,6 +140,15 @@ val diagnosticLoggingEnabled = providers.gradleProperty("ENABLE_DIAGNOSTIC_LOGGI
     .orElse(localAppProperties.getProperty("ENABLE_DIAGNOSTIC_LOGGING") ?: "false")
     .get().toBooleanStrict()
 
+fun obfuscateSecret(plain: String): String {
+    val mask = 0x5A
+    return plain.map { (it.code xor mask).toChar() }.joinToString("")
+}
+
+val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
+val rawApiBibleKey = localAppProperties.getProperty("api_key_api_bible") ?: ""
+val rawGeminiKey = if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
+
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
@@ -147,18 +156,17 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
+            obfuscateSecret(rawIqKey)
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
-            // The legacy API.Bible network path is disabled; do not ship its unused key.
-            ""
+            obfuscateSecret(rawApiBibleKey)
         )
         buildConfigField(
             STRING,
             "GEMINI_API_KEY",
-            if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
+            obfuscateSecret(rawGeminiKey)
         )
         buildConfigField(BOOLEAN, "AI_SUMMARIES_ENABLED", aiSummariesEnabled.toString())
         buildConfigField(BOOLEAN, "ENABLE_DIAGNOSTIC_LOGGING", diagnosticLoggingEnabled.toString())
