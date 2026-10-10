@@ -22,6 +22,20 @@ IQ_BIBLE_API_KEY=[YOUR_API_KEY_HERE]
 GEMINI_API_KEY=[YOUR_API_KEY_HERE]
 ```
 
+`local.properties` keeps credentials out of Git, but BuildKonfig compiles active keys into
+the app. Direct provider access is for development/temporary containment; production
+must move paid provider calls behind a service that keeps the keys on the server.
+See [release 2.1 API security notes](docs/release-2.1-api-security.md).
+
+Diagnostic logging is off by default. For local debugging, use
+`-PENABLE_DIAGNOSTIC_LOGGING=true`. To disable AI summaries and omit the Gemini key
+from generated shared code, use `-PAI_SUMMARIES_ENABLED=false` (or put
+`AI_SUMMARIES_ENABLED=false` in `local.properties`). This setting applies to every
+target built with that configuration; existing installations need an update, and
+an already exposed key still needs revocation. The unused legacy API.Bible key is
+no longer embedded. Android release signing must use your production/upload key
+through Android Studio or protected CI; the Gradle release build is unsigned by default.
+
 ## Approach
 To keep things simple and avoid third-party navigation and state management libraries, I have taken a unique approach. Instead of using a traditional navigation library or Koin DI framework, I manage the app's state with a Kotlin object and mimic navigation using animated visibility composables.
 

@@ -25,11 +25,13 @@ fun AISummaryButton(
     generateAISummary: () -> Unit,
     isAISummarySuccessful: Boolean,
     showSummary: Boolean,
+    enabled: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
 
     Napier.d("GeminiModel.showSummary ${GeminiModel.showSummary}", tag = "Gemini")
     FilterChip(
+        enabled = enabled,
         border = if (!isAISummarySuccessful) BorderStroke(
             2.dp,
             MaterialTheme.colors.primary

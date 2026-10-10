@@ -1,49 +1,43 @@
 package data.gemini
 
-import data.GeminiModel
 import data.httpClientGemini
-import email.kevinphillips.biblebible.BuildKonfig
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.request.parameter
+import io.ktor.http.contentType
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
+import io.ktor.http.ContentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 
-/**
- * The latest high-speed Flash model. 
- * As of May 2026, Gemini 3.5 Flash is the state-of-the-art efficiency model.
- */
+/** Cloud model used for chapter summaries. This path does not use on-device Gemini Nano. */
 const val GEMINI_MODEL = "gemini-3.5-flash"
 
-suspend fun generateContent(content: String, client: HttpClient = httpClientGemini) {
-    val parts = mutableListOf<RequestPart>()
-    parts.add(RequestPart(text = content))
-    val requestBody = RequestBody(contents = listOf(ContentItem(parts = parts)))
-    Napier.d("Request Body: $requestBody", tag = "GeminiServiceImp")
+internal class GeminiRequestException(message: String) : Exception(message)
 
-    try {
-        val responseText: GeminiResponseDto
-        withContext(Dispatchers.IO) {
-            responseText = client.post {
-                url("v1beta/models/$GEMINI_MODEL:generateContent")
-                parameter("key", BuildKonfig.GEMINI_API_KEY)
-                setBody(Json.encodeToString(requestBody))
-            }.body<GeminiResponseDto>()
-        }
-        GeminiModel.updateGeminiData(responseText)
-    } catch (e: Exception) {
-        Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
+suspend fun generateContent(
+    content: String,
+    client: HttpClient = httpClientGemini,
+): GeminiResponseDto {
+    val response = client.post {
+        url("https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent")
+        contentType(ContentType.Application.Json)
+        setBody(RequestBody(contents = listOf(ContentItem(parts = listOf(RequestPart(text = content))))))
+    }
+    if (!response.status.isSuccess()) {
+        // Do not log provider bodies or exception messages that might contain credentials.
+        throw GeminiRequestException("AI summary request failed (HTTP ${response.status.value}).")
+    }
+    return response.body<GeminiResponseDto>().also {
+        if (it.summaryText == null) throw GeminiRequestException("AI summary response was empty.")
     }
 }
 

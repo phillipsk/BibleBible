@@ -1,11 +1,12 @@
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlin.jvm.JvmStatic
+import data.bibleIQ.BibleIQDataModel
 
 
 object NapierLogger {
     @JvmStatic
     internal fun initIosNapierLogger() {
-        Napier.base(DebugAntilog())
+        if (!BibleIQDataModel.RELEASE_BUILD) Napier.base(DebugAntilog())
     }
 }

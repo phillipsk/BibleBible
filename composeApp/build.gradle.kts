@@ -1,6 +1,7 @@
 
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -116,8 +117,8 @@ android {
 //                getDefaultProguardFile("proguard-android-optimize.txt"),
 //                "proguard-rules.pro"
 //            )
-            signingConfig = signingConfigs.getByName("debug")
-//            signingConfig = signingConfigs.getByName("release")
+            // Supply production signing through Android Studio or protected CI configuration.
+            // Never sign a release with the debug certificate by default.
         }
     }
     compileOptions {
@@ -131,6 +132,23 @@ android {
 }
 
 
+val localAppProperties = gradleLocalProperties(rootDir, providers)
+val aiSummariesEnabled = providers.gradleProperty("AI_SUMMARIES_ENABLED")
+    .orElse(localAppProperties.getProperty("AI_SUMMARIES_ENABLED") ?: "true")
+    .get().toBooleanStrict()
+val diagnosticLoggingEnabled = providers.gradleProperty("ENABLE_DIAGNOSTIC_LOGGING")
+    .orElse(localAppProperties.getProperty("ENABLE_DIAGNOSTIC_LOGGING") ?: "false")
+    .get().toBooleanStrict()
+
+fun obfuscateSecret(plain: String): String {
+    val mask = 0x5A
+    return plain.map { (it.code xor mask).toChar() }.joinToString("")
+}
+
+val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
+val rawApiBibleKey = localAppProperties.getProperty("api_key_api_bible") ?: ""
+val rawGeminiKey = if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
+
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
@@ -138,18 +156,20 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("IQ_BIBLE_API_KEY") ?: ""
+            obfuscateSecret(rawIqKey)
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
-            gradleLocalProperties(rootDir, providers).getProperty("api_key_api_bible") ?: ""
+            obfuscateSecret(rawApiBibleKey)
         )
         buildConfigField(
             STRING,
             "GEMINI_API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY") ?: ""
+            obfuscateSecret(rawGeminiKey)
         )
+        buildConfigField(BOOLEAN, "AI_SUMMARIES_ENABLED", aiSummariesEnabled.toString())
+        buildConfigField(BOOLEAN, "ENABLE_DIAGNOSTIC_LOGGING", diagnosticLoggingEnabled.toString())
     }
 }
 
