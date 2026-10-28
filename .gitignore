@@ -22,6 +22,7 @@ captures
 *.keystore
 *.jks
 *.p12
+*.pem
 *.provisionprofile
 *.lcf
 composeApp/release/

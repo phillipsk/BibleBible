@@ -37,13 +37,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.apiBible.BookData
-import data.GeminiModel
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
@@ -67,6 +67,9 @@ internal fun BibleScripturesPager(
     val pagerState = rememberPagerState(0, 0f) {
         chapters.chapterList?.size ?: 0
     }
+    var isPageChangeFromTabClick by remember { mutableStateOf(false) }
+    var lastTabClickTime by remember { mutableStateOf(0L) }
+    val debounceDuration = 50L  // 300 ms for debounce duration
     val uiStateReady =
         BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
 
@@ -98,13 +101,22 @@ internal fun BibleScripturesPager(
         }
     }
 
-    LaunchedEffect(pagerState.settledPage) {
+    LaunchedEffect(pagerState.currentPage) {
         Napier.v(
             "LaunchedEffect: currentPage: ${pagerState.currentPage} initialLoadDone $initialLoadDone",
             tag = "BB2470"
         )
-        if (!initialLoadDone) {
-            selectedTabIndex = pagerState.settledPage
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        if (isPageChangeFromTabClick) {
+            val time = currentTime - lastTabClickTime
+            Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
+            if (time > debounceDuration) {
+                selectedTabIndex = pagerState.currentPage
+                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+            }
+            isPageChangeFromTabClick = false
+        } else if (!initialLoadDone) {
+            selectedTabIndex = pagerState.currentPage
             getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
         launch {
@@ -185,6 +197,8 @@ internal fun BibleScripturesPager(
                             onClick = {
                                 Napier.v("Tab onClick: $index", tag = "BB2460")
                                 if (index != selectedTabIndex) {
+                                    isPageChangeFromTabClick = true
+                                    lastTabClickTime = Clock.System.now().toEpochMilliseconds()
                                     selectedTabIndex = index
                                     scope.launch {
                                         pagerState.animateScrollToPage(index)
@@ -208,7 +222,7 @@ internal fun BibleScripturesPager(
                         tag = "Gemini"
                     )
                     when {
-                        isAISummaryLoading && showAISummary && GeminiModel.geminiDataText == null -> {
+                        isAISummaryLoading && showAISummary -> {
                             LoadingScreen()
                         }
 

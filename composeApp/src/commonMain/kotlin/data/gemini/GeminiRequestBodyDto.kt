@@ -9,13 +9,13 @@ data class ContentItem(val parts: List<RequestPart>)
 @Serializable
 data class RequestBody(
     val contents: List<ContentItem>,
-    val generationConfig: GenerationConfig = GenerationConfig(),
+    val generationConfig: GenerationConfig,
 )
 
 @Serializable
 data class GenerationConfig(
-    val maxOutputTokens: Int = 2048,
-    val candidateCount: Int = 1,
+    val maxOutputTokens: Int,
+    val candidateCount: Int,
 )
 
 @Serializable

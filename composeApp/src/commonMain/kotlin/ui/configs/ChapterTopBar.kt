@@ -50,14 +50,18 @@ private fun AISummaryTopBar() {
             if (!GeminiModel.showSummary) {
                 scope.launch {
                     GeminiModel.showSummary = true
-                    GeminiModel.generateAISummary()
+                    GeminiModel.isLoading = true
+                    try {
+                        GeminiModel.generateAISummary()
+                    } finally {
+                        GeminiModel.isLoading = false
+                    }
                 }
             } else {
                 GeminiModel.showSummary = false
             }
         },
         isAISummarySuccessful = GeminiModel.isSuccessful,
-        showSummary = GeminiModel.showSummary,
-        enabled = GeminiModel.isAvailable && !GeminiModel.isLoading,
+        showSummary = GeminiModel.showSummary
     )
 }

@@ -14,6 +14,8 @@ plugins {
     alias(libs.plugins.sqlDelight)
 }
 
+val localAppProperties = gradleLocalProperties(rootDir, providers)
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -96,8 +98,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 16
-        versionName = "6.9"
+        versionCode = 17
+        versionName = "7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     testOptions {
@@ -110,15 +112,25 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    val releaseStorePath = localAppProperties.getProperty("ANDROID_RELEASE_STORE_FILE")
+    if (!releaseStorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(releaseStorePath)
+                storePassword = localAppProperties.getProperty("ANDROID_RELEASE_STORE_PASSWORD")
+                keyAlias = localAppProperties.getProperty("ANDROID_RELEASE_KEY_ALIAS")
+                keyPassword = localAppProperties.getProperty("ANDROID_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
-//            isMinifyEnabled = true
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
-            // Supply production signing through Android Studio or protected CI configuration.
-            // Never sign a release with the debug certificate by default.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
@@ -132,7 +144,6 @@ android {
 }
 
 
-val localAppProperties = gradleLocalProperties(rootDir, providers)
 val aiSummariesEnabled = providers.gradleProperty("AI_SUMMARIES_ENABLED")
     .orElse(localAppProperties.getProperty("AI_SUMMARIES_ENABLED") ?: "true")
     .get().toBooleanStrict()

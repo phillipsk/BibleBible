@@ -5,7 +5,7 @@ object SecretObfuscator {
 
     /**
      * Deobfuscates a string that was XOR-masked during build time with MASK (0x5A).
-     * Prevents static string scanners (JADX, mobsf, strings CLI) from finding plain text API keys in compiled binaries.
+     * Avoids literal key strings in generated source. The fixed mask is reversible and is not a security boundary.
      */
     fun deobfuscate(obfuscated: String): String {
         if (obfuscated.isEmpty()) return ""
