@@ -94,11 +94,16 @@ object BibleIQDataModel {
         updateSelectedBook(book)
         BibleAPIDataModel.updateBookData(book)
         BibleAPIDataModel.updateSelectedChapter("${book.bookId}.$chapter")
-        bibleChapter = BibleChapterUIState(
-            bookId = getAPIBibleOrdinal(book.remoteKey),
-            chapterId = chapter,
-            chapterList = book.chapterListBookData.orEmpty().mapNotNull { it.number?.toLongOrNull() },
-        )
+        val bookId = getAPIBibleOrdinal(book.remoteKey)
+        val loaded = bibleChapter
+        if (loaded?.bookId != bookId || loaded.chapterId != chapter || loaded.text == null ||
+            !loaded.version.equals(selectedVersion, ignoreCase = true)) {
+            bibleChapter = BibleChapterUIState(
+                bookId = bookId,
+                chapterId = chapter,
+                chapterList = book.chapterListBookData.orEmpty().mapNotNull { it.number?.toLongOrNull() },
+            )
+        }
         showHomePage = false
     }
 
