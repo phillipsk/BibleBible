@@ -44,6 +44,7 @@ kotlin {
             implementation(libs.generativeai)
         }
         commonMain.dependencies {
+            implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material)

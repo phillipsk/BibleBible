@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.appPrefs.ReadingSession
+import data.GeminiModel
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
@@ -86,6 +88,24 @@ object BibleIQDataModel {
         selectedBook = newBook
     }
 
+    internal fun restoreReadingLocation(book: BookData, chapter: Int) {
+        selectedBook = book
+        BibleAPIDataModel.updateBookData(book)
+        BibleAPIDataModel.updateSelectedChapter("${book.bookId}.$chapter")
+        bibleChapter = BibleChapterUIState(
+            bookId = getAPIBibleOrdinal(book.remoteKey),
+            chapterId = chapter,
+            chapterList = book.chapterListBookData.orEmpty().mapNotNull { it.number?.toLongOrNull() },
+        )
+        showHomePage = false
+    }
+
+    internal fun discardReadingLocation() {
+        bibleChapter = BibleChapterUIState()
+        GeminiModel.showSummary = false
+        showHomePage = true
+    }
+
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
@@ -119,6 +139,7 @@ object BibleIQDataModel {
     val onHomeClick: () -> Unit = {
         Napier.v("onHomeClick", tag = "BB2452")
         BibleIQDataModel.showHomePage = true
+        ReadingSession.goHome()
     }
 
 

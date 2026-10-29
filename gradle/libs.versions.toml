@@ -4,6 +4,7 @@ android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "37"
 androidx-activityCompose = "1.9.3"
+androidx-lifecycle = "2.8.4"
 androidx-appcompat = "1.7.0"
 androidx-constraintlayout = "2.1.4"
 androidx-core-ktx = "1.15.0"
@@ -27,6 +28,7 @@ generativeai = "0.9.0"
 robolectric = "4.16.1"
 
 [libraries]
+androidx-lifecycle-runtime-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
