@@ -25,15 +25,10 @@ GEMINI_API_KEY=[YOUR_API_KEY_HERE]
 `local.properties` keeps credentials out of Git. BuildKonfig embeds reversibly
 obfuscated provider keys in the app; this does not make those keys unrecoverable.
 This release continues to call the providers directly and requires no backend.
-See [release 2.1 API security notes](docs/release-2.1-api-security.md).
+Diagnostic logging is off by default, and provider authentication headers are
+redacted when HTTP diagnostics are enabled.
 
-Diagnostic logging is off by default. For local debugging, use
-`-PENABLE_DIAGNOSTIC_LOGGING=true`. To disable AI summaries and omit the Gemini key
-from generated shared code, use `-PAI_SUMMARIES_ENABLED=false` (or put
-`AI_SUMMARIES_ENABLED=false` in `local.properties`). Existing installations need
-an update to receive configuration changes; revoke any compromised key separately.
-Android releases use R8 with the existing keep rules. Upload signing credentials
-are read from ignored `local.properties`, or signing can be supplied by Android Studio.
+See the [release notes](CHANGELOG.md) for app changes.
 
 ## Approach
 To keep things simple and avoid third-party navigation and state management libraries, I have taken a unique approach. Instead of using a traditional navigation library or Koin DI framework, I manage the app's state with a Kotlin object and mimic navigation using animated visibility composables.

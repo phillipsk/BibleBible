@@ -23,7 +23,16 @@ captures
 *.jks
 *.p12
 *.pem
+*.p8
 *.provisionprofile
+*.mobileprovision
+*.aab
+*.apk
+*.ipa
+*.xcarchive/
+*.dSYM/
+/gen-lang-client-*.json
+/service-account*.json
 *.lcf
 composeApp/release/
 gemini.sh
