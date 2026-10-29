@@ -47,6 +47,7 @@ import ui.configs.BottomSheetConfigView
 @Composable
 internal fun BibleHomeScreen(
     scaffoldState: BottomSheetScaffoldState,
+    modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
@@ -78,7 +79,7 @@ internal fun BibleHomeScreen(
         },
         content = ({
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 BibleBibleTopBar(

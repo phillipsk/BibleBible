@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import data.appPrefs.getUserPreferences
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
@@ -14,13 +15,15 @@ import data.bibleIQ.getVersionsBibleIQ
 import email.kevinphillips.biblebible.SetSystemBarColor
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 import ui.LoadingScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun App() {
+fun App(modifier: Modifier = Modifier) {
     BibleBibleTheme {
 
         initializeNapier()
@@ -29,13 +32,19 @@ fun App() {
         SetSystemBarColor(MaterialTheme.colors.background)
 
         LaunchedEffect(true) {
-            getVersionsBibleIQ()
-            getBooksBibleAPI()
+            launch {
+                async { checkDatabaseSize() }
+                async { cleanReadingHistory() }
+            }
+            val versionsJob = async { getVersionsBibleIQ() }
+            val booksJob = async { getBooksBibleAPI() }
+            versionsJob.await()
+            booksJob.await()
+
+            getUserPreferences()
+
             Napier.v("App :: LaunchedEffect", tag = "BB2452")
             isLoading.value = false
-            checkDatabaseSize()
-            cleanReadingHistory()
-            getUserPreferences()
         }
 
         if (isLoading.value) {
@@ -43,6 +52,7 @@ fun App() {
         } else {
             BibleHomeScreen(
                 scaffoldState = BibleIQDataModel.bottomSheetScaffoldState,
+                modifier = modifier,
             )
         }
     }

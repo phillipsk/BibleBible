@@ -51,8 +51,14 @@ https://github.com/phillipsk/BibleBible/assets/7585083/a41d07b4-9dd4-447c-a873-4
 https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-13e7cac5d439
 
 
+### API Usage Notice
+This application uses the IQ Bible API to fetch Bible content. Use of this API is subject to the IQ Bible API's [Terms of Service](https://iqbible.com/). You may not use this API for commercial purposes or create a competing service based on this API data. Ensure compliance with their terms when using or modifying this application.
+
+
 
 ## Backlog
+*   K2, upgrade KMP version, compose common tests
+*   review IDE notificaitons
 *   ~~socket timeout and api/db retries~~
 *   decouple lazy row chapters from the animatedVisibility of the entire view so when the chapter 
 *   is not cached and the remote call fails, the lazy row chapters are not visible
@@ -84,9 +90,16 @@ https://github.com/phillipsk/BibleBible/assets/7585083/af616ab8-ec06-4b2b-a58b-1
 *   ~~data class for AI Summary UI state~~
 *   update README.md with screenshots
 *   ~~font libraries added to shared module~~
-*   persist user settings
+*   ~~persist user settings~~
 *   Select text to copy and paste does not work
 *   ~~separate http config clients~~
+*   ~~rename Desktop app window title > from BibleBible to My BibleBible~~ 
+*   ~~desktop > larger font maximum~~
+*   Post on stack overflow remember scroll position bug 
+*   Rename app to ‘Zoom in Bible’ (except on Desktop as there is no zoom)
+*   Line breaks and color the text that Jesus is speaking 
+*   OpenAPI AI replacement refactor 
+*   ~~If bible chapter is persisted, scroll to the top is delayed~~
 
 ## Nice to have
 *   ~~add some UI home screen uniform design~~
