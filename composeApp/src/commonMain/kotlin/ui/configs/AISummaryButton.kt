@@ -30,6 +30,7 @@ fun AISummaryButton(
 
     Napier.d("GeminiModel.showSummary ${GeminiModel.showSummary}", tag = "Gemini")
     FilterChip(
+        enabled = GeminiModel.isAvailable && !GeminiModel.isLoading,
         border = if (!isAISummarySuccessful) BorderStroke(
             2.dp,
             MaterialTheme.colors.primary

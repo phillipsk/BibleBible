@@ -1,6 +1,7 @@
 
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.gradle.api.tasks.testing.Test
 
@@ -14,8 +15,12 @@ plugins {
     alias(libs.plugins.sqlDelight)
 }
 
+val localAppProperties = gradleLocalProperties(rootDir, providers)
+
 kotlin {
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
     androidTarget {
+        instrumentedTestVariant.sourceSetTree.set(org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree.test)
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
@@ -83,7 +88,6 @@ kotlin {
             }
         }
         val androidInstrumentedTest by getting {
-            dependsOn(commonTest)
             dependencies {
                 implementation(libs.compose.ui.test.junit4)
                 implementation(libs.androidx.test.junit)
@@ -98,6 +102,7 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    sourceSets["debug"].manifest.srcFile("src/androidDebug/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/commonMain/resources", "src/androidMain/res")
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
@@ -105,8 +110,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 16
-        versionName = "6.9"
+        versionCode = 17
+        versionName = "7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     testOptions {
@@ -119,15 +124,25 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    val releaseStorePath = localAppProperties.getProperty("ANDROID_RELEASE_STORE_FILE")
+    if (!releaseStorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(releaseStorePath)
+                storePassword = localAppProperties.getProperty("ANDROID_RELEASE_STORE_PASSWORD")
+                keyAlias = localAppProperties.getProperty("ANDROID_RELEASE_KEY_ALIAS")
+                keyPassword = localAppProperties.getProperty("ANDROID_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         getByName("release") {
-//            isMinifyEnabled = true
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
-            signingConfig = signingConfigs.getByName("debug")
-//            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
@@ -141,6 +156,22 @@ android {
 }
 
 
+val aiSummariesEnabled = providers.gradleProperty("AI_SUMMARIES_ENABLED")
+    .orElse(localAppProperties.getProperty("AI_SUMMARIES_ENABLED") ?: "true")
+    .get().toBooleanStrict()
+val diagnosticLoggingEnabled = providers.gradleProperty("ENABLE_DIAGNOSTIC_LOGGING")
+    .orElse(localAppProperties.getProperty("ENABLE_DIAGNOSTIC_LOGGING") ?: "false")
+    .get().toBooleanStrict()
+
+fun obfuscateSecret(plain: String): String {
+    val mask = 0x5A
+    return plain.map { (it.code xor mask).toChar() }.joinToString("")
+}
+
+val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
+val rawApiBibleKey = localAppProperties.getProperty("api_key_api_bible") ?: ""
+val rawGeminiKey = if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
+
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
@@ -148,18 +179,20 @@ buildkonfig {
         buildConfigField(
             STRING,
             "API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("IQ_BIBLE_API_KEY") ?: ""
+            obfuscateSecret(rawIqKey)
         )
         buildConfigField(
             STRING,
             "API_KEY_API_BIBLE",
-            gradleLocalProperties(rootDir, providers).getProperty("api_key_api_bible") ?: ""
+            obfuscateSecret(rawApiBibleKey)
         )
         buildConfigField(
             STRING,
             "GEMINI_API_KEY",
-            gradleLocalProperties(rootDir, providers).getProperty("GEMINI_API_KEY") ?: ""
+            obfuscateSecret(rawGeminiKey)
         )
+        buildConfigField(BOOLEAN, "AI_SUMMARIES_ENABLED", aiSummariesEnabled.toString())
+        buildConfigField(BOOLEAN, "ENABLE_DIAGNOSTIC_LOGGING", diagnosticLoggingEnabled.toString())
     }
 }
 

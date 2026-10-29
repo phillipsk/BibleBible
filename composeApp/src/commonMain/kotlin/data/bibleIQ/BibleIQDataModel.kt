@@ -14,13 +14,14 @@ import data.apiBible.BookData
 import data.appPrefs.ReadingSession
 import data.GeminiModel
 import email.kevinphillips.biblebible.isDesktopPlatform
+import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.Channel
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
 object BibleIQDataModel {
-    const val RELEASE_BUILD = false
+    val RELEASE_BUILD: Boolean get() = !BuildKonfig.ENABLE_DIAGNOSTIC_LOGGING
     const val DEFAULT_BIBLE_ID = "kjv"
 
     var bottomSheetViewCount by mutableStateOf(0)

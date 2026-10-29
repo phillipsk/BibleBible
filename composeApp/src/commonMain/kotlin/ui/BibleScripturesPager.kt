@@ -52,10 +52,10 @@ internal fun BibleScripturesPager(
     val bookId = BibleIQDataModel.getAPIBibleOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
-    val scope = rememberCoroutineScope()
     val summaryScrollState = rememberScrollState()
 
     key(selectedBook.bookId, bibleVersion) {
+        val scope = rememberCoroutineScope()
         val pagerState = rememberPagerState(
             initialPage = if (sameBook) ((chapters.chapterId ?: 1) - 1).coerceIn(0, chapterCount - 1) else 0,
             pageCount = { chapterCount }
@@ -106,58 +106,60 @@ internal fun BibleScripturesPager(
                 }
             }
 
-            key(chapters.bookId, chapters.chapterId, bibleVersion) {
-                // Scripture and AI summary positions are deliberately separate.
-                val scriptureScrollState = rememberScrollState()
+            val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                rememberScrollState()
+            }
+            val readingState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
                 val savedPosition = ReadingSession.current?.takeIf {
                     !it.isHome && it.bookKey == canonicalBookKey(selectedBook) &&
                         it.chapter == chapters.chapterId && it.version.equals(bibleVersion, true)
                 }
-                val readingState = rememberScriptureReadingState(
+                rememberScriptureReadingState(
                     savedPosition?.let { ScriptureAnchor(it.characterOffset, it.lineFraction) } ?: ScriptureAnchor()
                 )
-                LaunchedEffect(readingState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
-                    snapshotFlow { readingState.anchor }.collect { anchor ->
-                        ReadingSession.updateAnchor(
-                            canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
-                            anchor.character, anchor.lineFraction
-                        )
-                    }
+            }
+            LaunchedEffect(readingState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                snapshotFlow { readingState.anchor }.collect { anchor ->
+                    ReadingSession.updateAnchor(
+                        canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                        anchor.character, anchor.lineFraction
+                    )
                 }
-                DisposableEffect(readingState, scriptureScrollState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
-                    val unregister = ReadingSession.registerAnchorCapture {
-                        readingState.capture(scriptureScrollState.value)
-                        ReadingSession.updateAnchor(
-                            canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
-                            readingState.anchor.character, readingState.anchor.lineFraction
-                        )
-                    }
-                    onDispose { unregister() }
+            }
+            DisposableEffect(readingState, scriptureScrollState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                val unregister = ReadingSession.registerAnchorCapture {
+                    readingState.capture(scriptureScrollState.value)
+                    ReadingSession.updateAnchor(
+                        canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                        readingState.anchor.character, readingState.anchor.lineFraction
+                    )
                 }
-                LaunchedEffect(scriptureScrollState) {
-                    scriptureScrollState.interactionSource.interactions.collect {
-                        bottomSheetScaffoldState.bottomSheetState.collapse()
-                    }
+                onDispose { unregister() }
+            }
+            // Scripture and AI summary positions are deliberately separate.
+            LaunchedEffect(scriptureScrollState) {
+                scriptureScrollState.interactionSource.interactions.collect {
+                    bottomSheetScaffoldState.bottomSheetState.collapse()
                 }
+            }
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.Top,
-                    userScrollEnabled = !isDesktopPlatform()
-                ) { page ->
-                    when {
-                        !sameBook || chapters.chapterId != page + 1 || chapters.text == null -> LoadingScreen()
-                        isAISummaryLoading && showAISummary -> LoadingScreen()
-                        showAISummary -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
-                        else -> BibleScriptures(
-                            chapters,
-                            scriptureScrollState,
-                            BibleIQDataModel.selectedFontSize,
-                            onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
-                            readingState = readingState
-                        )
-                    }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top,
+                userScrollEnabled = !isDesktopPlatform()
+            ) { page ->
+                when {
+                    !sameBook || chapters.chapterId != page + 1 || chapters.text == null -> LoadingScreen()
+                    isAISummaryLoading && showAISummary -> LoadingScreen()
+                    showAISummary -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
+                    else -> BibleScriptures(
+                        chapters,
+                        scriptureScrollState,
+                        BibleIQDataModel.selectedFontSize,
+                        onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
+                        readingState = readingState
+                    )
                 }
             }
         }

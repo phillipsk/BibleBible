@@ -20,7 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.appPrefs.updateUserPreferences
@@ -42,6 +44,7 @@ internal fun BibleScriptures(
 ) {
     var previousFontSize by remember { mutableStateOf(selectedFontSize) }
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val currentFontSize by rememberUpdatedState(selectedFontSize)
     val changeFontSize by rememberUpdatedState(onFontSizeChanged)
     readingState.contentInset = with(LocalDensity.current) { 4.dp.roundToPx() }
@@ -52,14 +55,16 @@ internal fun BibleScriptures(
 
     // Wait for the scroll container's new range before restoring the visible text.
     // Keep our own restoration out of the capture flow to avoid cumulative drift.
-    LaunchedEffect(textLayout, readingState) {
+    LaunchedEffect(textLayout, viewportSize, readingState) {
         val layout = textLayout ?: return@LaunchedEffect
+        val viewport = viewportSize
         try {
             withFrameNanos { }
             scrollState.scrollTo(readingState.scrollOffset(layout))
+            readingState.restoredScrollOffset = scrollState.value
             withFrameNanos { }
         } finally {
-            if (textLayout === layout) readingState.restoring = false
+            if (textLayout === layout && viewportSize == viewport) readingState.restoring = false
         }
     }
 
@@ -74,20 +79,33 @@ internal fun BibleScriptures(
     Column(
         modifier = Modifier
             .testTag("ScriptureReader")
+            .onSizeChanged { size ->
+                if (size != viewportSize) {
+                    readingState.restoring = true
+                    viewportSize = size
+                }
+            }
             .verticalScroll(scrollState)
             .padding(4.dp)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
+                    var zooming = false
+                    var gestureFontSize = currentFontSize
                     while (true) {
                         val event = awaitPointerEvent()
                         if (event.changes.count { it.pressed } > 1) {
+                            if (!zooming) {
+                                gestureFontSize = currentFontSize
+                                zooming = true
+                            }
                             val zoom = event.calculateZoom()
                             if (zoom.isFinite() && zoom != 1f) {
                                 val maximum = if (isDesktopPlatform()) 72f else 40f
-                                changeFontSize((currentFontSize * zoom).coerceIn(12f, maximum))
+                                gestureFontSize = (gestureFontSize * zoom).coerceIn(12f, maximum)
+                                changeFontSize(gestureFontSize)
                                 event.changes.forEach { it.consume() }
                             }
-                        }
+                        } else zooming = false
                     }
                 }
             }
@@ -107,7 +125,7 @@ internal fun BibleScriptures(
                 fontSize = selectedFontSize.sp,
                 modifier = Modifier.testTag("ScriptureText"),
                 onTextLayout = { result ->
-                    if (textLayout?.layoutInput != result.layoutInput) {
+                    if (!sameTextGeometry(textLayout, result)) {
                         readingState.restoring = true
                         readingState.layout = result
                         textLayout = result
@@ -115,5 +133,17 @@ internal fun BibleScriptures(
                 }
             )
         }
+    }
+}
+
+private fun sameTextGeometry(previous: TextLayoutResult?, next: TextLayoutResult): Boolean {
+    if (previous == null || previous.layoutInput != next.layoutInput ||
+        previous.size != next.size || previous.lineCount != next.lineCount) return false
+    // Typeface resolution can change line wrapping without changing TextLayoutInput.
+    return (0 until next.lineCount).all { line ->
+        previous.getLineStart(line) == next.getLineStart(line) &&
+            previous.getLineEnd(line) == next.getLineEnd(line) &&
+            previous.getLineTop(line) == next.getLineTop(line) &&
+            previous.getLineBottom(line) == next.getLineBottom(line)
     }
 }

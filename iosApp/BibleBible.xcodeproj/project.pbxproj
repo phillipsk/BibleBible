@@ -322,7 +322,7 @@
 					composeApp,
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "--BUNDLE-ID-";
+				PRODUCT_BUNDLE_IDENTIFIER = email.kevinphillips.biblebible;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = email.kevinphillips.biblebible;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -359,7 +359,7 @@
 					composeApp,
 					"-lsqlite3",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "--BUNDLE-ID-";
+				PRODUCT_BUNDLE_IDENTIFIER = email.kevinphillips.biblebible;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = email.kevinphillips.biblebible;
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "";

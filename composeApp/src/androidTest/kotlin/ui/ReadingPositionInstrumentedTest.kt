@@ -16,4 +16,7 @@ class ReadingPositionInstrumentedTest {
     @Test fun preservesTextWhenSystemFontScaleChanges() = runComposeUiTest { runScriptureReflowTest("font-scale") }
     @Test fun preservesTextOnDoubleTapZoom() = runComposeUiTest { runScriptureReflowTest("double-tap") }
     @Test fun preservesTextWhenReaderIsRecreated() = runComposeUiTest { runScriptureReflowTest("recreation") }
+    @Test fun preservesTextWhenViewportHeightChanges() = runComposeUiTest { runScriptureReflowTest("height") }
+    @Test fun accumulatesPinchZoomWithoutMovingTheTextAnchor() = runComposeUiTest { runScriptureReflowTest("pinch") }
+    @Test fun preservesTheBottomAnchorWhenTheViewportGrowsAndShrinks() = runComposeUiTest { runScriptureReflowTest("bottom-roundtrip") }
 }

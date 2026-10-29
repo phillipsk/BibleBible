@@ -1,120 +1,56 @@
 package fake
 
-import data.apiBible.BookData
 import data.apiBible.BibleAPIBook
+import data.apiBible.BookData
+import data.apiBible.Chapter
 import data.apiBible.ChapterContent
-import data.apiBible.VerseData
+import data.apiBible.ChapterData
+import data.apiBible.ChapterReference
 import data.bibleIQ.BibleChapterUIState
 
 object TestData {
-    val testBooks = listOf(
-        BookData(
-            id = "gen",
-            bibleId = "de4e12af7f28f599-02",
-            abbreviation = "Gen",
-            name = "Genesis",
-            nameLong = "The First Book of Moses, Called Genesis",
-            chapters = listOf(
-                data.apiBible.Chapter(
-                    name = "gen.1",
-                    bibleId = "de4e12af7f28f599-02",
-                    bookId = "gen",
-                    number = "1"
-                ),
-                data.apiBible.Chapter(
-                    name = "gen.2",
-                    bibleId = "de4e12af7f28f599-02",
-                    bookId = "gen",
-                    number = "2"
-                )
-            )
-        ),
-        BookData(
-            id = "exo",
-            bibleId = "de4e12af7f28f599-02",
-            abbreviation = "Exo",
-            name = "Exodus",
-            nameLong = "The Second Book of Moses, Called Exodus",
-            chapters = listOf(
-                data.apiBible.Chapter(
-                    name = "exo.1",
-                    bibleId = "de4e12af7f28f599-02",
-                    bookId = "exo",
-                    number = "1"
-                )
-            )
-        ),
-        BookData(
-            id = "mat",
-            bibleId = "de4e12af7f28f599-02",
-            abbreviation = "Mat",
-            name = "Matthew",
-            nameLong = "The Gospel According to Saint Matthew",
-            chapters = listOf(
-                data.apiBible.Chapter(
-                    name = "mat.1",
-                    bibleId = "de4e12af7f28f599-02",
-                    bookId = "mat",
-                    number = "1"
-                )
-            )
+    private const val BIBLE_ID = "de4e12af7f28f599-02"
+
+    private fun book(id: String, abbreviation: String, name: String) = BookData(
+        id = id,
+        bibleId = BIBLE_ID,
+        abbreviation = abbreviation,
+        name = name,
+        nameLong = name,
+        // Production book data includes an introductory entry before chapter 1.
+        chapters = listOf(
+            Chapter(name = "$id.intro", bibleId = BIBLE_ID, bookId = id, number = "intro"),
+            Chapter(name = "$id.1", bibleId = BIBLE_ID, bookId = id, number = "1"),
+            Chapter(name = "$id.2", bibleId = BIBLE_ID, bookId = id, number = "2")
         )
     )
 
-    val testBibleAPIBook = BibleAPIBook(
-        data = testBooks
+    val testBooks = listOf(
+        book("GEN", "Gen", "Genesis"),
+        book("EXO", "Exo", "Exodus"),
+        book("MAT", "Mat", "Matthew")
     )
 
+    val testBibleAPIBook = BibleAPIBook(data = testBooks)
+
     val testChapterContent = ChapterContent(
-        id = "gen.1",
-        bibleId = "de4e12af7f28f599-02",
-        number = "1",
-        bookId = "gen",
-        content = "In the beginning God created the heaven and the earth.",
-        verseCount = 1,
-        copyright = "Copyright",
-        next = data.apiBible.NextData(
-            id = "gen.2",
-            number = "2",
-            bookId = "gen"
-        ),
-        previous = null,
-        verses = listOf(
-            VerseData(
-                id = "gen.1.1",
-                orgId = "gen.1.1",
-                bibleId = "de4e12af7f28f599-02",
-                bookId = "gen",
-                chapterId = "gen.1",
-                text = "In the beginning God created the heaven and the earth.",
-                verseNumber = "1",
-                chapterNumber = "1",
-                studyBibleId = null,
-                keyId = "gen.1.1",
-                next = data.apiBible.NextData(
-                    id = "gen.1.2",
-                    number = "2",
-                    bookId = "gen"
-                ),
-                previous = null,
-                content = "In the beginning God created the heaven and the earth."
-            )
+        data = ChapterData(
+            id = "GEN.1",
+            bibleId = BIBLE_ID,
+            number = "1",
+            bookId = "GEN",
+            content = "In the beginning God created the heaven and the earth.",
+            verseCount = 1,
+            copyright = "Public domain fixture",
+            next = ChapterReference(id = "GEN.2", number = "2", bookId = "GEN")
         )
     )
 
     val testBibleChapterUIState = BibleChapterUIState(
-        bookId = "gen",
-        chapterList = listOf(
-            data.bibleIQ.ChapterData(
-                id = "gen.1",
-                number = "1",
-                bookId = "gen"
-            ),
-            data.bibleIQ.ChapterData(
-                id = "gen.2",
-                number = "2",
-                bookId = "gen"
-            )
-        )
+        id = "GEN.1",
+        bookId = 1,
+        chapterId = 1,
+        text = "[1] In the beginning God created the heaven and the earth.",
+        chapterList = listOf(1L, 2L)
     )
 }

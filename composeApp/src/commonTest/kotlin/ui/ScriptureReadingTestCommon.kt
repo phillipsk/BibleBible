@@ -17,6 +17,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pinch
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import data.bibleIQ.BibleChapterUIState
@@ -47,7 +49,8 @@ private fun ComposeUiTest.prepareReader(): ScriptureReaderHarness {
     setContent {
         val savedState = rememberSaveableStateHolder()
         val density = LocalDensity.current.density
-        CompositionLocalProvider(LocalDensity provides Density(density, harness.fontScale)) {
+        BibleBibleTheme {
+          CompositionLocalProvider(LocalDensity provides Density(density, harness.fontScale)) {
             if (harness.visible) {
                 savedState.SaveableStateProvider("scripture") {
                     harness.reading = rememberScriptureReadingState()
@@ -62,6 +65,7 @@ private fun ComposeUiTest.prepareReader(): ScriptureReaderHarness {
                     }
                 }
             }
+          }
         }
     }
     mainClock.advanceTimeBy(64)
@@ -78,12 +82,33 @@ private fun ComposeUiTest.prepareReader(): ScriptureReaderHarness {
 @OptIn(ExperimentalTestApi::class)
 internal fun ComposeUiTest.runScriptureReflowTest(change: String) {
     val harness = prepareReader()
+    if (change == "bottom-roundtrip") {
+        runOnIdle { harness.scope.launch { harness.scroll.scrollTo(harness.scroll.maxValue) } }
+        waitForIdle()
+    }
     val original = runOnIdle { harness.reading.anchor }
     when (change) {
         "rotation" -> runOnIdle { harness.width = 560.dp; harness.height = 180.dp }
         "font-increase" -> runOnIdle { harness.fontSize = 32f }
         "font-decrease" -> runOnIdle { harness.fontSize = 14f }
         "font-scale" -> runOnIdle { harness.fontScale = 1.5f }
+        "height" -> runOnIdle { harness.height = 560.dp }
+        "pinch" -> onNodeWithTag("ScriptureReader").performTouchInput {
+            pinch(
+                start0 = Offset(center.x - 25f, center.y),
+                end0 = Offset(center.x - 55f, center.y),
+                start1 = Offset(center.x + 25f, center.y),
+                end1 = Offset(center.x + 55f, center.y),
+                durationMillis = 320
+            )
+        }
+        "bottom-roundtrip" -> {
+            runOnIdle { harness.width = 560.dp; harness.height = 560.dp }
+            mainClock.advanceTimeBy(64)
+            waitForIdle()
+            runOnIdle { assertEquals(original, harness.reading.anchor, "Clamping must not overwrite the reading anchor") }
+            runOnIdle { harness.width = 280.dp; harness.height = 320.dp }
+        }
         "double-tap" -> onNodeWithTag("ScriptureReader").performTouchInput { doubleClick() }
         "recreation" -> {
             runOnIdle { harness.visible = false }
@@ -97,8 +122,15 @@ internal fun ComposeUiTest.runScriptureReflowTest(change: String) {
     runOnIdle {
         assertEquals(original, harness.reading.anchor, "Reflow must preserve the text anchor")
         val layout = requireNotNull(harness.reading.layout)
-        val expected = harness.reading.scrollOffset(layout).coerceAtMost(harness.scroll.maxValue)
-        assertTrue(abs(harness.scroll.value - expected) <= 1, "Anchor should be at the same viewport location after $change")
+        val visibleTop = (harness.scroll.value - harness.reading.contentInset).coerceAtLeast(0).toFloat()
+        val visibleLine = layout.getLineForVerticalPosition(visibleTop)
+        assertTrue(original.character in layout.getLineStart(visibleLine) until layout.getLineEnd(visibleLine),
+            "The first visible line must still contain the original text after $change")
+        val lineHeight = layout.getLineBottom(visibleLine) - layout.getLineTop(visibleLine)
+        val fraction = (visibleTop - layout.getLineTop(visibleLine)) / lineHeight
+        assertTrue(abs(fraction - original.lineFraction) * lineHeight <= 1.1f,
+            "The anchored line must keep its position within the viewport after $change")
+        if (change == "pinch") assertTrue(harness.fontSize > 30f, "Pinch events must accumulate zoom")
         assertTrue(!harness.reading.restoring, "Restoration must finish")
     }
 }

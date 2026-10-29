@@ -8,6 +8,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,7 +25,10 @@ internal fun ChapterTopBar(showHomePage: Boolean, onClick: () -> Unit, showBotto
     ) {
         TopBarTitle(BibleIQDataModel.selectedBook.cleanedName.toString(), showHomePage, onClick)
         Spacer(modifier = Modifier.weight(1f))
-        AISummaryTopBar()
+        key(BibleIQDataModel.selectedBook.bookId, BibleIQDataModel.bibleChapter?.chapterId,
+            BibleIQDataModel.selectedVersion) {
+            AISummaryTopBar()
+        }
         Spacer(modifier = Modifier.weight(0.10f))
         BottomSheetToggle(showBottomSheet)
     }
@@ -47,12 +51,15 @@ private fun AISummaryTopBar() {
     val scope = rememberCoroutineScope()
     AISummaryButton(
         generateAISummary = {
-            GeminiModel.isLoading = true
             if (!GeminiModel.showSummary) {
                 scope.launch {
                     GeminiModel.showSummary = true
-                    GeminiModel.generateAISummary()
-                    GeminiModel.isLoading = false
+                    GeminiModel.isLoading = true
+                    try {
+                        GeminiModel.generateAISummary()
+                    } finally {
+                        GeminiModel.isLoading = false
+                    }
                 }
             } else {
                 GeminiModel.showSummary = false

@@ -17,3 +17,23 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 /iosApp/iosApp/GenerativeAI-Info.plist
+
+# Local credentials, signing material, logs, and release archives
+*.keystore
+*.jks
+*.p12
+*.pem
+*.p8
+*.provisionprofile
+*.mobileprovision
+*.aab
+*.apk
+*.ipa
+*.xcarchive/
+*.dSYM/
+/gen-lang-client-*.json
+/service-account*.json
+*.lcf
+composeApp/release/
+gemini.sh
+request.json
