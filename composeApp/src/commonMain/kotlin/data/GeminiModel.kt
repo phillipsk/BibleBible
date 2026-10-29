@@ -7,8 +7,20 @@ import data.bibleIQ.BibleIQDataModel
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 
 object GeminiModel {
+    private var pendingSummary: Job? = null
+
+    internal fun cancelPendingSummary() {
+        pendingSummary?.cancel()
+        pendingSummary = null
+        showSummary = false
+        isLoading = false
+        updateGeminiData(GeminiResponseDto())
+        geminiFullResponse = ""
+    }
 
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
@@ -34,9 +46,18 @@ object GeminiModel {
                 BibleIQDataModel.selectedBook.cleanedName + " " +
                 BibleIQDataModel.bibleChapter?.chapterId
 
-    internal suspend fun generateAISummary(pullToRefresh: Boolean = false) {
+    internal suspend fun generateAISummary(
+        pullToRefresh: Boolean = false,
+        generate: suspend (String) -> Unit = { generateContent(it) },
+    ) {
         if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
-            generateContent(geminiQuery)
+            val job = currentCoroutineContext()[Job]
+            pendingSummary = job
+            try {
+                generate(geminiQuery)
+            } finally {
+                if (pendingSummary === job) pendingSummary = null
+            }
         }
     }
 }

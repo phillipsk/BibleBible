@@ -21,10 +21,12 @@ internal class ScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureA
     internal var layout: TextLayoutResult? = null
     internal var restoring = true
     internal var contentInset = 0
+    internal var restoredScrollOffset: Int? = null
 
     fun capture(scrollOffset: Int) {
         val textLayout = layout ?: return
-        if (restoring || textLayout.lineCount == 0) return
+        if (restoring || scrollOffset == restoredScrollOffset || textLayout.lineCount == 0) return
+        restoredScrollOffset = null
         val textOffset = (scrollOffset - contentInset).coerceAtLeast(0)
         val line = textLayout.getLineForVerticalPosition(textOffset.toFloat())
         val top = textLayout.getLineTop(line)

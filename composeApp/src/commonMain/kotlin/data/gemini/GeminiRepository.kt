@@ -13,6 +13,9 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -41,7 +44,10 @@ suspend fun generateContent(content: String, client: HttpClient = httpClientGemi
                 setBody(Json.encodeToString(requestBody))
             }.body<GeminiResponseDto>()
         }
+        currentCoroutineContext().ensureActive()
         GeminiModel.updateGeminiData(responseText)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Napier.e("Error during API request: ${e.message}", tag = "GeminiServiceImp")
     }

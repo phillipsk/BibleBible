@@ -23,6 +23,7 @@ fun ComposeUiTest.runBibleScripturesPagerTest() {
     )
     
     setContent {
+      BibleBibleTheme {
         val scaffoldState = rememberBottomSheetScaffoldState(
             bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
         )
@@ -36,6 +37,7 @@ fun ComposeUiTest.runBibleScripturesPagerTest() {
             bottomSheetScaffoldState = scaffoldState,
             loadChapter = { _, _, _, _ -> }
         )
+      }
     }
 
     onNodeWithText("[1] In the beginning...", substring = true).assertIsDisplayed()

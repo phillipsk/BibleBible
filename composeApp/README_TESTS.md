@@ -2,6 +2,28 @@
 
 This document provides instructions for running UI tests in the BibleBible project.
 
+The reading-position regression suite uses the production theme and bundled fonts.
+It checks the actual first visible text line across width/height changes, font size
+and system font scale changes, pinch/double-tap zoom, saveable-state recreation,
+and a resize roundtrip at the bottom of a chapter. It uses offline chapter fixtures
+and does not need provider keys. New chapters start at the top; scripture and AI
+summary scroll positions are independent.
+
+Run `./gradlew :composeApp:desktopTest` for the shared tests on desktop. On a
+headless Linux machine, use `SKIKO_RENDER_API=SOFTWARE xvfb-run -a ./gradlew
+:composeApp:desktopTest`. The Android `ReadingPositionInstrumentedTest` executes
+the same renderer checks; `ReadingPositionLifecycleTest` additionally requests
+an actual Activity orientation change and Activity recreation using a debug-only
+fixture Activity. Run them on a booted emulator with
+`./gradlew :composeApp:connectedDebugAndroidTest
+-Pandroid.testInstrumentationRunnerArguments.class=ui.ReadingPositionInstrumentedTest,ui.ReadingPositionLifecycleTest`.
+
+The shared "rotation" case changes the available Compose bounds. The Android
+lifecycle suite is the device-rotation check. `iosTest/ReadingPositionTest` adds
+native renderer entry points for `:composeApp:iosSimulatorArm64Test`, which must
+run on macOS with Xcode and an installed simulator. A Linux desktop test result
+does not establish an iOS simulator result.
+
 ## Test Structure
 
 The UI tests are organized as follows:

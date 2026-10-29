@@ -48,10 +48,10 @@ internal fun BibleScripturesPager(
     val bookId = BibleIQDataModel.getAPIBibleOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
-    val scope = rememberCoroutineScope()
     val summaryScrollState = rememberScrollState()
 
     key(selectedBook.bookId, bibleVersion) {
+        val scope = rememberCoroutineScope()
         val pagerState = rememberPagerState(
             initialPage = if (sameBook) ((chapters.chapterId ?: 1) - 1).coerceIn(0, chapterCount - 1) else 0,
             pageCount = { chapterCount }
@@ -101,10 +101,13 @@ internal fun BibleScripturesPager(
                 }
             }
 
-            key(chapters.bookId, chapters.chapterId, bibleVersion) {
+            val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                rememberScrollState()
+            }
+            val readingState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                rememberScriptureReadingState()
+            }
                 // Scripture and AI summary positions are deliberately separate.
-                val scriptureScrollState = rememberScrollState()
-                val readingState = rememberScriptureReadingState()
                 LaunchedEffect(scriptureScrollState) {
                     scriptureScrollState.interactionSource.interactions.collect {
                         bottomSheetScaffoldState.bottomSheetState.collapse()
@@ -130,7 +133,6 @@ internal fun BibleScripturesPager(
                         )
                     }
                 }
-            }
         }
     }
 }

@@ -5,6 +5,17 @@ import androidx.compose.ui.test.runComposeUiTest
 import kotlin.test.Test
 
 class BibleScripturesPagerTest {
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun preservesTextThroughPinchZoom() = runComposeUiTest { runScriptureReflowTest("pinch") }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun preservesTextWhenOnlyViewportHeightChanges() = runComposeUiTest { runScriptureReflowTest("height") }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun preservesBottomAnchorThroughResizeRoundtrip() = runComposeUiTest { runScriptureReflowTest("bottom-roundtrip") }
 
     @OptIn(ExperimentalTestApi::class)
     @Test

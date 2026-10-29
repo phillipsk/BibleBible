@@ -14,7 +14,9 @@ plugins {
 }
 
 kotlin {
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
     androidTarget {
+        instrumentedTestVariant.sourceSetTree.set(org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree.test)
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
         }
@@ -81,7 +83,6 @@ kotlin {
             }
         }
         val androidInstrumentedTest by getting {
-            dependsOn(commonTest)
             dependencies {
                 implementation(libs.compose.ui.test.junit4)
                 implementation(libs.androidx.test.junit)
@@ -96,6 +97,7 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
+    sourceSets["debug"].manifest.srcFile("src/androidDebug/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/commonMain/resources", "src/androidMain/res")
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 

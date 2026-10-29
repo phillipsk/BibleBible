@@ -6,6 +6,10 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fake.TestData
+import data.bibleIQ.BibleIQDataModel
+import org.junit.Before
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,10 +19,16 @@ class BookListTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    @Before
+    fun resetNavigationState() {
+        BibleIQDataModel.showHomePage = true
+        BibleIQDataModel.sortAZ = false
+    }
+
     @Test
     fun testBookListRendersWithTestData() {
         composeTestRule.setContent {
-            BibleBookList(bookData = TestData.testBooks)
+            BibleBibleTheme { BibleBookList(bookData = TestData.testBooks) }
         }
 
         // Verify that book names are displayed
@@ -30,23 +40,22 @@ class BookListTest {
     @Test
     fun testBookItemClickBehavior() {
         composeTestRule.setContent {
-            BibleBookList(
-                bookData = TestData.testBooks
-            )
+            BibleBibleTheme { BibleBookList(bookData = TestData.testBooks) }
         }
 
         // Click on Genesis book
         composeTestRule.onNodeWithText("Genesis").performClick()
         
-        // TODO: Verify click behavior when onBookClick callback is implemented
-        // For now, we just verify the book item is clickable
-        composeTestRule.onNodeWithText("Genesis").assertIsDisplayed()
+        composeTestRule.runOnIdle {
+            assertEquals("Genesis", BibleIQDataModel.selectedBook.cleanedName)
+            assertFalse(BibleIQDataModel.showHomePage)
+        }
     }
 
     @Test
     fun testBookNamesAreDisplayed() {
         composeTestRule.setContent {
-            BibleBookList(bookData = TestData.testBooks)
+            BibleBibleTheme { BibleBookList(bookData = TestData.testBooks) }
         }
 
         // Verify book names are displayed
