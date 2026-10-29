@@ -43,7 +43,7 @@ import data.bibleIQ.getChapterBibleIQ
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable

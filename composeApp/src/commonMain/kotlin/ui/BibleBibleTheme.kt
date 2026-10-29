@@ -21,7 +21,6 @@ import biblebible.composeapp.generated.resources.Res
 import biblebible.composeapp.generated.resources.nunito_bold
 import biblebible.composeapp.generated.resources.nunito_regular
 import biblebible.composeapp.generated.resources.nunito_semibold
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.Font
 
 @Composable
@@ -84,7 +83,6 @@ private val Shapes = Shapes(
 )
 
 @Composable
-@OptIn(ExperimentalResourceApi::class)
 fun getTypography(): Typography {
 
     val nunitoRegular = FontFamily(
