@@ -51,12 +51,15 @@ private fun AISummaryTopBar() {
     val scope = rememberCoroutineScope()
     AISummaryButton(
         generateAISummary = {
-            GeminiModel.isLoading = true
             if (!GeminiModel.showSummary) {
                 scope.launch {
                     GeminiModel.showSummary = true
-                    GeminiModel.generateAISummary()
-                    GeminiModel.isLoading = false
+                    GeminiModel.isLoading = true
+                    try {
+                        GeminiModel.generateAISummary()
+                    } finally {
+                        GeminiModel.isLoading = false
+                    }
                 }
             } else {
                 GeminiModel.showSummary = false

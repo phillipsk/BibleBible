@@ -22,6 +22,14 @@ IQ_BIBLE_API_KEY=[YOUR_API_KEY_HERE]
 GEMINI_API_KEY=[YOUR_API_KEY_HERE]
 ```
 
+`local.properties` keeps credentials out of Git. BuildKonfig embeds reversibly
+obfuscated provider keys in the app; this does not make those keys unrecoverable.
+This release continues to call the providers directly and requires no backend.
+Diagnostic logging is off by default, and provider authentication headers are
+redacted when HTTP diagnostics are enabled.
+
+See the [release notes](CHANGELOG.md) for app changes.
+
 ## Approach
 To keep things simple and avoid third-party navigation and state management libraries, I have taken a unique approach. Instead of using a traditional navigation library or Koin DI framework, I manage the app's state with a Kotlin object and mimic navigation using animated visibility composables.
 
