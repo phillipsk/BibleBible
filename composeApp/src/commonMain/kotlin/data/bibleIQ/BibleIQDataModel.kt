@@ -106,14 +106,18 @@ object BibleIQDataModel {
                 },
                 chapterList = chapterCount?.chapterCount?.let { count ->
                     (1..count).toList()
-                }
+                },
+                version = version
             )
         }
     }
 
     fun getAPIBibleOrdinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
-        return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
+        return BibleAPIDataModel.bibleBooks.data
+            ?.indexOfFirst { it.bookId.substringBefore(".") == name }
+            ?.takeIf { it >= 0 }
+            ?.plus(1) ?: 1
     }
 
     val onHomeClick: () -> Unit = {

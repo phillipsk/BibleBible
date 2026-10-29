@@ -80,6 +80,14 @@ kotlin {
                 implementation(compose.uiTest)
             }
         }
+        val androidInstrumentedTest by getting {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.compose.ui.test.junit4)
+                implementation(libs.androidx.test.junit)
+                implementation("androidx.test:runner:1.6.2")
+            }
+        }
     }
 }
 

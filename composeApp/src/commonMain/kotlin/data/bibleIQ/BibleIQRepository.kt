@@ -16,6 +16,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -129,6 +130,8 @@ internal suspend fun getChapterBibleIQ(
             getReadingHistory()
         }
         Napier.v("BibleIQRepository :: count :: ${readingHistory?.size}", tag = "RH1283")
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: IOException) {
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
