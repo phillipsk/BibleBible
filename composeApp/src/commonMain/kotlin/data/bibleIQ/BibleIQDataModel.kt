@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
+import data.GeminiModel
 import data.apiBible.BookData
 import email.kevinphillips.biblebible.isDesktopPlatform
 import email.kevinphillips.biblebible.BuildKonfig
@@ -84,6 +85,7 @@ object BibleIQDataModel {
         private set
 
     fun updateSelectedBook(newBook: BookData) {
+        if (newBook.bookId != selectedBook.bookId) GeminiModel.cancelPendingSummary()
         selectedBook = newBook
     }
 
@@ -122,6 +124,7 @@ object BibleIQDataModel {
     }
 
     val onHomeClick: () -> Unit = {
+        GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         BibleIQDataModel.showHomePage = true
     }
