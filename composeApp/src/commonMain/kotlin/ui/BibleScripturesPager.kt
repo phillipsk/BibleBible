@@ -19,13 +19,17 @@ import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.apiBible.BookData
+import data.appPrefs.ReadingSession
+import data.appPrefs.canonicalBookKey
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
@@ -61,6 +65,7 @@ internal fun BibleScripturesPager(
         // (rotation, foregrounding) must not reload chapter 1 or add history.
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
             val chapter = pagerState.settledPage + 1
+            ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
             val loaded = sameBook && chapters.chapterId == chapter &&
                 chapters.version.equals(bibleVersion, ignoreCase = true)
             if (!loaded) {
@@ -104,7 +109,31 @@ internal fun BibleScripturesPager(
             key(chapters.bookId, chapters.chapterId, bibleVersion) {
                 // Scripture and AI summary positions are deliberately separate.
                 val scriptureScrollState = rememberScrollState()
-                val readingState = rememberScriptureReadingState()
+                val savedPosition = ReadingSession.current?.takeIf {
+                    !it.isHome && it.bookKey == canonicalBookKey(selectedBook) &&
+                        it.chapter == chapters.chapterId && it.version.equals(bibleVersion, true)
+                }
+                val readingState = rememberScriptureReadingState(
+                    savedPosition?.let { ScriptureAnchor(it.characterOffset, it.lineFraction) } ?: ScriptureAnchor()
+                )
+                LaunchedEffect(readingState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                    snapshotFlow { readingState.anchor }.collect { anchor ->
+                        ReadingSession.updateAnchor(
+                            canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                            anchor.character, anchor.lineFraction
+                        )
+                    }
+                }
+                DisposableEffect(readingState, scriptureScrollState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                    val unregister = ReadingSession.registerAnchorCapture {
+                        readingState.capture(scriptureScrollState.value)
+                        ReadingSession.updateAnchor(
+                            canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                            readingState.anchor.character, readingState.anchor.lineFraction
+                        )
+                    }
+                    onDispose { unregister() }
+                }
                 LaunchedEffect(scriptureScrollState) {
                     scriptureScrollState.interactionSource.interactions.collect {
                         bottomSheetScaffoldState.bottomSheetState.collapse()

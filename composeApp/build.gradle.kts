@@ -2,6 +2,7 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -169,4 +170,9 @@ sqldelight {
             version = 5
         }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    // Desktop UI tests exercise session updates; never write the user's database.
+    systemProperty("biblebible.database.path", temporaryDir.resolve("reading-session.db").absolutePath)
 }
