@@ -98,7 +98,7 @@ kotlin {
             }
         }
         getByName("androidDeviceTest") {
-            kotlin.srcDir("src/androidTest/kotlin")
+            kotlin.srcDirs("src/androidTest/kotlin", "src/androidInstrumentedTest/kotlin", "src/androidDebug/kotlin")
             dependencies {
                 implementation(libs.androidx.test.runner)
                 implementation(libs.androidx.test.junit)
@@ -169,4 +169,9 @@ sqldelight {
 // CI can select an available simulator by UDID; local builds keep Kotlin's default.
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest>().configureEach {
     providers.gradleProperty("iosSimulatorDevice").orNull?.let { device.set(it) }
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    // Exercise session writes against a test-owned database, never the user's DB.
+    systemProperty("biblebible.database.path", temporaryDir.resolve("reading-session.db").absolutePath)
 }

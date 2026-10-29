@@ -7,15 +7,15 @@ import email.kevinphillips.biblebible.db.BibleBibleDatabase
 
 actual object DriverFactory {
     lateinit var context: Context
-    private var driver: SqlDriver? = null
+    private val driver: SqlDriver by lazy {
+        AndroidSqliteDriver(BibleBibleDatabase.Schema, context.applicationContext, "BibleBibleDB.db")
+    }
 
     actual fun createDriver(): SqlDriver? {
-        driver = AndroidSqliteDriver(BibleBibleDatabase.Schema, context, "BibleBibleDB.db")
         return driver
     }
 
     internal actual fun closeDB() {
-        driver?.close()
-        driver = null
+        // One application-lifetime driver: other repositories may still be using it.
     }
 }

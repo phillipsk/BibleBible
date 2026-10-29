@@ -51,6 +51,18 @@ xcrun simctl list devices available
 
 The macOS job in `.github/workflows/build.yml` selects and boots an available iPhone simulator and runs the shared test executable. Test compilation or framework linking alone does not prove simulator execution.
 
+## Reading-position regression coverage
+
+The shared regression suite uses the production theme and bundled fonts. It checks the first visible text line across width/height changes, font size and system font-scale changes, pinch/double-tap zoom, saveable-state recreation, and a resize roundtrip at the bottom of a chapter. Chapter navigation and scripture/AI scroll state remain independent. All cases use offline fixtures.
+
+`ReadingPositionInstrumentedTest` runs the shared renderer checks on Android. `ReadingPositionLifecycleTest` additionally requests a real Activity orientation change and Activity recreation. The library's device-test source set includes the fixture from `src/androidDebug/kotlin` and declares it in the device-test manifest, so the fixture is excluded from production Android APKs.
+
+```bash
+./gradlew :composeApp:connectedAndroidDeviceTest -Pandroid.testInstrumentationRunnerArguments.class=ui.ReadingPositionInstrumentedTest,ui.ReadingPositionLifecycleTest,data.appPrefs.ReadingSessionDatabaseAndroidTest
+```
+
+The shared "rotation" case changes the Compose bounds; the Android lifecycle case performs the actual device rotation. `iosTest/ReadingPositionTest` invokes the shared cases using the native renderer on a booted iOS simulator. Database reopen/migration and 24-hour session expiry checks are separate tests. See [reading-position behavior](../docs/reading-position.md).
+
 ## UI regression coverage
 
 Use stable test tags and fake data for UI tests. Read test counts and failure details from the current run rather than treating a successful build or an open emulator as passing tests. Rotation, text reflow, saved-state recreation, and reading-position expiry are separate behaviors; keep their assertions independent.

@@ -9,3 +9,5 @@ fun getTimeZone(): String {
     val userTimeZone = getUserTimeZone()
     return currentInstant.toLocalDateTime(userTimeZone).toString()
 }
+
+internal fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()

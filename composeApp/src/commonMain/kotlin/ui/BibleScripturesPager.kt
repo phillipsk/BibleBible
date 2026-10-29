@@ -1,22 +1,15 @@
 package ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
@@ -26,26 +19,24 @@ import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import data.apiBible.BookData
+import data.appPrefs.ReadingSession
+import data.appPrefs.canonicalBookKey
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.getChapterBibleIQ
 import email.kevinphillips.biblebible.isDesktopPlatform
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleScripturesPager(
     chapters: BibleChapterUIState,
@@ -54,198 +45,123 @@ internal fun BibleScripturesPager(
     isAISummaryLoading: Boolean,
     showAISummary: Boolean,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
+    loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
+        getChapterBibleIQ(book, chapter, version, history)
+    },
 ) {
+    val bookId = BibleIQDataModel.getAPIBibleOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
+    val sameBook = chapters.bookId == bookId
+    val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
+    val summaryScrollState = rememberScrollState()
 
-    var initialLoadDone by remember { mutableStateOf(false) }
-    val pagerColumnScrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
-    var selectedTabIndex by remember(selectedBook) { mutableStateOf(0) }
-    Napier.v(
-        "params :: bookId ${chapters.bookId} :: chapterListBookData?.size ${chapters.chapterList?.size} " +
-                " :: selectedTabIndex $selectedTabIndex", tag = "BB2460"
-    )
-    val pagerState = rememberPagerState(0, 0f) {
-        chapters.chapterList?.size ?: 0
-    }
-    var isPageChangeFromTabClick by remember { mutableStateOf(false) }
-    var lastTabClickTime by remember { mutableStateOf(0L) }
-    val debounceDuration = 50L  // 300 ms for debounce duration
-    val uiStateReady =
-        BibleIQDataModel.getAPIBibleOrdinal(BibleIQDataModel.selectedBook.remoteKey) == BibleIQDataModel.bibleChapter?.bookId
+    key(selectedBook.bookId, bibleVersion) {
+        val scope = rememberCoroutineScope()
+        val pagerState = rememberPagerState(
+            initialPage = if (sameBook) ((chapters.chapterId ?: 1) - 1).coerceIn(0, chapterCount - 1) else 0,
+            pageCount = { chapterCount }
+        )
 
-    LaunchedEffect(selectedBook) {
-//    TODO: calling and updating BibleChapterUIState on selectedBook change
-        Napier.v(
-            "LaunchedEffect: selectedBook: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
-            tag = "BB2470"
-        )
-        initialLoadDone = true
-        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
-        pagerState.scrollToPage(0)
-        selectedTabIndex = 0
-        initialLoadDone = false
-        Napier.v(
-            "LaunchedEffect: selectedBook :: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
-            tag = "BB2470"
-        )
-        BibleIQDataModel.bottomSheetViewCount = 0
-    }
-
-    LaunchedEffect(bibleVersion) {
-        Napier.v(
-            "LaunchedEffect: bibleVersion: $bibleVersion ${selectedBook.bookId} ${chapters.bookId}",
-            tag = "BB2460"
-        )
-        if (uiStateReady) {
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1, updateReadingHistory = false)
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        Napier.v(
-            "LaunchedEffect: currentPage: ${pagerState.currentPage} initialLoadDone $initialLoadDone",
-            tag = "BB2470"
-        )
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        if (isPageChangeFromTabClick) {
-            val time = currentTime - lastTabClickTime
-            Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
-            if (time > debounceDuration) {
-                selectedTabIndex = pagerState.currentPage
-                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+        // One request per settled navigation. Recreating an already loaded reader
+        // (rotation, foregrounding) must not reload chapter 1 or add history.
+        LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
+            val chapter = pagerState.settledPage + 1
+            ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
+            val loaded = sameBook && chapters.chapterId == chapter &&
+                chapters.version.equals(bibleVersion, ignoreCase = true)
+            if (!loaded) {
+                val newLocation = !sameBook || chapters.chapterId != chapter
+                loadChapter(selectedBook, chapter, bibleVersion, newLocation)
             }
-            isPageChangeFromTabClick = false
-        } else if (!initialLoadDone) {
-            selectedTabIndex = pagerState.currentPage
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
         }
-        launch {
+
+        LaunchedEffect(isAISummaryLoading, showAISummary, pagerState.settledPage) {
             if (bottomSheetScaffoldState.bottomSheetState.isExpanded) {
                 bottomSheetScaffoldState.bottomSheetState.collapse()
             }
         }
-        launch {
-            if (pagerColumnScrollState.value != 0) {
-                pagerColumnScrollState.scrollTo(0)
-            }
-        }
-//        GeminiModel.showSummary = false // done in API call
-    }
 
-    /*    LaunchedEffect(pagerColumnScrollState.canScrollBackward) {
-            Napier.v(
-                "LaunchedEffect: canScrollBackward: ${pagerColumnScrollState.canScrollBackward} :: initialLoadDone: $initialLoadDone",
-                tag = "BB2470"
-            )
-            if (pagerColumnScrollState.canScrollBackward || showAISummary) {
-                bottomSheetScaffoldState.bottomSheetState.collapse()
-            } else if (BibleIQDataModel.bottomSheetViewCount < 3) {
-                bottomSheetScaffoldState.bottomSheetState.expand()
-                BibleIQDataModel.bottomSheetViewCount++
-            }
-        }*/
-
-    LaunchedEffect(Unit) {
-        pagerColumnScrollState.interactionSource.interactions.collect {
-            bottomSheetScaffoldState.bottomSheetState.collapse()
-        }
-    }
-
-    LaunchedEffect(isAISummaryLoading || showAISummary) {
-        Napier.v(
-            "LaunchedEffect: isAISummaryLoading: $isAISummaryLoading showAISummary: $showAISummary",
-            tag = "BB2470"
-        )
-        bottomSheetScaffoldState.bottomSheetState.collapse()
-    }
-
-    if (chapters.bookId != null) {
-        AnimatedVisibility(
-            visible = true,
-            enter = fadeIn(initialAlpha = 0.4f),
-            exit = fadeOut(animationSpec = tween(durationMillis = 150))
-        ) {
-            Column {
+        Column(Modifier.fillMaxSize()) {
+            if (sameBook && !chapters.chapterList.isNullOrEmpty()) {
                 ScrollableTabRow(
-                    selectedTabIndex = pagerState.currentPage,
+                    selectedTabIndex = pagerState.currentPage.coerceIn(0, chapterCount - 1),
                     edgePadding = 16.dp,
-                    indicator = { tabPositions ->
-                        if (pagerState.currentPage < tabPositions.size) {
+                    indicator = { positions ->
+                        positions.getOrNull(pagerState.currentPage)?.let { position ->
                             Box(
-                                Modifier
-                                    .padding(vertical = 8.dp)
-                                    .tabIndicatorOffset(tabPositions[pagerState.currentPage])
+                                Modifier.padding(vertical = 8.dp)
+                                    .tabIndicatorOffset(position)
                                     .size(32.dp)
-                                    .border(
-                                        width = 2.dp,
-                                        color = MaterialTheme.colors.primary,
-                                        shape = CircleShape
-                                    )
-                            )
-                        } else {
-                            Napier.e(
-                                "Error: tabPositions: $tabPositions out of bounds",
-                                tag = "BB2460"
+                                    .border(2.dp, MaterialTheme.colors.primary, CircleShape)
                             )
                         }
                     }
                 ) {
-                    Napier.d("chapterList: ${chapters.chapterList}", tag = "BB2460")
-                    chapters.chapterList?.forEachIndexed { index, e ->
+                    chapters.chapterList.forEachIndexed { index, chapter ->
                         Tab(
                             selected = pagerState.currentPage == index,
-                            onClick = {
-                                Napier.v("Tab onClick: $index", tag = "BB2460")
-                                if (index != selectedTabIndex) {
-                                    isPageChangeFromTabClick = true
-                                    lastTabClickTime = Clock.System.now().toEpochMilliseconds()
-                                    selectedTabIndex = index
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(index)
-                                    }
-                                }
-                            },
-                            text = { Text(e.toString(), fontWeight = FontWeight.Bold) }
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            text = { Text(chapter.toString(), fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
-//                var fontSize by remember { mutableStateOf(16f) } // Global font size state
-                HorizontalPager(
-//                    key = { page -> selectedBook.bookId + page.toString()},
-                    state = pagerState,
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.weight(1f),
-                    userScrollEnabled = !isDesktopPlatform()
-                ) { page ->
-                    Napier.v(
-                        "HorizontalPager: currentPage: ${pagerState.currentPage} + Pager LoadingScreen: $isAISummaryLoading $showAISummary",
-                        tag = "Gemini"
+            }
+
+            val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                rememberScrollState()
+            }
+            val readingState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                val savedPosition = ReadingSession.current?.takeIf {
+                    !it.isHome && it.bookKey == canonicalBookKey(selectedBook) &&
+                        it.chapter == chapters.chapterId && it.version.equals(bibleVersion, true)
+                }
+                rememberScriptureReadingState(
+                    savedPosition?.let { ScriptureAnchor(it.characterOffset, it.lineFraction) } ?: ScriptureAnchor()
+                )
+            }
+            LaunchedEffect(readingState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                snapshotFlow { readingState.anchor }.collect { anchor ->
+                    ReadingSession.updateAnchor(
+                        canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                        anchor.character, anchor.lineFraction
                     )
-                    when {
-                        isAISummaryLoading && showAISummary -> {
-                            LoadingScreen()
-                        }
+                }
+            }
+            DisposableEffect(readingState, scriptureScrollState, selectedBook.bookId, chapters.chapterId, bibleVersion) {
+                val unregister = ReadingSession.registerAnchorCapture {
+                    readingState.capture(scriptureScrollState.value)
+                    ReadingSession.updateAnchor(
+                        canonicalBookKey(selectedBook), chapters.chapterId ?: 1, bibleVersion,
+                        readingState.anchor.character, readingState.anchor.lineFraction
+                    )
+                }
+                onDispose { unregister() }
+            }
+            // Scripture and AI summary positions are deliberately separate.
+            LaunchedEffect(scriptureScrollState) {
+                scriptureScrollState.interactionSource.interactions.collect {
+                    bottomSheetScaffoldState.bottomSheetState.collapse()
+                }
+            }
 
-                        showAISummary -> {
-                            GeminiSummary(
-                                pagerColumnScrollState,
-                                BibleIQDataModel.selectedFontSize
-                            )
-                        }
-
-                        else -> {
-                            BibleScriptures(
-                                chapters,
-                                pagerColumnScrollState,
-                                BibleIQDataModel.selectedFontSize,
-                                onFontSizeChanged = { newFontSize -> BibleIQDataModel.selectedFontSize = newFontSize }
-                            )
-                        }
-                    }
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Top,
+                userScrollEnabled = !isDesktopPlatform()
+            ) { page ->
+                when {
+                    !sameBook || chapters.chapterId != page + 1 || chapters.text == null -> LoadingScreen()
+                    isAISummaryLoading && showAISummary -> LoadingScreen()
+                    showAISummary -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
+                    else -> BibleScriptures(
+                        chapters,
+                        scriptureScrollState,
+                        BibleIQDataModel.selectedFontSize,
+                        onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
+                        readingState = readingState
+                    )
                 }
             }
         }
-    } else {
-        LoadingScreen()
     }
 }
