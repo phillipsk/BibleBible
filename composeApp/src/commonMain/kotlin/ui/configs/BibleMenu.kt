@@ -57,11 +57,8 @@ internal fun BibleMenu(
                                 tag = "AP8243"
                             )
                             updateUserPrefsBibleVersion(version.abbreviation)
-                            withContext(Dispatchers.Main) {
-                                delay(400)
-                                bottomSheetState.collapse()
-                                Napier.v("BibleMenu :: bottomSheetState.collapse() ", tag = "FF6290")
-                            }
+                            delay(400)
+                            bottomSheetState.collapse()
                         }
                     },
                     selected = selected,

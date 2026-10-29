@@ -47,6 +47,7 @@ import ui.configs.BottomSheetConfigView
 @Composable
 internal fun BibleHomeScreen(
     scaffoldState: BottomSheetScaffoldState,
+    modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
@@ -78,20 +79,15 @@ internal fun BibleHomeScreen(
         },
         content = ({
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 BibleBibleTopBar(
-                    onClick = {
-                        scope.launch {
-                            BibleIQDataModel.onHomeClick()
-                        }
-                    },
+                    onClick = BibleIQDataModel.onHomeClick,
                     showBottomSheet = {
                         scope.launch {
                             if (localScaffoldState.bottomSheetState.isExpanded) {
                                 localScaffoldState.bottomSheetState.collapse()
-                                Napier.v("BibleHomeScreen :: bottomSheetState.collapse() ", tag = "FF6290")
                             } else {
                                 Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
                                 localScaffoldState.bottomSheetState.expand()
@@ -142,7 +138,12 @@ internal fun BibleBookList(
                         it.let {
                             Button(
                                 onClick = {
-                                    initBookLoad(it)
+                                    BibleAPIDataModel.run {
+                                        updateBookData(it)
+                                        updateSelectedChapter(it.remoteKey)
+                                    }
+                                    BibleIQDataModel.updateSelectedBook(it)
+                                    BibleIQDataModel.showHomePage = false
                                 },
                                 shape = RoundedCornerShape(50), // Rounded corners
                                 colors = ButtonDefaults.buttonColors(
@@ -175,15 +176,4 @@ internal fun BibleBookList(
             }
         }
     }
-}
-
-fun initBookLoad(bookData: BookData, selectedChapter: Int = 1, fromAppPrefs: Boolean = false) {
-    BibleAPIDataModel.run {
-        updateBookData(bookData)
-        updateSelectedChapter(selectedChapter)
-
-    }
-    BibleIQDataModel.updateSelectedBook(bookData)
-    BibleIQDataModel.showHomePage = false
-    BibleIQDataModel.fromAppPrefs = fromAppPrefs
 }

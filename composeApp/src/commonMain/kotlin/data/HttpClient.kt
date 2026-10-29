@@ -16,7 +16,7 @@ import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-data class HttpClientConfig(
+data class AppHttpClientConfig(
     val baseUrl: String,
     val apiKeyHeader: String,
     val apiKey: String,
@@ -24,13 +24,14 @@ data class HttpClientConfig(
 )
 
 const val TIMEOUT_LIMIT = 20_000L
+const val TIMEOUT_LIMIT_GEMINI = 30_000L
 
-private fun createHttpClient(config: HttpClientConfig): HttpClient {
+private fun createHttpClient(config: AppHttpClientConfig, timeout: Long = TIMEOUT_LIMIT): HttpClient {
     return HttpClient {
         install(HttpTimeout) {
-            requestTimeoutMillis = TIMEOUT_LIMIT
-            connectTimeoutMillis = TIMEOUT_LIMIT
-            socketTimeoutMillis = TIMEOUT_LIMIT // create separate client for GeminiService
+            requestTimeoutMillis = timeout
+            connectTimeoutMillis = timeout
+            socketTimeoutMillis = timeout
         }
         install(Resources)
         if (!BibleIQDataModel.RELEASE_BUILD) {
@@ -51,13 +52,15 @@ private fun createHttpClient(config: HttpClientConfig): HttpClient {
                 host = config.baseUrl
                 protocol = URLProtocol.HTTPS
             }
-            header(config.apiKeyHeader, config.apiKey)
+            if (config.apiKeyHeader.isNotEmpty()) {
+                header(config.apiKeyHeader, config.apiKey)
+            }
         }
     }
 }
 
 val httpClientBibleAPI: HttpClient by lazy {
-    val config = HttpClientConfig(
+    val config = AppHttpClientConfig(
         baseUrl = "api.scripture.api.bible/v1", apiKeyHeader = "api-key",
         apiKey = BuildKonfig.API_KEY_API_BIBLE
     )
@@ -65,7 +68,7 @@ val httpClientBibleAPI: HttpClient by lazy {
 }
 
 val httpClientBibleIQ: HttpClient by lazy {
-    val config = HttpClientConfig(
+    val config = AppHttpClientConfig(
         baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
         apiKey = BuildKonfig.API_KEY
     )
@@ -73,9 +76,9 @@ val httpClientBibleIQ: HttpClient by lazy {
 }
 
 val httpClientGemini: HttpClient by lazy {
-    val config = HttpClientConfig(
-        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "X-RapidAPI-Key",
+    val config = AppHttpClientConfig(
+        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "",
         apiKey = BuildKonfig.GEMINI_API_KEY
     )
-    createHttpClient(config)
+    createHttpClient(config, timeout = TIMEOUT_LIMIT_GEMINI)
 }

@@ -107,7 +107,7 @@ WHERE created_at IN (
 );
 
 selectReadingHistory:
-SELECT DISTINCT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
+SELECT ReadingHistory.b, ReadingHistory.c, DATE(ReadingHistory.created_at)
 FROM ReadingHistory ORDER BY ReadingHistory.created_at DESC;
 
 countReadingHistory:
@@ -116,29 +116,18 @@ SELECT COUNT(*) FROM ReadingHistory;
 CREATE TABLE UserPreferences (
     uuid INTEGER PRIMARY KEY DEFAULT 1,
     fontSize REAL NOT NULL DEFAULT 18,
-    bibleVersion TEXT NOT NULL DEFAULT 'KJV',
-    selectedBook INTEGER,
-    selectedChapter INTEGER
+    bibleVersion TEXT NOT NULL DEFAULT 'KJV'
 );
 
 insertUserPrefs:
-INSERT INTO UserPreferences (uuid, fontSize, bibleVersion, selectedBook, selectedChapter)
-VALUES (1, 18,'KJV', NULL,NULL);
+INSERT INTO UserPreferences (uuid, fontSize, bibleVersion)
+VALUES (1, 18,'KJV');
 
-updateUserPrefsFontSize:
-UPDATE UserPreferences SET fontSize = ? WHERE uuid = 1;
+updateUserPrefs:
+UPDATE UserPreferences SET fontSize = ?, bibleVersion = ? WHERE uuid = 1;
 
 updateUserPrefsBibleVersion:
 UPDATE UserPreferences SET bibleVersion = ? WHERE uuid = 1;
-
-updateUserPrefsSelectedBook:
-UPDATE UserPreferences SET selectedBook = ? WHERE uuid = 1;
-
-updateUserPrefsSelectedChapter:
-UPDATE UserPreferences SET selectedChapter = ? WHERE uuid = 1;
-
-updateUserPrefsSetHomePage:
-UPDATE UserPreferences SET selectedBook = NULL, selectedChapter = NULL WHERE uuid = 1;
 
 selectUserPrefs:
 SELECT * FROM UserPreferences;
