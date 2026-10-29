@@ -13,7 +13,6 @@ import data.apiBible.BibleAPIDataModel
 import data.GeminiModel
 import data.apiBible.BookData
 import data.appPrefs.ReadingSession
-import data.GeminiModel
 import email.kevinphillips.biblebible.isDesktopPlatform
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
@@ -92,7 +91,7 @@ object BibleIQDataModel {
     }
 
     internal fun restoreReadingLocation(book: BookData, chapter: Int) {
-        selectedBook = book
+        updateSelectedBook(book)
         BibleAPIDataModel.updateBookData(book)
         BibleAPIDataModel.updateSelectedChapter("${book.bookId}.$chapter")
         bibleChapter = BibleChapterUIState(
@@ -105,7 +104,7 @@ object BibleIQDataModel {
 
     internal fun discardReadingLocation() {
         bibleChapter = BibleChapterUIState()
-        GeminiModel.showSummary = false
+        GeminiModel.cancelPendingSummary()
         showHomePage = true
     }
 
