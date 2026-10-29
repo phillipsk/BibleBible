@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.apiBible.currentTimeMillis
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersion
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -20,7 +21,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 
 internal const val READING_SESSION_LIFETIME_MILLIS = 24L * 60 * 60 * 1000
 
@@ -122,7 +122,7 @@ internal object ReadingSession {
                 previous,
                 BibleAPIDataModel.bibleBooks.data.orEmpty(),
                 BibleIQDataModel.bibleVersions.data,
-                Clock.System.now().toEpochMilliseconds(),
+                currentTimeMillis(),
             )
             current = restored
             initialized = true
@@ -151,7 +151,7 @@ internal object ReadingSession {
             version = version,
             characterOffset = if (sameLocation) previous.characterOffset else 0,
             lineFraction = if (sameLocation) previous.lineFraction else 0f,
-            lastActiveMillis = Clock.System.now().toEpochMilliseconds(),
+            lastActiveMillis = currentTimeMillis(),
         )
         initialized = true
         persist(current)
@@ -165,30 +165,30 @@ internal object ReadingSession {
         current = previous.copy(
             characterOffset = characterOffset,
             lineFraction = lineFraction,
-            lastActiveMillis = Clock.System.now().toEpochMilliseconds(),
+            lastActiveMillis = currentTimeMillis(),
         )
         persist(current)
     }
 
     fun goHome() {
         current = (current ?: SavedReadingSession("", 1, BibleIQDataModel.selectedVersion, lastActiveMillis = 1))
-            .copy(isHome = true, lastActiveMillis = Clock.System.now().toEpochMilliseconds())
+            .copy(isHome = true, lastActiveMillis = currentTimeMillis())
         initialized = true
         persist(current)
         BibleIQDataModel.discardReadingLocation()
     }
 
-    fun onBackground() {
+    fun onBackground(nowMillis: Long = currentTimeMillis()) {
         if (!initialized) return
         captureAnchor?.invoke()
-        current = current?.copy(lastActiveMillis = Clock.System.now().toEpochMilliseconds())
+        current = current?.copy(lastActiveMillis = nowMillis)
         persist(current)
     }
 
-    fun onForeground() {
+    fun onForeground(nowMillis: Long = currentTimeMillis()) {
         val session = current ?: return
         // Do not touch lastActive here: time spent in the background must count.
-        if (!session.isFresh(Clock.System.now().toEpochMilliseconds())) {
+        if (!session.isFresh(nowMillis)) {
             current = null
             BibleIQDataModel.discardReadingLocation()
             persist(null)
