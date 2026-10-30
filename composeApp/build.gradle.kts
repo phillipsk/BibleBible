@@ -175,4 +175,15 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimu
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     // Exercise session writes against a test-owned database, never the user's DB.
     systemProperty("biblebible.database.path", temporaryDir.resolve("reading-session.db").absolutePath)
+    val defaultUserHome = file(System.getProperty("user.home"))
+    if (!defaultUserHome.canWrite()) {
+        val testUserHome = layout.buildDirectory.dir("test-user-home").get().asFile
+        systemProperty("user.home", testUserHome.absolutePath)
+        doFirst { testUserHome.mkdirs() }
+    }
+    // Robolectric resolves its Android SDK in the test JVM, so forward the
+    // Gradle proxy settings used by managed and corporate build environments.
+    listOf("http.proxyHost", "http.proxyPort", "https.proxyHost", "https.proxyPort").forEach { key ->
+        System.getProperty(key)?.let { systemProperty(key, it) }
+    }
 }
