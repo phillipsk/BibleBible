@@ -16,6 +16,8 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -42,6 +44,7 @@ suspend fun generateContent(content: String, client: HttpClient = httpClientGemi
                 setBody(requestBody)
             }
         }
+        currentCoroutineContext().ensureActive()
         if (!response.status.isSuccess()) {
             Napier.e("Gemini request failed (HTTP ${response.status.value})", tag = "GeminiServiceImp")
             GeminiModel.updateGeminiError(when (response.status.value) {
@@ -53,6 +56,7 @@ suspend fun generateContent(content: String, client: HttpClient = httpClientGemi
             return
         }
         val responseText = response.body<GeminiResponseDto>()
+        currentCoroutineContext().ensureActive()
         if (responseText.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text.isNullOrBlank()) {
             GeminiModel.updateGeminiError("Gemini returned no summary. Please try again.")
         } else {
@@ -61,6 +65,7 @@ suspend fun generateContent(content: String, client: HttpClient = httpClientGemi
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        currentCoroutineContext().ensureActive()
         Napier.e("Gemini request failed (${e::class.simpleName})", tag = "GeminiServiceImp")
         GeminiModel.updateGeminiError("AI summary could not load. Check your connection and try again.")
     }
