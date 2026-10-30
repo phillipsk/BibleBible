@@ -42,10 +42,15 @@ internal class ScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureA
         zoomReleaseGeneration += 1
     }
 
+    internal fun beginScrollInteraction() {
+        if (!restoring && !zooming && !awaitingZoomRestore) {
+            restoredScrollOffset = null
+        }
+    }
+
     fun capture(scrollOffset: Int) {
         val textLayout = layout ?: return
-        if (restoring || zooming || awaitingZoomRestore || scrollOffset == restoredScrollOffset || textLayout.lineCount == 0) return
-        restoredScrollOffset = null
+        if (restoring || zooming || awaitingZoomRestore || restoredScrollOffset != null || textLayout.lineCount == 0) return
         val textOffset = (scrollOffset - contentInset).coerceAtLeast(0)
         val line = textLayout.getLineForVerticalPosition(textOffset.toFloat())
         val top = textLayout.getLineTop(line)

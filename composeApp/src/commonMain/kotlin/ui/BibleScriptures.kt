@@ -50,7 +50,15 @@ internal fun BibleScriptures(
     readingState.contentInset = with(LocalDensity.current) { 4.dp.roundToPx() }
 
     LaunchedEffect(scrollState, readingState) {
-        snapshotFlow { scrollState.value }.collect { readingState.capture(it) }
+        var interactionActive = false
+        snapshotFlow { scrollState.value to scrollState.isScrollInProgress }.collect { (offset, inProgress) ->
+            if (inProgress && !interactionActive) {
+                readingState.beginScrollInteraction()
+                interactionActive = true
+            }
+            if (interactionActive) readingState.capture(offset)
+            if (!inProgress) interactionActive = false
+        }
     }
 
     // Wait for the scroll container's new range before restoring the visible text.

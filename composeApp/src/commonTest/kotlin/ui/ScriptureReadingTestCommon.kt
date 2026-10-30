@@ -73,6 +73,12 @@ private fun ComposeUiTest.prepareReader(): ScriptureReaderHarness {
     runOnIdle { harness.scope.launch { harness.scroll.scrollTo(1_200) } }
     waitForIdle()
     runOnIdle {
+        // scrollTo is instantaneous in the test clock and may not expose an
+        // isScrollInProgress frame; mark it as the user scroll this jump models.
+        harness.reading.beginScrollInteraction()
+        harness.reading.capture(harness.scroll.value)
+    }
+    runOnIdle {
         assertTrue(harness.reading.anchor.character > 0,
             "Test must scroll into the chapter: scroll=${harness.scroll.value}, max=${harness.scroll.maxValue}, restoring=${harness.reading.restoring}, layout=${harness.reading.layout?.size}")
     }
@@ -85,6 +91,10 @@ internal fun ComposeUiTest.runScriptureReflowTest(change: String) {
     if (change == "bottom-roundtrip") {
         runOnIdle { harness.scope.launch { harness.scroll.scrollTo(harness.scroll.maxValue) } }
         waitForIdle()
+        runOnIdle {
+            harness.reading.beginScrollInteraction()
+            harness.reading.capture(harness.scroll.value)
+        }
     }
     val original = runOnIdle { harness.reading.anchor }
     when (change) {
