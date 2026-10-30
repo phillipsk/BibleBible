@@ -87,7 +87,7 @@ internal class ReadingSessionStore(database: BibleBibleDatabase) {
 
 /** Lives beyond a composable so a background save is not cancelled on disposal. */
 internal object ReadingSession {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val writeMutex = Mutex()
     private var revision = 0L
     private var writtenRevision = -1L

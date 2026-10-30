@@ -50,21 +50,37 @@ internal fun BibleScriptures(
     readingState.contentInset = with(LocalDensity.current) { 4.dp.roundToPx() }
 
     LaunchedEffect(scrollState, readingState) {
-        snapshotFlow { scrollState.value }.collect { readingState.capture(it) }
+        var interactionActive = false
+        snapshotFlow { scrollState.value to scrollState.isScrollInProgress }.collect { (offset, inProgress) ->
+            if (inProgress && !interactionActive) {
+                readingState.beginScrollInteraction()
+                interactionActive = true
+            }
+            if (interactionActive) readingState.capture(offset)
+            if (!inProgress) interactionActive = false
+        }
     }
 
     // Wait for the scroll container's new range before restoring the visible text.
     // Keep our own restoration out of the capture flow to avoid cumulative drift.
-    LaunchedEffect(textLayout, viewportSize, readingState) {
+    LaunchedEffect(textLayout, viewportSize, selectedFontSize, readingState.zoomReleaseGeneration, readingState) {
         val layout = textLayout ?: return@LaunchedEffect
+        // A release can arrive before the final font change has been measured.
+        // Only the effect for that measured font may unlock anchor capture.
+        if (layout.layoutInput.style.fontSize != selectedFontSize.sp) return@LaunchedEffect
         val viewport = viewportSize
+        val zoomGeneration = readingState.zoomReleaseGeneration
         try {
             withFrameNanos { }
             scrollState.scrollTo(readingState.scrollOffset(layout))
             readingState.restoredScrollOffset = scrollState.value
             withFrameNanos { }
         } finally {
-            if (textLayout === layout && viewportSize == viewport) readingState.restoring = false
+            if (textLayout === layout && viewportSize == viewport &&
+                zoomGeneration == readingState.zoomReleaseGeneration) {
+                readingState.restoring = false
+                if (!readingState.zooming) readingState.awaitingZoomRestore = false
+            }
         }
     }
 
@@ -88,25 +104,29 @@ internal fun BibleScriptures(
             .verticalScroll(scrollState)
             .padding(4.dp)
             .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    var zooming = false
-                    var gestureFontSize = currentFontSize
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        if (event.changes.count { it.pressed } > 1) {
-                            if (!zooming) {
-                                gestureFontSize = currentFontSize
-                                zooming = true
-                            }
-                            val zoom = event.calculateZoom()
-                            if (zoom.isFinite() && zoom != 1f) {
-                                val maximum = if (isDesktopPlatform()) 72f else 40f
-                                gestureFontSize = (gestureFontSize * zoom).coerceIn(12f, maximum)
-                                changeFontSize(gestureFontSize)
-                                event.changes.forEach { it.consume() }
-                            }
-                        } else zooming = false
+                try {
+                    awaitPointerEventScope {
+                        var gestureFontSize = currentFontSize
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.count { it.pressed } > 1) {
+                                if (!readingState.zooming) {
+                                    gestureFontSize = currentFontSize
+                                    readingState.beginZoom(scrollState.value)
+                                }
+                                val zoom = event.calculateZoom()
+                                if (zoom.isFinite() && zoom != 1f) {
+                                    val maximum = if (isDesktopPlatform()) 72f else 40f
+                                    gestureFontSize = (gestureFontSize * zoom).coerceIn(12f, maximum)
+                                    changeFontSize(gestureFontSize)
+                                    event.changes.forEach { it.consume() }
+                                }
+                            } else readingState.endZoom()
+                        }
                     }
+                } finally {
+                    // Disposal/cancellation must not leave a reused reader locked.
+                    readingState.endZoom()
                 }
             }
             .pointerInput(Unit) {

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -22,11 +23,34 @@ internal class ScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureA
     internal var restoring = true
     internal var contentInset = 0
     internal var restoredScrollOffset: Int? = null
+    internal var zooming = false
+    internal var awaitingZoomRestore = false
+    internal var zoomReleaseGeneration by mutableIntStateOf(0)
+        private set
+
+    internal fun beginZoom(scrollOffset: Int) {
+        if (zooming) return
+        capture(scrollOffset)
+        zooming = true
+    }
+
+    internal fun endZoom() {
+        if (!zooming) return
+        zooming = false
+        awaitingZoomRestore = true
+        restoring = true
+        zoomReleaseGeneration += 1
+    }
+
+    internal fun beginScrollInteraction() {
+        if (!restoring && !zooming && !awaitingZoomRestore) {
+            restoredScrollOffset = null
+        }
+    }
 
     fun capture(scrollOffset: Int) {
         val textLayout = layout ?: return
-        if (restoring || scrollOffset == restoredScrollOffset || textLayout.lineCount == 0) return
-        restoredScrollOffset = null
+        if (restoring || zooming || awaitingZoomRestore || restoredScrollOffset != null || textLayout.lineCount == 0) return
         val textOffset = (scrollOffset - contentInset).coerceAtLeast(0)
         val line = textLayout.getLineForVerticalPosition(textOffset.toFloat())
         val top = textLayout.getLineTop(line)

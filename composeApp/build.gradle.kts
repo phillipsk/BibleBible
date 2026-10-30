@@ -162,6 +162,7 @@ sqldelight {
     databases {
         create("BibleBibleDatabase") {
             packageName.set("email.kevinphillips.biblebible.db")
+            // Schema versions are derived from migration filenames: 6.sqm produces schema 7.
         }
     }
 }
