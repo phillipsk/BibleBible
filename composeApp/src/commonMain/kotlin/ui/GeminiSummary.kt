@@ -4,8 +4,11 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -22,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import data.GeminiModel
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
@@ -72,12 +76,29 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
         Napier.d("GeminiSummary: refreshing $refreshing", tag = "GeminiSummary")
         PullRefreshIndicator(refreshing, state, Modifier.align(Alignment.TopCenter))
         content?.let {
-            Column(modifier = Modifier.verticalScroll(scrollState)) {
+            Column(modifier = Modifier.verticalScroll(scrollState).padding(16.dp)) {
                 Text(
-                    text = it,
-                    fontSize = selectedFontSize.sp,
-                    modifier = Modifier.padding(4.dp)
+                    text = "Chapter insights",
+                    style = MaterialTheme.typography.h4.copy(
+                        color = MaterialTheme.colors.primary,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                 )
+                Surface(
+                    color = MaterialTheme.colors.surface,
+                    shape = MaterialTheme.shapes.large,
+                    elevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = it,
+                        fontSize = selectedFontSize.sp,
+                        lineHeight = (selectedFontSize * 1.5f).sp,
+                        color = MaterialTheme.colors.onSurface,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                }
             }
         }
     }

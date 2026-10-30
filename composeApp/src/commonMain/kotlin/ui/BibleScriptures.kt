@@ -102,7 +102,7 @@ internal fun BibleScriptures(
                 }
             }
             .verticalScroll(scrollState)
-            .padding(4.dp)
+            .padding(horizontal = 20.dp, vertical = 4.dp)
             .pointerInput(Unit) {
                 try {
                     awaitPointerEventScope {
@@ -143,6 +143,7 @@ internal fun BibleScriptures(
             Text(
                 text = text,
                 fontSize = selectedFontSize.sp,
+                lineHeight = (selectedFontSize * 1.52f).sp,
                 modifier = Modifier.testTag("ScriptureText"),
                 onTextLayout = { result ->
                     if (!sameTextGeometry(textLayout, result)) {
