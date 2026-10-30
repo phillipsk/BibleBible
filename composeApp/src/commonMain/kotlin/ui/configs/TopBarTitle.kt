@@ -3,6 +3,7 @@ package ui.configs
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -24,8 +25,8 @@ internal fun TopBarTitle(title: String, showHomePage: Boolean = true, onClick: (
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back to Home",
-                tint = Color.White,
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)
+                tint = MaterialTheme.colors.onPrimary,
+                modifier = Modifier.padding(end = 8.dp).size(22.dp)
             )
         }
         Text(
@@ -34,12 +35,12 @@ internal fun TopBarTitle(title: String, showHomePage: Boolean = true, onClick: (
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 3.1.sp,
-                color = Color.White,
+                letterSpacing = 0.4.sp,
+                color = MaterialTheme.colors.onPrimary,
             ),
             maxLines = 1,
             overflow = TextOverflow.Visible,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
     }
 }

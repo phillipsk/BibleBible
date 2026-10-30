@@ -3,6 +3,7 @@ package ui.configs.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
@@ -30,17 +31,19 @@ internal fun HomeTitle(onClick: () -> Unit) {
         Image(
             painter = painterResource(Res.drawable.BibleBible_ico_iv),
             contentDescription = "BibleBible",
-            modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(30.dp))
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(14.dp))
         )
         Text(
-            modifier = Modifier.padding(start = 6.dp, top = 6.dp),
+            modifier = Modifier.padding(start = 12.dp),
             text = "BibleBible",
             style = TextStyle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
-                letterSpacing = 3.1.sp,
+                letterSpacing = 1.2.sp,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = Color.White,
+                fontSize = 23.sp,
+                color = MaterialTheme.colors.onPrimary,
             ),
             maxLines = 1,
             overflow = TextOverflow.Visible,
