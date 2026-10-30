@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.GeminiModel
-import data.GeminiModel.showSummary
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
@@ -47,9 +46,9 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
                 content = GeminiModel.geminiDataText
 
             } else {
-                Napier.e("showSummary :: $showSummary :: AI Summary could not connect. Please try again later.", tag = "Gem7624")
-                BibleIQDataModel.updateErrorSnackBar("AI Summary could not connect. Please try again later.")
-//                BibleIQDataModel.showHomePage = true
+                BibleIQDataModel.updateErrorSnackBar(
+                    GeminiModel.errorMessage ?: "Gemini returned no summary. Please try again."
+                )
                 GeminiModel.showSummary = false
             }
             scrollState.scrollTo(0)

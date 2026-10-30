@@ -6,21 +6,32 @@ import androidx.compose.runtime.setValue
 import data.bibleIQ.BibleIQDataModel
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
+import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
 
 object GeminiModel {
 
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
+    internal val isAvailable: Boolean
+        get() = BuildKonfig.AI_SUMMARIES_ENABLED && BuildKonfig.GEMINI_API_KEY.isNotBlank()
 
     private var geminiData by mutableStateOf(GeminiResponseDto())
+    internal var errorMessage by mutableStateOf<String?>(null)
+        private set
+
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
-        Napier.v("updateGeminiData: ${geminiDataText?.take(100)}", tag = "GeminiServiceImp")
+        errorMessage = null
+    }
+
+    internal fun updateGeminiError(message: String) {
+        geminiData = GeminiResponseDto()
+        errorMessage = message
     }
     internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
 
-    val isSuccessful get() = !isLoading && showSummary && geminiDataText != null
+    val isSuccessful get() = !isLoading && showSummary && !geminiDataText.isNullOrBlank()
 
     internal var geminiFullResponse by mutableStateOf("")
         private set
@@ -35,6 +46,11 @@ object GeminiModel {
                 BibleIQDataModel.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary(pullToRefresh: Boolean = false) {
+        if (!isAvailable) {
+            updateGeminiError("AI summaries are currently unavailable.")
+            showSummary = false
+            return
+        }
         if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
             generateContent(geminiQuery)
         }
