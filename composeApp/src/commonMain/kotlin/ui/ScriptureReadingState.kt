@@ -80,5 +80,5 @@ internal class ScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureA
 }
 
 @Composable
-internal fun rememberScriptureReadingState(): ScriptureReadingState =
-    rememberSaveable(saver = ScriptureReadingState.Saver) { ScriptureReadingState() }
+internal fun rememberScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureAnchor()): ScriptureReadingState =
+    rememberSaveable(saver = ScriptureReadingState.Saver) { ScriptureReadingState(initialAnchor) }

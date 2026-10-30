@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
 import data.GeminiModel
 import data.apiBible.BookData
+import data.appPrefs.ReadingSession
 import email.kevinphillips.biblebible.isDesktopPlatform
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
@@ -89,6 +90,29 @@ object BibleIQDataModel {
         selectedBook = newBook
     }
 
+    internal fun restoreReadingLocation(book: BookData, chapter: Int) {
+        updateSelectedBook(book)
+        BibleAPIDataModel.updateBookData(book)
+        BibleAPIDataModel.updateSelectedChapter("${book.bookId}.$chapter")
+        val bookId = getAPIBibleOrdinal(book.remoteKey)
+        val loaded = bibleChapter
+        if (loaded?.bookId != bookId || loaded.chapterId != chapter || loaded.text == null ||
+            !loaded.version.equals(selectedVersion, ignoreCase = true)) {
+            bibleChapter = BibleChapterUIState(
+                bookId = bookId,
+                chapterId = chapter,
+                chapterList = book.chapterListBookData.orEmpty().mapNotNull { it.number?.toLongOrNull() },
+            )
+        }
+        showHomePage = false
+    }
+
+    internal fun discardReadingLocation() {
+        bibleChapter = BibleChapterUIState()
+        GeminiModel.cancelPendingSummary()
+        showHomePage = true
+    }
+
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
         private set
 
@@ -127,6 +151,7 @@ object BibleIQDataModel {
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         BibleIQDataModel.showHomePage = true
+        ReadingSession.goHome()
     }
 
 

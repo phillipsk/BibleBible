@@ -3,6 +3,7 @@ import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.STRING
 import com.codingfeline.buildkonfig.compiler.FieldSpec.Type.BOOLEAN
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -49,6 +50,7 @@ kotlin {
             implementation(libs.generativeai)
         }
         commonMain.dependencies {
+            implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material)
@@ -198,7 +200,12 @@ sqldelight {
     databases {
         create("BibleBibleDatabase") {
             packageName.set("email.kevinphillips.biblebible.db")
-            version = 5
+            // Schema versions are derived from migration filenames: 6.sqm produces schema 7.
         }
     }
+}
+
+tasks.withType<Test>().configureEach {
+    // Desktop UI tests exercise session updates; never write the user's database.
+    systemProperty("biblebible.database.path", temporaryDir.resolve("reading-session.db").absolutePath)
 }
