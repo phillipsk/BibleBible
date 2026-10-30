@@ -1,0 +1,10 @@
+CREATE TABLE SavedReadingPosition (
+    uuid INTEGER PRIMARY KEY CHECK (uuid = 1),
+    bookKey TEXT NOT NULL,
+    chapter INTEGER NOT NULL CHECK (chapter >= 1),
+    bibleVersion TEXT NOT NULL,
+    characterOffset INTEGER NOT NULL DEFAULT 0 CHECK (characterOffset >= 0),
+    lineFraction REAL NOT NULL DEFAULT 0,
+    isHome INTEGER NOT NULL DEFAULT 0,
+    lastActiveMillis INTEGER NOT NULL
+);

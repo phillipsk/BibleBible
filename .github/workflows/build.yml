@@ -1,0 +1,114 @@
+name: Build and test
+
+on:
+  pull_request:
+  push:
+    branches: [main, build/refresh-stable-2026, "validation/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop-and-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SKIKO_RENDER_API: SOFTWARE
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@7ca78c16c887dc6c5f36fd6d0cb0f5c23d940e69 # v6
+      - name: Install Android SDK and Linux graphics prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes xvfb libxrender1 libxtst6 libxi6 libgl1 libfontconfig1
+          "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Build Android and desktop; run host tests
+        run: |
+          set -o pipefail
+          xvfb-run -a ./gradlew :androidApp:assembleDebug :androidApp:assembleRelease :desktopApp:jvmJar :composeApp:desktopTest :composeApp:testAndroidHostTest --stacktrace 2>&1 | tee "$RUNNER_TEMP/linux-build.log"
+      - name: Summarize completed tests
+        if: always()
+        run: python3 tools/summarize_test_results.py composeApp/build/test-results/desktopTest composeApp/build/test-results/testAndroidHostTest >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize Linux failure diagnostics
+        if: failure()
+        run: |
+          if [ -f "$RUNNER_TEMP/linux-build.log" ]; then
+            { echo '```text'; tail -n 120 "$RUNNER_TEMP/linux-build.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain test reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: linux-test-reports
+          path: '**/build/reports/tests/**'
+          if-no-files-found: ignore
+
+  ios-simulator:
+    # Compose no longer publishes Intel iOS simulator artifacts.
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@7ca78c16c887dc6c5f36fd6d0cb0f5c23d940e69 # v6
+      - name: Select and boot an installed iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun simctl list devices available --json > "$RUNNER_TEMP/simulators.json"
+          simulator_id=$(python3 - "$RUNNER_TEMP/simulators.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1]))
+          phones = [d for devices in data['devices'].values() for d in devices
+                    if d.get('isAvailable') and d['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No installed iPhone simulator is available')
+          selected = next((d for d in phones if d['state'] == 'Booted'), phones[0])
+          print(selected['udid'])
+          PY
+          )
+          if ! xcrun simctl list devices booted | grep -F "$simulator_id"; then
+            xcrun simctl boot "$simulator_id"
+          fi
+          xcrun simctl bootstatus "$simulator_id" -b
+          echo "IOS_SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+      - name: Build framework and run shared tests on iOS
+        run: |
+          set -o pipefail
+          ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64 :composeApp:iosSimulatorArm64Test -PiosSimulatorDevice="$IOS_SIMULATOR_ID" --stacktrace 2>&1 | tee "$RUNNER_TEMP/ios-build.log"
+      - name: Build the SwiftUI simulator application without signing credentials
+        run: |
+          set -o pipefail
+          xcodebuild -project iosApp/BibleBible.xcodeproj -target iosApp -configuration Debug -sdk iphonesimulator ARCHS=arm64 CODE_SIGNING_ALLOWED=NO SYMROOT="$RUNNER_TEMP/ios-products" build 2>&1 | tee "$RUNNER_TEMP/ios-app-build.log"
+      - name: Summarize completed iOS tests
+        if: always()
+        run: python3 tools/summarize_test_results.py composeApp/build/test-results/iosSimulatorArm64Test >> "$GITHUB_STEP_SUMMARY"
+      - name: Summarize iOS failure diagnostics
+        if: failure()
+        run: |
+          if [ -f "$RUNNER_TEMP/ios-app-build.log" ]; then
+            { echo '```text'; tail -n 120 "$RUNNER_TEMP/ios-app-build.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f "$RUNNER_TEMP/ios-build.log" ]; then
+            { echo '```text'; tail -n 120 "$RUNNER_TEMP/ios-build.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain iOS test reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ios-test-reports
+          path: '**/build/reports/tests/**'
+          if-no-files-found: ignore

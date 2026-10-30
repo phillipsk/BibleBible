@@ -19,11 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import biblebible.composeapp.generated.resources.BibleBible_ico_iv
 import biblebible.composeapp.generated.resources.Res
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-@OptIn(ExperimentalResourceApi::class)
 internal fun HomeTitle(onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,

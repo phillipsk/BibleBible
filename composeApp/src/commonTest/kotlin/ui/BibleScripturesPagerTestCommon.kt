@@ -18,10 +18,12 @@ fun ComposeUiTest.runBibleScripturesPagerTest() {
         bookId = 1,
         chapterId = 1,
         text = "[1] In the beginning...",
-        chapterList = listOf(1, 2, 3)
+        chapterList = listOf(1, 2, 3),
+        version = "KJV"
     )
     
     setContent {
+      BibleBibleTheme {
         val scaffoldState = rememberBottomSheetScaffoldState(
             bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
         )
@@ -32,8 +34,10 @@ fun ComposeUiTest.runBibleScripturesPagerTest() {
             selectedBook = BookData(null, null, null, "Genesis", null, emptyList()),
             isAISummaryLoading = false,
             showAISummary = false,
-            bottomSheetScaffoldState = scaffoldState
+            bottomSheetScaffoldState = scaffoldState,
+            loadChapter = { _, _, _, _ -> }
         )
+      }
     }
 
     onNodeWithText("[1] In the beginning...", substring = true).assertIsDisplayed()

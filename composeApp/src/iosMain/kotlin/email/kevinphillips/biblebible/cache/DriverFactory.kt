@@ -5,16 +5,15 @@ import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 
 actual object DriverFactory {
-    private var driverRef: SqlDriver? = null
+    private val driver: SqlDriver by lazy {
+        NativeSqliteDriver(BibleBibleDatabase.Schema, "BibleBibleDB.db")
+    }
 
     actual fun createDriver(): SqlDriver? {
-        if (driverRef == null) {
-            driverRef = NativeSqliteDriver(BibleBibleDatabase.Schema, "BibleBibleDB.db")
-        }
-        return driverRef!!
+        return driver
     }
 
     internal actual fun closeDB() {
-        driverRef = null
+        // The pooled native driver is shared for the lifetime of the application.
     }
 }

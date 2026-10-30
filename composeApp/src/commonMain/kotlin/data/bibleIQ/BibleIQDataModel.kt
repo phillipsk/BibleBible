@@ -10,7 +10,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.apiBible.BibleAPIDataModel
+import data.GeminiModel
 import data.apiBible.BookData
+import data.appPrefs.ReadingSession
 import email.kevinphillips.biblebible.isDesktopPlatform
 import email.kevinphillips.biblebible.BuildKonfig
 import io.github.aakira.napier.Napier
@@ -84,7 +86,31 @@ object BibleIQDataModel {
         private set
 
     fun updateSelectedBook(newBook: BookData) {
+        if (newBook.bookId != selectedBook.bookId) GeminiModel.cancelPendingSummary()
         selectedBook = newBook
+    }
+
+    internal fun restoreReadingLocation(book: BookData, chapter: Int) {
+        updateSelectedBook(book)
+        BibleAPIDataModel.updateBookData(book)
+        BibleAPIDataModel.updateSelectedChapter("${book.bookId}.$chapter")
+        val bookId = getAPIBibleOrdinal(book.remoteKey)
+        val loaded = bibleChapter
+        if (loaded?.bookId != bookId || loaded.chapterId != chapter || loaded.text == null ||
+            !loaded.version.equals(selectedVersion, ignoreCase = true)) {
+            bibleChapter = BibleChapterUIState(
+                bookId = bookId,
+                chapterId = chapter,
+                chapterList = book.chapterListBookData.orEmpty().mapNotNull { it.number?.toLongOrNull() },
+            )
+        }
+        showHomePage = false
+    }
+
+    internal fun discardReadingLocation() {
+        bibleChapter = BibleChapterUIState()
+        GeminiModel.cancelPendingSummary()
+        showHomePage = true
     }
 
     var bibleChapter by mutableStateOf<BibleChapterUIState?>(BibleChapterUIState())
@@ -107,19 +133,25 @@ object BibleIQDataModel {
                 },
                 chapterList = chapterCount?.chapterCount?.let { count ->
                     (1..count).toList()
-                }
+                },
+                version = version
             )
         }
     }
 
     fun getAPIBibleOrdinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
-        return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
+        return BibleAPIDataModel.bibleBooks.data
+            ?.indexOfFirst { it.bookId.substringBefore(".") == name }
+            ?.takeIf { it >= 0 }
+            ?.plus(1) ?: 1
     }
 
     val onHomeClick: () -> Unit = {
+        GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         BibleIQDataModel.showHomePage = true
+        ReadingSession.goHome()
     }
 
 

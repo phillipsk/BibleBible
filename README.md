@@ -30,6 +30,17 @@ redacted when HTTP diagnostics are enabled.
 
 See the [release notes](CHANGELOG.md) for app changes.
 
+## Build and test
+
+Use JDK 21 and Android SDK 37.0. The Android launcher is `androidApp`, shared multiplatform code is `composeApp`, and the desktop launcher is `desktopApp`.
+
+```bash
+./gradlew :androidApp:assembleDebug :desktopApp:jvmJar
+./gradlew :composeApp:desktopTest :composeApp:testAndroidHostTest
+```
+
+See [build configuration and stable versions](docs/build-modernization.md) and [platform test commands](composeApp/README_TESTS.md). API credentials are optional for builds and mocked tests.
+
 ## Approach
 To keep things simple and avoid third-party navigation and state management libraries, I have taken a unique approach. Instead of using a traditional navigation library or Koin DI framework, I manage the app's state with a Kotlin object and mimic navigation using animated visibility composables.
 
