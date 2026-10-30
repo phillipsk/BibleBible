@@ -30,7 +30,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes xvfb libxrender1 libxtst6 libxi6 libgl1 libfontconfig1
-          sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+          "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Build Android and desktop; run host tests
         run: |
           set -o pipefail
