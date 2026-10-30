@@ -1,11 +1,13 @@
 package ui.configs.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Surface
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -15,9 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import data.bibleIQ.BibleIQDataModel
 import data.gemini.checkAnimationLastCalled
 import io.github.aakira.napier.Napier
@@ -65,21 +67,21 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 @Composable
 internal fun SortBibleBooksToggle() {
     var checked by remember { mutableStateOf(!BibleIQDataModel.sortAZ) }
-    Switch(
-        checked = checked,
-        onCheckedChange = {
+    Surface(
+        color = MaterialTheme.colors.onPrimary.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.clickable {
             BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
-            checked = it
-        },
-        colors = SwitchDefaults.colors(
-            checkedThumbColor = Color.White,
-            checkedTrackColor = Color.White.copy(alpha = 0.5f),
-            uncheckedThumbColor = Color.White,
-            uncheckedTrackColor = Color.White.copy(alpha = 0.5f)
+            checked = !checked
+        }
+    ) {
+        Text(
+            text = AnnotatedString(if (checked) "Canonical" else "A–Z"),
+            style = MaterialTheme.typography.subtitle2.copy(
+                fontSize = 12.sp,
+                color = MaterialTheme.colors.onPrimary
+            ),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
         )
-    )
-    Text(
-        text = AnnotatedString(BibleIQDataModel.selectedSortType),
-        style = MaterialTheme.typography.subtitle2.copy(fontSize = 12.sp, color = Color.White),
-    )
+    }
 }

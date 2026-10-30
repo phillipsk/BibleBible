@@ -27,12 +27,7 @@ import org.jetbrains.compose.resources.Font
 internal fun BibleBibleTheme(
     content: @Composable () -> Unit
 ) {
-    val colorPalette = if (isSystemInDarkTheme()) {
-        DarkColorPalette
-    } else {
-//        LightColorPalette
-        DarkColorPalette
-    }
+    val colorPalette = if (isSystemInDarkTheme()) DarkColorPalette else LightColorPalette
 
     MaterialTheme(
         colors = colorPalette,
@@ -43,27 +38,27 @@ internal fun BibleBibleTheme(
 }
 
 private val LightColorPalette = lightColors(
-    primary = Color(0xFF3A5F8F), // Dark Blue
-    primaryVariant = Color(0xFF8A9BB3), // Light Blue for the pages
-    secondary = Color(0xFF3A5F8F), // Dark Blue
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+    primary = Color(0xFF214D48),
+    primaryVariant = Color(0xFF173B38),
+    secondary = Color(0xFFC28A42),
+    background = Color(0xFFF7F3EA),
+    surface = Color(0xFFFFFCF6),
+    onPrimary = Color(0xFFFFFBF2),
+    onSecondary = Color(0xFF281A0D),
+    onBackground = Color(0xFF1D2927),
+    onSurface = Color(0xFF1D2927)
 )
 
 private val DarkColorPalette = darkColors(
-    primary = Color(0xFF3A5F8F), // Dark Blue
-    primaryVariant = Color(0xFF8A9BB3), // Light Blue for the pages
-    secondary = Color(0xFF3A5F8F), // Dark Blue
-    background = Color(0xFF2C3E50), // Even Darker Blue for dark theme background
-    surface = Color(0xFF2C3E50), // Even Darker Blue for dark theme surface
-    onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary = Color(0xFF77B8AE),
+    primaryVariant = Color(0xFF173B38),
+    secondary = Color(0xFFE1AD69),
+    background = Color(0xFF101817),
+    surface = Color(0xFF192321),
+    onPrimary = Color(0xFFFFFBF2),
+    onSecondary = Color(0xFF2B1B09),
+    onBackground = Color(0xFFF2EEE5),
+    onSurface = Color(0xFFF2EEE5)
 )
 
 private val Typography = Typography(
@@ -77,9 +72,9 @@ private val Typography = Typography(
 )
 
 private val Shapes = Shapes(
-    small = RoundedCornerShape(4.dp),
-    medium = RoundedCornerShape(8.dp),
-    large = RoundedCornerShape(16.dp)
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(28.dp)
 )
 
 @Composable
@@ -106,49 +101,49 @@ fun getTypography(): Typography {
             fontFamily = kalam,
             fontWeight = FontWeight.Normal,
             fontSize = 24.sp,
-            color = Color.White,
+            color = Color.Unspecified,
         ),
         h2 = TextStyle(
             fontFamily = courgette,
             fontWeight = FontWeight.Normal,
             fontSize = 24.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         h3 = TextStyle(
             fontFamily = nunitoBold,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         h4 = TextStyle(
             fontFamily = nunitoBold,
             fontWeight = FontWeight.Bold,
             fontSize = 16.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         h5 = TextStyle(
             fontFamily = nunitoBold,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         h6 = TextStyle(
             fontFamily = nunitoSemiBold,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         subtitle1 = TextStyle(
             fontFamily = nunitoSemiBold,
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         subtitle2 = TextStyle(
             fontFamily = nunitoRegular,
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         body1 = TextStyle(
             fontFamily = nunitoRegular,
@@ -156,24 +151,24 @@ fun getTypography(): Typography {
             fontSize = 14.sp,
             color = Color.White
         ),
-        body2 = TextStyle(fontFamily = nunitoRegular, fontSize = 10.sp, color = Color.White),
+        body2 = TextStyle(fontFamily = nunitoRegular, fontSize = 12.sp, color = Color.Unspecified),
         button = TextStyle(
             fontFamily = nunitoRegular,
             fontWeight = FontWeight.Normal,
             fontSize = 15.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         caption = TextStyle(
             fontFamily = nunitoRegular,
             fontWeight = FontWeight.Normal,
             fontSize = 8.sp,
-            color = Color.White
+            color = Color.Unspecified
         ),
         overline = TextStyle(
             fontFamily = nunitoRegular,
             fontWeight = FontWeight.Normal,
             fontSize = 12.sp,
-            color = Color.White
+            color = Color.Unspecified
         )
     )
 

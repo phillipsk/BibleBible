@@ -16,8 +16,8 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 17
-        versionName = "7.0"
+        versionCode = 18
+        versionName = "7.1"
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"

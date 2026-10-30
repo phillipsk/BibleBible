@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
@@ -36,14 +38,13 @@ internal fun ChapterTopBar(showHomePage: Boolean, onClick: () -> Unit, showBotto
 
 @Composable
 fun BottomSheetToggle(showBottomSheet: () -> Unit) {
-    Icon(
-        imageVector = Icons.Default.Settings,
-        contentDescription = "Open Bottom Drawer",
-        tint = Color.White,
-        modifier = Modifier.padding(start = 4.dp, end = 8.dp)
-            .clickable(onClick = showBottomSheet)
-
-    )
+    IconButton(onClick = showBottomSheet) {
+        Icon(
+            imageVector = Icons.Default.Settings,
+            contentDescription = "Reading settings",
+            tint = MaterialTheme.colors.onPrimary
+        )
+    }
 }
 
 @Composable

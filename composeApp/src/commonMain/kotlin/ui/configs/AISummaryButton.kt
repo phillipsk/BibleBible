@@ -55,7 +55,10 @@ fun AISummaryButton(
     ) {
         Text(
             text = "AI",
-            style = MaterialTheme.typography.subtitle1.copy(fontSize = 12.sp, color = Color.White)
+            style = MaterialTheme.typography.subtitle1.copy(
+                fontSize = 12.sp,
+                color = MaterialTheme.colors.onPrimary
+            )
         )
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,10 +14,15 @@ import ui.configs.home.HomeTopBar
 
 @Composable
 internal fun BibleBibleTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
-    TopAppBar {
+    TopAppBar(
+        backgroundColor = MaterialTheme.colors.primaryVariant,
+        contentColor = MaterialTheme.colors.onPrimary,
+        elevation = 0.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
         ) {
             if (BibleIQDataModel.showHomePage) {
                 BibleBookTopBar()
