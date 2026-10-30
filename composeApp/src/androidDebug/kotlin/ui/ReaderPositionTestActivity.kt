@@ -85,7 +85,14 @@ object ReaderPositionTestProbe {
 
     fun scrollTo(offset: Int) {
         val currentScroll = requireNotNull(scroll)
-        requireNotNull(scope).launch { currentScroll.scrollTo(offset) }
+        val currentReading = requireNotNull(reading)
+        requireNotNull(scope).launch {
+            currentScroll.scrollTo(offset)
+            // The fixture models a completed user scroll. An instantaneous
+            // scrollTo can otherwise finish between observable interaction frames.
+            currentReading.beginScrollInteraction()
+            currentReading.capture(currentScroll.value)
+        }
     }
 
     fun snapshot(): ReaderPositionSnapshot? {
