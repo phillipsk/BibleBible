@@ -132,7 +132,7 @@ object BibleAPIDataModel {
 
     private fun transformDate(dateString: String): String {
         val localDate = LocalDate.parse(dateString)
-        return localDate.month.name.lowercase().replaceFirstChar { it.uppercase() } + " " + localDate.dayOfMonth + ", " + localDate.year
+        return localDate.month.name.lowercase().replaceFirstChar { it.uppercase() } + " " + localDate.day + ", " + localDate.year
     }
 
 }

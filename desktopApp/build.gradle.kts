@@ -6,7 +6,10 @@ plugins {
     alias(libs.plugins.kotlinComposeCompiler)
 }
 kotlin {
-    jvm()
+    jvmToolchain(21)
+    jvm {
+        compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
     sourceSets {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
