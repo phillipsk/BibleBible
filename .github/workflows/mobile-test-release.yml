@@ -124,14 +124,18 @@ jobs:
           security import "$RUNNER_TEMP/distribution.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
-      - name: Archive and upload to TestFlight
+      - name: Build the release Kotlin framework
+        run: |
+          set -o pipefail
+          ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --stacktrace 2>&1 | tee "$RUNNER_TEMP/kotlin-release.log"
+      - name: Archive the iOS application
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           test -n "$ASC_KEY_ID"
           test -n "$ASC_ISSUER_ID"
-          ./gradlew :composeApp:linkReleaseFrameworkIosArm64
+          set -o pipefail
           xcodebuild archive \
             -project iosApp/BibleBible.xcodeproj \
             -target iosApp \
@@ -143,7 +147,14 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
             -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/xcode-archive.log"
+      - name: Export and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
           python3 - <<'PY'
           import os, pathlib
           pathlib.Path(os.environ['RUNNER_TEMP'], 'ExportOptions.plist').write_text('''<?xml version="1.0" encoding="UTF-8"?>
@@ -163,4 +174,19 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
             -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/xcode-export.log"
+      - name: Expose release failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          for log in "$RUNNER_TEMP/kotlin-release.log" "$RUNNER_TEMP/xcode-archive.log" "$RUNNER_TEMP/xcode-export.log"; do
+            if [[ -f "$log" ]]; then
+              tail -n 30 "$log" | while IFS= read -r line; do
+                line=${line//'%'/'%25'}
+                line=${line//$'\r'/'%0D'}
+                line=${line//$'\n'/'%0A'}
+                echo "::error title=$(basename "$log")::$line"
+              done
+            fi
+          done
