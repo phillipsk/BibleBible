@@ -138,7 +138,7 @@ jobs:
           set -o pipefail
           xcodebuild archive \
             -project iosApp/BibleBible.xcodeproj \
-            -target iosApp \
+            -scheme iosApp \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/BibleBible.xcarchive" \
