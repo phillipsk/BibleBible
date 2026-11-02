@@ -180,13 +180,14 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          for log in "$RUNNER_TEMP/kotlin-release.log" "$RUNNER_TEMP/xcode-archive.log" "$RUNNER_TEMP/xcode-export.log"; do
+          for log in "$RUNNER_TEMP/xcode-export.log" "$RUNNER_TEMP/xcode-archive.log" "$RUNNER_TEMP/kotlin-release.log"; do
             if [[ -f "$log" ]]; then
-              tail -n 30 "$log" | while IFS= read -r line; do
+              tail -n 8 "$log" | while IFS= read -r line; do
                 line=${line//'%'/'%25'}
                 line=${line//$'\r'/'%0D'}
                 line=${line//$'\n'/'%0A'}
                 echo "::error title=$(basename "$log")::$line"
               done
+              break
             fi
           done
