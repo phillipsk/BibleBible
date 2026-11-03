@@ -144,7 +144,6 @@ jobs:
             -archivePath "$RUNNER_TEMP/BibleBible.xcarchive" \
             DEVELOPMENT_TEAM=7JJ7U4528N \
             CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
             -authenticationKeyID "$ASC_KEY_ID" \
