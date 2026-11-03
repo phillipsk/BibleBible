@@ -129,6 +129,16 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --stacktrace 2>&1 | tee "$RUNNER_TEMP/kotlin-release.log"
+      - name: Install App Store provisioning profile
+        run: |
+          PROFILE_SOURCE="iosApp/Configuration/BibleBible_AppStore.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/BibleBible-AppStore.plist"
+          security cms -D -i "$PROFILE_SOURCE" > "$PROFILE_PLIST"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_SOURCE" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
       - name: Archive the iOS application
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -144,11 +154,9 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/BibleBible.xcarchive" \
             DEVELOPMENT_TEAM=7JJ7U4528N \
-            CODE_SIGN_STYLE=Automatic \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
             2>&1 | tee "$RUNNER_TEMP/xcode-archive.log"
       - name: Export and upload to TestFlight
         env:
@@ -163,8 +171,12 @@ jobs:
           <plist version="1.0"><dict>
             <key>method</key><string>app-store-connect</string>
             <key>destination</key><string>upload</string>
-            <key>signingStyle</key><string>automatic</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
             <key>teamID</key><string>7JJ7U4528N</string>
+            <key>provisioningProfiles</key><dict>
+              <key>email.kevinphillips.biblebible</key><string>''' + os.environ['IOS_PROFILE_NAME'] + '''</string>
+            </dict>
             <key>manageAppVersionAndBuildNumber</key><false/>
           </dict></plist>''')
           PY
