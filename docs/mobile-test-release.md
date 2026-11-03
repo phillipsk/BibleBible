@@ -26,10 +26,11 @@ secrets, or local shell values. The workflow requires these names:
 - `IQ_BIBLE_API_KEY`
 - `API_BIBLE_KEY`
 
-The App Store Connect API key must have the **Admin** role. Xcode uses it to
-create or download the App Store provisioning profile during export; a
-Developer-role key can archive the app but fails TestFlight export with a
-cloud-signing permission error.
+The repository includes the public App Store provisioning profile used for
+manual distribution signing. The workflow's App Store Connect API key may use
+the **Developer** role for authenticated TestFlight uploads. Renewing or
+replacing the provisioning profile requires an **Admin** role key; a Developer
+key cannot create profiles through the App Store Connect API.
 
 Maintainers with GitHub CLI repository-secret permission can install all of
 them without exposing values in command arguments or logs:
