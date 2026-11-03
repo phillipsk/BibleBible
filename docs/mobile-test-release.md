@@ -26,6 +26,11 @@ secrets, or local shell values. The workflow requires these names:
 - `IQ_BIBLE_API_KEY`
 - `API_BIBLE_KEY`
 
+The App Store Connect API key must have the **Admin** role. Xcode uses it to
+create or download the App Store provisioning profile during export; a
+Developer-role key can archive the app but fails TestFlight export with a
+cloud-signing permission error.
+
 Maintainers with GitHub CLI repository-secret permission can install all of
 them without exposing values in command arguments or logs:
 
