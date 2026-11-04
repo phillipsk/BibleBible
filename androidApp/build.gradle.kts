@@ -16,7 +16,7 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 19
+        versionCode = 20
         versionName = "7.1"
     }
     packaging {
