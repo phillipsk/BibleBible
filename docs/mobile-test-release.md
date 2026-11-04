@@ -3,8 +3,9 @@
 The `Mobile test release` GitHub Actions workflow builds signed releases and
 publishes them to Google Play internal testing and Apple TestFlight. A
 `test-release-*` tag runs both jobs. A `testflight-release-*` tag runs only the
-iOS job, which is useful when the Android version code has already been
-uploaded. A manual workflow run can publish `both`, `android`, or `ios`.
+iOS job, and a `play-release-*` tag runs only Android. Platform-specific tags
+allow retries without reusing a build number in the other store. A manual
+workflow run can publish `both`, `android`, or `ios`.
 
 ## One-time repository setup
 
@@ -64,6 +65,13 @@ For an iOS-only retry or release:
 ```bash
 git tag testflight-release-<version>-<build>
 git push origin testflight-release-<version>-<build>
+```
+
+For an Android-only release:
+
+```bash
+git tag play-release-<version>-<build>
+git push origin play-release-<version>-<build>
 ```
 
 GitHub's macOS runner archives the iOS app with App Store Connect API-key

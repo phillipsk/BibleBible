@@ -16,6 +16,7 @@ on:
     tags:
       - "test-release-*"
       - "testflight-release-*"
+      - "play-release-*"
 
 permissions:
   contents: read
@@ -100,7 +101,7 @@ jobs:
             --release-name "$RELEASE_NAME"
 
   testflight:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform != 'android' }}
+    if: ${{ !startsWith(github.ref, 'refs/tags/play-release-') && (github.event_name != 'workflow_dispatch' || inputs.platform != 'android') }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
