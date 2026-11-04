@@ -2,6 +2,16 @@ name: Mobile test release
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to publish
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - android
+          - ios
   push:
     tags:
       - "test-release-*"
@@ -16,7 +26,7 @@ concurrency:
 
 jobs:
   google-play-internal:
-    if: ${{ !startsWith(github.ref, 'refs/tags/testflight-release-') }}
+    if: ${{ !startsWith(github.ref, 'refs/tags/testflight-release-') && (github.event_name != 'workflow_dispatch' || inputs.platform != 'ios') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -75,13 +85,22 @@ jobs:
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
         run: |
+          RELEASE_NAME=$(python3 - <<'PY'
+          import pathlib, re
+          source = pathlib.Path('androidApp/build.gradle.kts').read_text()
+          name = re.search(r'versionName\s*=\s*"([^"]+)"', source).group(1)
+          code = re.search(r'versionCode\s*=\s*(\d+)', source).group(1)
+          print(f'BibleBible {name} ({code})')
+          PY
+          )
           python3 tools/google_play_upload.py \
             --package email.kevinphillips.biblebible \
             --bundle androidApp/build/outputs/bundle/release/androidApp-release.aab \
             --track internal \
-            --release-name "BibleBible 7.1 (18)"
+            --release-name "$RELEASE_NAME"
 
   testflight:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform != 'android' }}
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -136,6 +155,14 @@ jobs:
           security cms -D -i "$PROFILE_SOURCE" > "$PROFILE_PLIST"
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          python3 - "$PROFILE_PLIST" <<'PY'
+          import datetime, plistlib, sys
+          profile = plistlib.load(open(sys.argv[1], 'rb'))
+          remaining = profile['ExpirationDate'] - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+          print(f"Provisioning profile expires in {remaining.days} days.")
+          if remaining.days < 30:
+              raise SystemExit('App Store provisioning profile expires in fewer than 30 days; renew it before releasing.')
+          PY
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$PROFILE_SOURCE" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
           echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
