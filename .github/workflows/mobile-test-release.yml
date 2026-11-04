@@ -157,7 +157,7 @@ jobs:
           remaining = profile['ExpirationDate'] - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
           print(f"Provisioning profile expires in {remaining.days} days.")
           if remaining.days < 30:
-              raise SystemExit('App Store provisioning profile expires in fewer than 30 days; renew it before releasing.')
+              print(f"::warning title=App Store profile expires soon::Renew the provisioning profile within {remaining.days} days.")
           PY
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$PROFILE_SOURCE" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"

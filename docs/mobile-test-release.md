@@ -31,9 +31,9 @@ The repository includes the public App Store provisioning profile used for
 manual distribution signing. The workflow's App Store Connect API key may use
 the **Developer** role for authenticated TestFlight uploads. Renewing or
 replacing the provisioning profile requires an **Admin** role key; a Developer
-key cannot create profiles through the App Store Connect API. Releases fail
-early with a clear renewal message when the profile has fewer than 30 days
-remaining.
+key cannot create profiles through the App Store Connect API. Releases display
+a warning when the profile has fewer than 30 days remaining, but continue
+until Apple considers the profile expired.
 
 Maintainers with GitHub CLI repository-secret permission can install all of
 them without exposing values in command arguments or logs:
