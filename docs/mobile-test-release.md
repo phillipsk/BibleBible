@@ -47,6 +47,8 @@ python3 tools/configure_mobile_release_secrets.py \
 The caller must be authenticated with `gh` and have repository `Secrets: read
 and write` permission. The script reads application API keys from
 `GEMINI_API_KEY`, `IQ_BIBLE_API_KEY`, and `API_BIBLE_KEY` in its environment.
+Google Play authentication uses the service account's signed JWT OAuth flow,
+so it does not depend on the optional IAM Service Account Credentials API.
 
 ## Publishing
 
