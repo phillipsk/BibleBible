@@ -12,6 +12,7 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
 import data.bibleIQ.cleanReadingHistory
 import data.bibleIQ.getVersionsBibleIQ
+import data.config.CloudSessionManager
 import email.kevinphillips.biblebible.SetSystemBarColor
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -35,6 +36,7 @@ fun App(modifier: Modifier = Modifier) {
             launch {
                 async { checkDatabaseSize() }
                 async { cleanReadingHistory() }
+                async { CloudSessionManager.initializeStartupConfig() }
             }
             val versionsJob = async { getVersionsBibleIQ() }
             val booksJob = async { getBooksBibleAPI() }

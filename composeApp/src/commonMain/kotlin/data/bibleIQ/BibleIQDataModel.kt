@@ -57,7 +57,7 @@ object BibleIQDataModel {
     val selectedVersion: String by _selectedVersion
     internal fun updateSelectedVersion(version: String? = null) {
         Napier.v("updateSelectedVersion: $version", tag = "AP8243")
-        _selectedVersion.value = version ?: (selectedVersion)
+        _selectedVersion.value = normalizedTranslation(version ?: selectedVersion)
     }
 
     var bibleBooks by mutableStateOf(BibleIQBooks())
@@ -114,7 +114,10 @@ object BibleIQDataModel {
 
     fun getAPIBibleOrdinal(chapterNumber: String): Int {
         val name = chapterNumber.substringBefore(".")
-        return (BibleAPIDataModel.bibleBooks.data?.indexOfFirst { it.bookId == name } ?: 1).plus(1)
+        return BibleAPIDataModel.bibleBooks.data
+            ?.indexOfFirst { it.bookId.substringBefore(".") == name }
+            ?.takeIf { it >= 0 }
+            ?.plus(1) ?: 1
     }
 
     val onHomeClick: () -> Unit = {

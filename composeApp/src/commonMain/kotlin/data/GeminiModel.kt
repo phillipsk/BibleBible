@@ -4,17 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.bibleIQ.BibleIQDataModel
+import data.config.CloudSessionManager
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
-import email.kevinphillips.biblebible.BuildKonfig
-import io.github.aakira.napier.Napier
 
 object GeminiModel {
 
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
     internal val isAvailable: Boolean
-        get() = BuildKonfig.AI_SUMMARIES_ENABLED && BuildKonfig.GEMINI_API_KEY.isNotBlank()
+        get() = CloudSessionManager.aiSummariesEnabled && CloudSessionManager.isGatewayConfigured
 
     private var geminiData by mutableStateOf(GeminiResponseDto())
     internal var errorMessage by mutableStateOf<String?>(null)
@@ -52,7 +51,7 @@ object GeminiModel {
             return
         }
         if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
-            generateContent(geminiQuery)
+            generateContent(geminiQuery, refresh = pullToRefresh)
         }
     }
 }

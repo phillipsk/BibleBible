@@ -2,6 +2,7 @@ package data.gemini
 
 import data.AppHttpClientConfig
 import data.GeminiModel
+import data.config.CloudSessionManager
 import data.createHttpClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -29,31 +31,34 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GeminiRepositoryTest {
-    private val secret = "synthetic-review-key"
+    private val sessionToken = "synthetic-session-jwt-token"
 
     @AfterTest
     fun resetModel() {
+        CloudSessionManager.resetForTesting()
         GeminiModel.updateGeminiData(GeminiResponseDto())
         GeminiModel.showSummary = false
         GeminiModel.isLoading = false
     }
 
     @Test
-    fun requestSendsSecretHeaderAndExplicitTokenLimitInActualJson() = runTest {
+    fun requestSendsBearerSessionTokenAndExplicitTokenLimitToCloudGateway() = runTest {
         val client = client(MockEngine { request ->
-            assertEquals("/v1beta/models/$GEMINI_MODEL:generateContent", request.url.encodedPath)
-            assertEquals(secret, request.headers["x-goog-api-key"])
+            assertEquals("/v1/gemini/summary", request.url.encodedPath)
+            assertEquals("Bearer $sessionToken", request.headers[HttpHeaders.Authorization])
             assertFalse(request.url.parameters.contains("key"))
             assertEquals(ContentType.Application.Json, request.body.contentType)
             val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
             val config = body.getValue("generationConfig").jsonObject
             assertEquals(2048, config.getValue("maxOutputTokens").jsonPrimitive.int)
             assertEquals(1, config.getValue("candidateCount").jsonPrimitive.int)
+            assertEquals(GEMINI_MODEL, body.getValue("model").jsonPrimitive.content)
+            assertTrue(body.getValue("refresh").jsonPrimitive.boolean)
             respond(Json.encodeToString(summary("Summary")), HttpStatusCode.OK, jsonHeaders())
         })
         try {
             GeminiModel.showSummary = true
-            generateContent("Test prompt", client)
+            generateContent("Test prompt", client, refresh = true)
             assertEquals("Summary", GeminiModel.geminiDataText)
             assertTrue(GeminiModel.isSuccessful)
             assertNull(GeminiModel.errorMessage)
@@ -122,7 +127,7 @@ class GeminiRepositoryTest {
     }
 
     @Test
-    fun diagnosticLoggingDoesNotExposeCredential() = runTest {
+    fun diagnosticLoggingDoesNotExposeSessionToken() = runTest {
         val messages = mutableListOf<String>()
         val logger = object : Logger { override fun log(message: String) { messages.add(message) } }
         val client = client(
@@ -131,7 +136,7 @@ class GeminiRepositoryTest {
         )
         try {
             generateContent("Test prompt", client)
-            assertFalse(messages.joinToString().contains(secret))
+            assertFalse(messages.joinToString().contains(sessionToken))
         } finally { client.close() }
     }
 
@@ -143,7 +148,10 @@ class GeminiRepositoryTest {
 
     private fun client(engine: MockEngine, logger: Logger = Logger.SIMPLE, enableLogging: Boolean = false): HttpClient =
         createHttpClient(
-            AppHttpClientConfig("generativelanguage.googleapis.com", "x-goog-api-key", secret),
+            AppHttpClientConfig(
+                baseUrl = "biblebible-api.example.run.app",
+                tokenProvider = { sessionToken },
+            ),
             engine = engine, logger = logger, enableLogging = enableLogging,
         )
 

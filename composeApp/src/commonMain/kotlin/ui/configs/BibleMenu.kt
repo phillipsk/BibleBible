@@ -74,7 +74,7 @@ internal fun BibleMenu(
                         null
                     },
                 ) {
-                    Text("${version.abbreviation} ", fontSize = 14.sp)
+                    Text(version.uiAbbreviation, fontSize = 14.sp)
                 }
             }
         }

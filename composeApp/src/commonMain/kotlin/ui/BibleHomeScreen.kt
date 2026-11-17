@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -98,6 +99,7 @@ internal fun BibleHomeScreen(
                 if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
+                        header = { VerseOfTheDay(BibleIQDataModel.selectedVersion) },
                     )
                 } else {
                     BibleIQDataModel.bibleChapter?.let { it1 ->
@@ -120,6 +122,7 @@ internal fun BibleHomeScreen(
 internal fun BibleBookList(
     bookData: List<BookData>?,
     lazyGridState: LazyGridState = rememberLazyGridState(),
+    header: (@Composable () -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = BibleIQDataModel.showHomePage,
@@ -134,6 +137,16 @@ internal fun BibleBookList(
                     contentPadding = PaddingValues(10.dp),
                     userScrollEnabled = true,
                 ) {
+                    if (header != null) {
+                        item(span = { GridItemSpan(maxLineSpan) }) { header() }
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Text(
+                                "Read the Bible",
+                                style = MaterialTheme.typography.h6,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                        }
+                    }
                     items(items = bookDataList) {
                         it.let {
                             Button(

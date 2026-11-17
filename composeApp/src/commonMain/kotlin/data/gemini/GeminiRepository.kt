@@ -1,6 +1,7 @@
 package data.gemini
 
 import data.GeminiModel
+import data.config.CloudSessionManager
 import data.httpClientGemini
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
@@ -8,10 +9,13 @@ import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
@@ -21,25 +25,50 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 
 
-/** Cloud model used for chapter summaries. */
+/** Default cloud model used for chapter summaries. */
 const val GEMINI_MODEL = "gemini-3.5-flash"
 
-suspend fun generateContent(content: String, client: HttpClient = httpClientGemini) {
-    val parts = mutableListOf<RequestPart>()
-    parts.add(RequestPart(text = content))
+suspend fun generateContent(
+    content: String,
+    client: HttpClient = httpClientGemini,
+    refresh: Boolean = false,
+) {
+    if (client === httpClientGemini && CloudSessionManager.sessionToken.isBlank()) {
+        CloudSessionManager.initializeStartupConfig()
+        if (CloudSessionManager.sessionToken.isBlank()) {
+            CloudSessionManager.refreshSessionToken()
+        }
+    }
+    val activeModel = CloudSessionManager.geminiModel.ifBlank { GEMINI_MODEL }
+    val parts = mutableListOf(RequestPart(text = content))
     val requestBody = RequestBody(
         contents = listOf(ContentItem(parts = parts)),
         generationConfig = GenerationConfig(maxOutputTokens = 2048, candidateCount = 1),
+        model = activeModel,
+        refresh = if (refresh) true else null,
     )
     GeminiModel.updateGeminiData(GeminiResponseDto())
 
     try {
-        val response = withContext(Dispatchers.IO) {
-            client.post {
+        var response = withContext(Dispatchers.IO) {
+            client.post("/v1/gemini/summary") {
                 expectSuccess = false
-                url("https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent")
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
+            }
+        }
+        // Automatically refresh the short-lived session token once on 401 when using the default gateway client
+        if (response.status == HttpStatusCode.Unauthorized && client === httpClientGemini) {
+            val refreshedToken = CloudSessionManager.refreshSessionToken()
+            if (!refreshedToken.isNullOrBlank()) {
+                response = withContext(Dispatchers.IO) {
+                    client.post("/v1/gemini/summary") {
+                        expectSuccess = false
+                        header(HttpHeaders.Authorization, "Bearer $refreshedToken")
+                        contentType(ContentType.Application.Json)
+                        setBody(requestBody)
+                    }
+                }
             }
         }
         if (!response.status.isSuccess()) {

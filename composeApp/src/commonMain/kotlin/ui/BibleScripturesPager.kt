@@ -54,6 +54,9 @@ internal fun BibleScripturesPager(
     isAISummaryLoading: Boolean,
     showAISummary: Boolean,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
+    loadChapter: suspend (BookData, Int, Boolean) -> Unit = { book, chapter, history ->
+        getChapterBibleIQ(book = book, chapter = chapter, updateReadingHistory = history)
+    },
 ) {
 
     var initialLoadDone by remember { mutableStateOf(false) }
@@ -80,7 +83,7 @@ internal fun BibleScripturesPager(
             tag = "BB2470"
         )
         initialLoadDone = true
-        getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+        loadChapter(selectedBook, selectedTabIndex + 1, true)
         pagerState.scrollToPage(0)
         selectedTabIndex = 0
         initialLoadDone = false
@@ -97,7 +100,7 @@ internal fun BibleScripturesPager(
             tag = "BB2460"
         )
         if (uiStateReady) {
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1, updateReadingHistory = false)
+            loadChapter(selectedBook, selectedTabIndex + 1, false)
         }
     }
 
@@ -112,12 +115,12 @@ internal fun BibleScripturesPager(
             Napier.v("debounceDuration: time: $time", tag = "debounceDuration")
             if (time > debounceDuration) {
                 selectedTabIndex = pagerState.currentPage
-                getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+                loadChapter(selectedBook, selectedTabIndex + 1, true)
             }
             isPageChangeFromTabClick = false
         } else if (!initialLoadDone) {
             selectedTabIndex = pagerState.currentPage
-            getChapterBibleIQ(book = selectedBook, chapter = selectedTabIndex + 1)
+            loadChapter(selectedBook, selectedTabIndex + 1, true)
         }
         launch {
             if (bottomSheetScaffoldState.bottomSheetState.isExpanded) {

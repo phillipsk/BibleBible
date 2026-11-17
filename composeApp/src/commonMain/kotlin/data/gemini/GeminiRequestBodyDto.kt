@@ -10,6 +10,8 @@ data class ContentItem(val parts: List<RequestPart>)
 data class RequestBody(
     val contents: List<ContentItem>,
     val generationConfig: GenerationConfig,
+    val model: String? = null,
+    val refresh: Boolean? = null,
 )
 
 @Serializable
