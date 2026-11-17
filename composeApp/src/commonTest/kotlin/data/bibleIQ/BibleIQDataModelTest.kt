@@ -18,7 +18,7 @@ class BibleIQDataModelTest {
         )
         
         BibleIQDataModel.updateBibleVersions(versions)
-        assertEquals(3, BibleIQDataModel.bibleVersions.data.size)
+        assertEquals(listOf("KJV", "ASV"), BibleIQDataModel.bibleVersions.data.map { it.abbreviation })
     }
 
     @Test

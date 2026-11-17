@@ -156,7 +156,8 @@ fun obfuscateSecret(plain: String): String {
     return plain.map { (it.code xor mask).toChar() }.joinToString("")
 }
 
-val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
+val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY")
+    ?: providers.environmentVariable("IQ_BIBLE_API_KEY").orElse("").get()
 val rawApiBibleKey = localAppProperties.getProperty("api_key_api_bible") ?: ""
 val rawGeminiKey = if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
 
@@ -164,6 +165,12 @@ buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
     defaultConfigs {
+        // Copy the hostname from the IQ Bible v2 RapidAPI endpoint code sample.
+        buildConfigField(STRING, "IQ_BIBLE_V2_HOST",
+            providers.gradleProperty("IQ_BIBLE_V2_HOST")
+                .orElse(providers.environmentVariable("IQ_BIBLE_V2_HOST"))
+                .orElse(localAppProperties.getProperty("IQ_BIBLE_V2_HOST") ?: "")
+                .get())
         buildConfigField(
             STRING,
             "API_KEY",

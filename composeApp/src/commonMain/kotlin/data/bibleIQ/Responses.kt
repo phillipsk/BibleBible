@@ -22,6 +22,7 @@ data class BibleIQVersion(
     val uiAbbreviation = when (abbreviation) {
         "KJV" -> "KJV"
         "ASV" -> "ASV"
+        "BBE" -> "BBE"
         "RV1909" -> "Spanish: RV1909"
         "SVD" -> "Arabic: SVD"
         else -> "KJV"

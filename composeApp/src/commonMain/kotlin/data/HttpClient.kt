@@ -24,7 +24,8 @@ data class AppHttpClientConfig(
     val baseUrl: String,
     val apiKeyHeader: String,
     val apiKey: String,
-    val path: String? = null
+    val path: String? = null,
+    val rapidApiHost: String? = null
 )
 
 const val TIMEOUT_LIMIT = 20_000L
@@ -69,6 +70,7 @@ internal fun createHttpClient(
                 host = config.baseUrl
                 protocol = URLProtocol.HTTPS
             }
+            config.rapidApiHost?.let { header("X-RapidAPI-Host", it) }
             if (config.apiKeyHeader.isNotEmpty()) {
                 header(config.apiKeyHeader, config.apiKey)
             }
@@ -86,9 +88,13 @@ val httpClientBibleAPI: HttpClient by lazy {
 }
 
 val httpClientBibleIQ: HttpClient by lazy {
+    require(BuildKonfig.IQ_BIBLE_V2_HOST.matches(Regex("[a-z0-9-]+\\.p\\.rapidapi\\.com"))) {
+        "Configure IQ_BIBLE_V2_HOST with the hostname from the IQ Bible v2 RapidAPI listing."
+    }
     val config = AppHttpClientConfig(
-        baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
-        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY)
+        baseUrl = BuildKonfig.IQ_BIBLE_V2_HOST, apiKeyHeader = "X-RapidAPI-Key",
+        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY),
+        rapidApiHost = BuildKonfig.IQ_BIBLE_V2_HOST
     )
     createHttpClient(config)
 }

@@ -38,11 +38,8 @@ object BibleIQDataModel {
         private set
 
     fun updateBibleVersions(newVersions: BibleIQVersions) {
-        val list = newVersions.data.filter {
-            it.abbreviation == "KJV" || it.abbreviation == "ASV"
-                    || it.abbreviation == "RV1909" || it.abbreviation == "SVD"
-        }
-        bibleVersions = BibleIQVersions(data = newVersions.data)
+        val versions = newVersions.data.associateBy { it.abbreviation?.uppercase() }
+        bibleVersions = BibleIQVersions(supportedTranslations.keys.mapNotNull { versions[it] })
     }
 
     private var _selectedVersion: MutableState<String> = mutableStateOf("")
@@ -57,7 +54,7 @@ object BibleIQDataModel {
     val selectedVersion: String by _selectedVersion
     internal fun updateSelectedVersion(version: String? = null) {
         Napier.v("updateSelectedVersion: $version", tag = "AP8243")
-        _selectedVersion.value = version ?: (selectedVersion)
+        _selectedVersion.value = normalizedTranslation(version ?: selectedVersion)
     }
 
     var bibleBooks by mutableStateOf(BibleIQBooks())
