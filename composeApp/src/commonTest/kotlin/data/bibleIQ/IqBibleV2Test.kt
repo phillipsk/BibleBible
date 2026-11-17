@@ -18,7 +18,7 @@ class IqBibleV2Test {
 
     @Test fun bbeRequestUsesV2PathAndMapsLocalBookNumbersToCanonicalIds() = runTest {
         val client = client("""{"version":"eng_bbe","data":[{"id":900,"book_number":44,"chapter_number":3,"verse_number":16,"text":"A BBE verse","extra":true}]}""") {
-            assertEquals("/api/v2/bibles/eng_bbe/JHN/3", it.url.encodedPath)
+            assertEquals("/bibles/eng_bbe/JHN/3", it.url.encodedPath)
             assertEquals("v2-test.p.rapidapi.com", it.headers["X-RapidAPI-Host"])
             assertEquals("test-only", it.headers["X-RapidAPI-Key"])
             assertTrue(it.url.parameters.isEmpty())
@@ -33,7 +33,7 @@ class IqBibleV2Test {
 
     @Test fun chapterMetadataIsTranslationSpecific() = runTest {
         val client = client("""{"chapter_count":21,"chapters":[]}""") {
-            assertEquals("/api/v2/bibles/arb_svd/JHN/meta", it.url.encodedPath)
+            assertEquals("/bibles/arb_svd/JHN/meta", it.url.encodedPath)
         }
         try { assertEquals(21, IqBibleV2(client).chapterCount("JHN", "SVD").chapterCount) }
         finally { client.close() }
@@ -54,7 +54,7 @@ class IqBibleV2Test {
 
     @Test fun dailyVerseDecodesObjectAndUsfmReference() = runTest {
         val client = client("""{"date":"2026-11-17","version":"eng_kjv","data":{"id":42,"book_number":43,"book_usfm":"JHN","chapter_number":3,"verse_number":16,"text":"Daily text"}}""") {
-            assertEquals("/api/v2/bibles/eng_kjv/verse-of-the-day", it.url.encodedPath)
+            assertEquals("/bibles/eng_kjv/verse-of-the-day", it.url.encodedPath)
         }
         try { assertEquals("JHN", IqBibleV2(client).dailyVerse("KJV").data.bookUsfm) }
         finally { client.close() }

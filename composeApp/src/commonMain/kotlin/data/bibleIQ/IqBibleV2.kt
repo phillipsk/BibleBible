@@ -36,7 +36,8 @@ internal fun v2CacheVersion(value: String): String = "v2:${remoteTranslation(val
 
 internal class IqBibleV2(private val client: HttpClient) {
     private suspend inline fun <reified T> read(path: String): T {
-        val response = client.get("/api/v2/$path")
+        // RapidAPI exposes root paths; /api/v2 is only for the direct provider.
+        val response = client.get("/$path")
         check(response.status.isSuccess()) { "Bible service unavailable (${response.status.value}). Please try again." }
         return response.body()
     }

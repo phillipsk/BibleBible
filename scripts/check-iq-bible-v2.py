@@ -13,7 +13,7 @@ if not re.fullmatch(r"[a-z0-9-]+\.p\.rapidapi\.com", host) or not key:
 
 
 def get(path):
-    request = urllib.request.Request("https://" + host + "/api/v2/" + path,
+    request = urllib.request.Request("https://" + host + "/" + path,
         headers={"X-RapidAPI-Host": host, "X-RapidAPI-Key": key, "Accept": "application/json", "User-Agent": "BibleBible-v2-verification/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=25) as response:
