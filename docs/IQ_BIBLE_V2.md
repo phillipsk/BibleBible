@@ -4,11 +4,11 @@ Uses the IQ Bible **RapidAPI** subscription and `X-RapidAPI-Key` / `X-RapidAPI-H
 
 ## Configuration and live verification — required before merge
 
-Set `IQ_BIBLE_V2_HOST` to the exact hostname from the v2 listing's endpoint code sample. It accepts a Gradle property, environment variable, or local.properties value. Do not put a URL/path in this value. There is deliberately no guessed hostname default. `IQ_BIBLE_API_KEY` accepts the existing local.properties value or an environment variable. Never commit either credential or generated BuildKonfig output.
+The default `IQ_BIBLE_V2_HOST` is `iq-bible-v21.p.rapidapi.com`, confirmed from the v2 RapidAPI listing. It can be overridden with a Gradle property, environment variable, or local.properties value. Do not put a URL/path in this value. `IQ_BIBLE_API_KEY` accepts the existing local.properties value or an environment variable. Never commit either credential or generated BuildKonfig output.
 
-The current cloud instance still enforces its original network allowlist; the v2 marketplace page and API documentation host return proxy 403. V1 authenticated smoke requests also returned 403 (error code 1010). The hostname and live v2 translation catalog have **not** been verified. This migration must remain draft until that is resolved.
+Network access is now working. The existing credential successfully fetched Genesis 1 in BBE from v1 (HTTP 200, 31 verses). An authenticated request to the confirmed v2 catalog endpoint returned HTTP 403 with `{"message":"You are not subscribed to this API."}`. Enable a subscription to the separate IQ Bible v2 RapidAPI listing for this key's application before retrying. The live v2 catalog and passage responses remain unverified, so this migration stays draft.
 
-After configuring access to the confirmed v2 host and enabling the credential for that host, run `python3 scripts/check-iq-bible-v2.py`. It makes nine read-only requests to check the catalog, Genesis 1 in all five translations, chapter metadata, and KJV/BBE daily verses. A RapidAPI v2 subscription may be required separately from v1. The check never prints the credential.
+After enabling v2 subscription access, run `python3 scripts/check-iq-bible-v2.py`. It makes nine read-only requests to check the catalog, Genesis 1 in all five translations, chapter metadata, and KJV/BBE daily verses. A RapidAPI v2 subscription may be required separately from v1. The check never prints the credential.
 
 Configured remote ids are `eng_kjv`, `eng_bbe`, `spa_rv`, `arb_svd`, `eng_asv`. In particular, confirm `eng_bbe` in the live catalog and confirm that `spa_rv` is the intended Reina-Valera edition before merging; do not silently replace BBE or relabel a different Spanish edition as RV1909.
 

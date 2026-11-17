@@ -6,7 +6,7 @@ import re
 import urllib.error
 import urllib.request
 
-host = os.environ.get("IQ_BIBLE_V2_HOST", "")
+host = os.environ.get("IQ_BIBLE_V2_HOST", "iq-bible-v21.p.rapidapi.com")
 key = os.environ.get("IQ_BIBLE_API_KEY", "")
 if not re.fullmatch(r"[a-z0-9-]+\.p\.rapidapi\.com", host) or not key:
     raise SystemExit("Set IQ_BIBLE_V2_HOST from the v2 listing and IQ_BIBLE_API_KEY in the environment.")
@@ -14,7 +14,7 @@ if not re.fullmatch(r"[a-z0-9-]+\.p\.rapidapi\.com", host) or not key:
 
 def get(path):
     request = urllib.request.Request("https://" + host + "/api/v2/" + path,
-        headers={"X-RapidAPI-Host": host, "X-RapidAPI-Key": key, "Accept": "application/json"})
+        headers={"X-RapidAPI-Host": host, "X-RapidAPI-Key": key, "Accept": "application/json", "User-Agent": "BibleBible-v2-verification/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=25) as response:
             return json.load(response)

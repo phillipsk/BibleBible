@@ -165,11 +165,11 @@ buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
     defaultConfigs {
-        // Copy the hostname from the IQ Bible v2 RapidAPI endpoint code sample.
+        // Confirmed from the IQ Bible v2 RapidAPI listing.
         buildConfigField(STRING, "IQ_BIBLE_V2_HOST",
             providers.gradleProperty("IQ_BIBLE_V2_HOST")
                 .orElse(providers.environmentVariable("IQ_BIBLE_V2_HOST"))
-                .orElse(localAppProperties.getProperty("IQ_BIBLE_V2_HOST") ?: "")
+                .orElse(localAppProperties.getProperty("IQ_BIBLE_V2_HOST") ?: "iq-bible-v21.p.rapidapi.com")
                 .get())
         buildConfigField(
             STRING,
