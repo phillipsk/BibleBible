@@ -16,6 +16,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - run: sdkmanager 'platforms;android-37.0' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
       - run: xvfb-run -a ./gradlew :composeApp:desktopTest :composeApp:testDebugUnitTest --console=plain --max-workers=2
