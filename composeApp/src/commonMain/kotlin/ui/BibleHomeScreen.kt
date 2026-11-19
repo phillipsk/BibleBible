@@ -69,7 +69,7 @@ internal fun BibleHomeScreen(
     ) {
         if (BibleIQDataModel.autoDemoTourEnabled && !BibleIQDataModel.showBiblicalShorts) {
             BibleIQDataModel.showHomePage = true
-            delay(4500L)
+            delay(3500L)
             if (BibleIQDataModel.autoDemoTourEnabled) {
                 BibleIQDataModel.openBiblicalShorts()
             }

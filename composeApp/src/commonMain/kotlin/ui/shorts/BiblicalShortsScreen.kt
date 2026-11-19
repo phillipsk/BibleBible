@@ -121,9 +121,9 @@ internal fun BiblicalShortsScreen(
 
     LaunchedEffect(BibleIQDataModel.autoDemoTourEnabled, filteredShorts.size) {
         if (BibleIQDataModel.autoDemoTourEnabled && filteredShorts.size >= 2) {
-            delay(6500L)
+            delay(5500L)
             pagerState.animateScrollToPage(1)
-            delay(6500L)
+            delay(5500L)
             BibleIQDataModel.autoDemoTourEnabled = false
             onReadChapter(filteredShorts[1])
         }

@@ -23,7 +23,10 @@
   - `desktopTest`: **20 suites, 71 tests, 0 failures, 0 errors, 0 skipped**
   - `testAndroidHostTest`: **12 suites, 42 tests, 0 failures, 0 errors, 0 skipped**
   - `:androidApp:assembleDebug`: **BUILD SUCCESSFUL** (`androidApp-debug.apk`, 18 MB)
-- `python3 tools/verify_no_client_secrets.py`: **OK** (0 secret leaks across 206 scanned files).
+- End-to-End Mobile Demo Videos Recorded & Visually Verified:
+  - **iOS Simulator (`iPhone 15 Pro`)**: `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/ios-biblical-shorts-demo.mp4` (`26 MB`, `1178x2556` H.264, `16.8s`) verified across Home Screen -> Short #1 -> Short #2 -> Genesis Chapter 6.
+  - **Android Emulator (`B10_Pixel_9_API_35`)**: `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/android-biblical-shorts-demo.mp4` (`12 MB`, `720x1616` H.264, `18.2s`) verified across Home Screen -> Short #1 -> Short #2 -> Genesis Chapter 6.
+- `python3 tools/verify_no_client_secrets.py`: **OK** (0 secret leaks across 204 scanned files).
 
 ## Next Steps
 1. Record and review end-to-end iOS Simulator & Android Emulator demo MP4 videos saved to `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/`.
