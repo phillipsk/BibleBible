@@ -27,6 +27,7 @@ Long-term architectural context, module responsibilities, constraints, and techn
 - `GET /GetBiblicalShorts` & `GET /v1/shorts`: Serves the curated Top 50 Biblical Shorts (<30s) catalog with timed scenes, scripture metadata, life lessons, and video stream URLs.
 - `GET /v1/shorts/media/:fileName`: Streams H.264/AAC MP4 shorts with HTTP byte-range (`206 Partial Content`) support (or redirects/points to Cloud Storage / Cloud CDN when `SHORTS_CDN_BASE_URL` is configured).
 - `POST /v1/gemini/summary`: Session-authenticated gateway to Gemini chapter summaries with server-side rate limiting and in-memory summary caching.
+- `POST /v1/analytics/events`, `GET /v1/analytics/summary`, `GET /analytics`: First-party KMP telemetry batch collector, structured Google Cloud Logging emitter, raw JSON report, and live auto-refreshing HTML dashboard.
 
 ## 4. Known Constraints & Tradeoffs
 - **Navigation Pattern**: Uses `@ThreadLocal` observable state flags (`showHomePage`, `showBiblicalShorts`) on `BibleIQDataModel` instead of third-party navigation libraries to keep KMP binary size small and state deterministic in UI tests.
@@ -37,3 +38,4 @@ Long-term architectural context, module responsibilities, constraints, and techn
 - [ADR 0001: First-Party Cloud Gateway & Session Tokens](adr/0001-first-party-cloud-gateway-and-session-tokens.md)
 - [ADR 0002: Compose Multiplatform vs. Native iOS/Android for Video Shorts](adr/0002-compose-multiplatform-vs-native-for-video-shorts.md)
 - [ADR 0003: Biblical Shorts Google Cloud Pipeline & \$100/mo Budget Cap](adr/0003-biblical-shorts-google-cloud-pipeline-and-budget-cap.md)
+- [ADR 0004: First-Party Cloud Analytics & Live Dashboard](adr/0004-first-party-cloud-analytics-and-live-dashboard.md)

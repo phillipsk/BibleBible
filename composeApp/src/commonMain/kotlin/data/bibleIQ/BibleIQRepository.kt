@@ -3,6 +3,7 @@ package data.bibleIQ
 import JSON_BOOKS
 import JSON_VERSIONS
 import data.GeminiModel
+import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel.readingHistory
 import data.apiBible.BookData
 import data.apiBible.getReadingHistory
@@ -117,6 +118,7 @@ internal suspend fun getChapterBibleIQ(
                     BibleIQDataModel.updateBibleChapter(chapterVerses, chapterCount, version)
                 }
                 insertBibleVerses(chapterVerses, version, chapterCount)
+                AnalyticsTracker.trackChapterLoaded(bookId, chapter, version, source = "remote")
             }
         } else {
             chapterCount = queryBookChapterSize(bookId, version)
@@ -125,6 +127,7 @@ internal suspend fun getChapterBibleIQ(
                 BibleIQDataModel.updateBibleChapter(cachedData, chapterCount, version)
             }
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
+            AnalyticsTracker.trackChapterLoaded(bookId, chapter, version, source = "cache")
         }
         if (updateReadingHistory) {
             insertReadingHistory(bookId, chapter)
@@ -134,8 +137,10 @@ internal suspend fun getChapterBibleIQ(
     } catch (e: CancellationException) {
         throw e
     } catch (e: IOException) {
+        AnalyticsTracker.trackError("chapter_fetch", e.message ?: "IOException")
         BibleIQDataModel.updateErrorSnackBar(e.message ?: "Error fetching chapter")
     } catch (e: Exception) {
+        AnalyticsTracker.trackError("chapter_fetch", e.message ?: "Exception")
         Napier.e("Error: ${e.message}", tag = "IQ093")
     }
 }

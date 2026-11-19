@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import data.GeminiModel
+import data.analytics.AnalyticsTracker
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,14 @@ private fun AISummaryTopBar() {
     AISummaryButton(
         generateAISummary = {
             if (!GeminiModel.showSummary) {
+                AnalyticsTracker.trackAiSummary(
+                    "ai_summary_toggled",
+                    mapOf(
+                        "visible" to "true",
+                        "bookName" to (BibleIQDataModel.selectedBook.cleanedName ?: ""),
+                        "chapter" to (BibleIQDataModel.bibleChapter?.chapterId?.toString() ?: ""),
+                    ),
+                )
                 scope.launch {
                     GeminiModel.showSummary = true
                     GeminiModel.isLoading = true
@@ -62,6 +71,10 @@ private fun AISummaryTopBar() {
                     }
                 }
             } else {
+                AnalyticsTracker.trackAiSummary(
+                    "ai_summary_toggled",
+                    mapOf("visible" to "false"),
+                )
                 GeminiModel.showSummary = false
             }
         },

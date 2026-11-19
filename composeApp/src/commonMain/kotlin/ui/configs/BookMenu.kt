@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
@@ -64,6 +65,11 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
             bookDataList?.forEach {
                 DropdownMenuItem(onClick = {
                     expanded = false
+                    AnalyticsTracker.trackBookSelected(
+                        bookId = it.bookId,
+                        bookName = it.name ?: it.abbreviation ?: it.bookId,
+                        source = "book_dropdown",
+                    )
                     BibleIQDataModel.run {
                         updateSelectedBook(it)
                     }

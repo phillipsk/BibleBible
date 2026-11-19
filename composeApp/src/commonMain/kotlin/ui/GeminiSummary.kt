@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.GeminiModel
+import data.analytics.AnalyticsTracker
 import data.bibleIQ.BibleIQDataModel
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,13 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
     fun refresh(pullToRefresh: Boolean = false) = refreshScope.launch {
         refreshing = true
         if (pullToRefresh) {
+            AnalyticsTracker.trackAiSummary(
+                "ai_summary_pull_refresh",
+                mapOf(
+                    "bookName" to (BibleIQDataModel.selectedBook.cleanedName ?: ""),
+                    "chapter" to (BibleIQDataModel.bibleChapter?.chapterId?.toString() ?: ""),
+                ),
+            )
             GeminiModel.generateAISummary(pullToRefresh = true)
         }
         withContext(Dispatchers.Main) {

@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel
 import data.bibleIQ.DailyVerse
 import data.bibleIQ.bibleBooksFull
@@ -49,14 +50,40 @@ internal fun VerseOfTheDay(version: String) {
     val state by produceState<DailyVerseState>(DailyVerseState.Loading, version, date, retry) {
         value = DailyVerseState.Loading
         value = try {
-            DailyVerseState.Ready(dailyVerseRepository.get(version))
+            val loaded = dailyVerseRepository.get(version)
+            AnalyticsTracker.track(
+                name = "votd_loaded",
+                category = "verse_of_the_day",
+                properties = mapOf(
+                    "version" to loaded.version,
+                    "bookUsfm" to (loaded.data.bookUsfm ?: loaded.data.bookNumber.toString()),
+                    "chapter" to loaded.data.chapter.toString(),
+                    "verse" to loaded.data.verse.toString(),
+                ),
+            )
+            DailyVerseState.Ready(loaded)
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AnalyticsTracker.track(
+                name = "votd_load_failed",
+                category = "verse_of_the_day",
+                properties = mapOf(
+                    "version" to version,
+                    "reason" to (e::class.simpleName ?: "exception"),
+                ),
+            )
             DailyVerseState.Unavailable
         }
     }
-    VerseOfTheDayCard(state, version, onRetry = { retry++ })
+    VerseOfTheDayCard(
+        state,
+        version,
+        onRetry = {
+            AnalyticsTracker.track("votd_retry_clicked", "verse_of_the_day", mapOf("version" to version))
+            retry++
+        },
+    )
 }
 
 @Composable

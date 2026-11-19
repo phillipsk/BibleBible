@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -84,7 +85,14 @@ internal fun BiblicalShortsEntryCard(
     )
 
     Card(
-        onClick = onOpenShorts,
+        onClick = {
+            AnalyticsTracker.track(
+                "shorts_entry_clicked",
+                "biblical_shorts",
+                mapOf("trigger" to "card_tap"),
+            )
+            onOpenShorts()
+        },
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 18.dp)
@@ -96,6 +104,11 @@ internal fun BiblicalShortsEntryCard(
                         dragAccumulated += dragAmount
                         if (dragAccumulated > 64f || dragAccumulated < -64f) {
                             dragAccumulated = 0f
+                            AnalyticsTracker.track(
+                                "shorts_entry_clicked",
+                                "biblical_shorts",
+                                mapOf("trigger" to "horizontal_swipe"),
+                            )
                             onOpenShorts()
                         }
                     },
@@ -179,7 +192,14 @@ internal fun BiblicalShortsEntryCard(
 
                 // Animated left-to-right swiping arrow track
                 Surface(
-                    onClick = onOpenShorts,
+                    onClick = {
+                        AnalyticsTracker.track(
+                            "shorts_entry_clicked",
+                            "biblical_shorts",
+                            mapOf("trigger" to "arrow_tap"),
+                        )
+                        onOpenShorts()
+                    },
                     shape = RoundedCornerShape(50),
                     color = Color(0xFF0F233D),
                     border = BorderStroke(1.dp, Color(0x66FBD38D)),

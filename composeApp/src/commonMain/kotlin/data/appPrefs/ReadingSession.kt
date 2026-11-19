@@ -3,6 +3,7 @@ package data.appPrefs
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.currentTimeMillis
@@ -134,6 +135,16 @@ internal object ReadingSession {
             val book = BibleAPIDataModel.bibleBooks.data.orEmpty().first { canonicalBookKey(it) == restored.bookKey }
             BibleIQDataModel.updateSelectedVersion(restored.version)
             BibleIQDataModel.restoreReadingLocation(book, restored.chapter)
+            AnalyticsTracker.track(
+                "reading_session_restored",
+                "reading",
+                mapOf(
+                    "bookKey" to restored.bookKey,
+                    "bookName" to (book.name ?: restored.bookKey),
+                    "chapter" to restored.chapter.toString(),
+                    "version" to restored.version,
+                ),
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {

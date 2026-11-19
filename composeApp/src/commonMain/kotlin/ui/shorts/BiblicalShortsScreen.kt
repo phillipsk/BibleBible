@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.bibleIQ.BibleIQDataModel
 import data.shorts.BiblicalShortDto
 import data.shorts.biblicalShortsCategories
@@ -103,9 +104,10 @@ internal fun BiblicalShortsScreen(
         elapsedSeconds = 0
     }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, activeShort?.id) {
         elapsedSeconds = 0
         isPaused = false
+        activeShort?.let { AnalyticsTracker.trackShortViewed(it) }
     }
 
     LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused) {
@@ -271,7 +273,19 @@ internal fun BiblicalShortsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Button(
-                                    onClick = { onReadChapter(shortItem) },
+                                    onClick = {
+                                        AnalyticsTracker.track(
+                                            "short_read_chapter_clicked",
+                                            "biblical_shorts",
+                                            mapOf(
+                                                "shortId" to shortItem.id,
+                                                "title" to shortItem.title,
+                                                "bookUsfm" to shortItem.bookUsfm,
+                                                "chapter" to shortItem.chapter.toString(),
+                                            ),
+                                        )
+                                        onReadChapter(shortItem)
+                                    },
                                     shape = RoundedCornerShape(50),
                                     colors = ButtonDefaults.buttonColors(
                                         backgroundColor = Color(0xFFFBD38D),
@@ -290,6 +304,11 @@ internal fun BiblicalShortsScreen(
 
                                 OutlinedButton(
                                     onClick = {
+                                        AnalyticsTracker.track(
+                                            "short_next_clicked",
+                                            "biblical_shorts",
+                                            mapOf("fromShortId" to shortItem.id),
+                                        )
                                         val nextIndex = (page + 1) % filteredShorts.size
                                         scope.launch { pagerState.animateScrollToPage(nextIndex) }
                                     },
@@ -366,7 +385,14 @@ internal fun BiblicalShortsScreen(
                     modifier = Modifier.padding(end = 8.dp),
                 ) {
                     Surface(
-                        onClick = { isMuted = !isMuted },
+                        onClick = {
+                            isMuted = !isMuted
+                            AnalyticsTracker.track(
+                                "short_mute_toggled",
+                                "biblical_shorts",
+                                mapOf("muted" to isMuted.toString()),
+                            )
+                        },
                         shape = CircleShape,
                         color = Color(0x55000000),
                         border = BorderStroke(1.dp, Color(0x44FFFFFF)),
@@ -380,7 +406,14 @@ internal fun BiblicalShortsScreen(
                     }
 
                     Surface(
-                        onClick = { isPaused = !isPaused },
+                        onClick = {
+                            isPaused = !isPaused
+                            AnalyticsTracker.track(
+                                "short_pause_toggled",
+                                "biblical_shorts",
+                                mapOf("paused" to isPaused.toString()),
+                            )
+                        },
                         shape = CircleShape,
                         color = Color(0x55000000),
                         border = BorderStroke(1.dp, Color(0x44FFFFFF)),
@@ -412,7 +445,14 @@ internal fun BiblicalShortsScreen(
                 items(biblicalShortsCategories) { category ->
                     val isSelected = selectedCategory.equals(category, ignoreCase = true)
                     Surface(
-                        onClick = { onCategorySelected(category) },
+                        onClick = {
+                            AnalyticsTracker.track(
+                                "short_category_filtered",
+                                "biblical_shorts",
+                                mapOf("category" to category),
+                            )
+                            onCategorySelected(category)
+                        },
                         shape = RoundedCornerShape(50),
                         color = if (isSelected) Color(0xFFFBD38D) else Color(0x660F172A),
                         border = BorderStroke(
