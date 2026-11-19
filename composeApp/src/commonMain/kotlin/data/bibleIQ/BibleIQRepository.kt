@@ -12,6 +12,7 @@ import data.httpClientBibleIQ
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
+import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import kotlinx.io.IOException
@@ -66,6 +67,7 @@ internal suspend fun getChapterBibleIQ(
     chapter: Int = 1,
     version: String = BibleIQDataModel.selectedVersion,
     updateReadingHistory: Boolean = true,
+    client: HttpClient = httpClientBibleIQ,
 ) {
     try {
         GeminiModel.cancelPendingSummary()
@@ -89,7 +91,7 @@ internal suspend fun getChapterBibleIQ(
             withContext(Dispatchers.IO) {
 //                delay(3000)
                 chapterVerses =
-                    httpClientBibleIQ.get(
+                    client.get(
                         GetChapter(
                             bookId = bookId,
                             chapterId = chapter.toString(),
@@ -106,7 +108,7 @@ internal suspend fun getChapterBibleIQ(
                 chapterCount = queryBookChapterSize(bookId, version)
                 if (chapterCount?.chapterCount == 0L || chapterCount?.chapterCount == null) {
                     Napier.v("sql :: insert chapterCount", tag = "IQ093")
-                    chapterCount = getChapterCountBibleIQ(bookId).await()
+                    chapterCount = getChapterCountBibleIQ(bookId, client).await()
                     insertChapterCount(chapterCount, bookId, version)
                 }
 
@@ -181,9 +183,9 @@ internal suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int
     }
 }
 
-private suspend fun getChapterCountBibleIQ(bookId: Int) = coroutineScope {
+private suspend fun getChapterCountBibleIQ(bookId: Int, client: HttpClient) = coroutineScope {
     async(Dispatchers.IO) {
-        httpClientBibleIQ.get(GetChapterCount(bookId)).body<ChapterCount>()
+        client.get(GetChapterCount(bookId)).body<ChapterCount>()
     }
 }
 
