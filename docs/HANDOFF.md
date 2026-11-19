@@ -1,33 +1,36 @@
 # HANDOFF.md — Current Development State
 
 ## Current Branch & Context
-- **Branch**: `feature/biblical-shorts-and-docs` (and alias `feature/biblical-shorts`), rebased onto `release/3.0` / `main` (`c944478`, `tag: v3.0`)
+- **Branch**: `feature/analytics` (branched off `feature/biblical-shorts` at `9158e62`, targeting `feature/biblical-shorts` / `release/3.0`)
 - **Worktree**: `/Users/phillipsk7461/Documents/BibleBibleAntigravity/biblebible-shorts`
-- **Active Feature**: Persistent Project Memory Docs (`AGENTS.md`, `docs/`), AI-Narrated Motion Biblical Shorts Cloud Backend (<\$100/mo), Live GCP Deployment, and Home Screen -> Vertical Reels KMP UI with exact-chapter reader integration.
+- **Active Feature**: Full-Sweep First-Party Analytics Platform (`AnalyticsTracker`), Google Cloud Run Collector, JSON Summary API, and Live Web Dashboard.
 
 ## Completed Work
-- Rebased cleanly onto `release/3.0` / `main` (`c944478`) and connected `BiblicalShortsScreen`'s **Read Chapter** action to `BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)` so selecting a short opens that exact book and chapter in `BibleScripturesPager`.
-- Created persistent context & architecture documentation: `AGENTS.md`, `README.md`, `docs/PROJECT_CONTEXT.md`, `docs/HANDOFF.md`, and ADRs `0001`, `0002`, and `0003`.
-- Built and deployed the Top 50 Biblical Shorts pipeline (`backend/`, untracked):
-  - 50 curated <30s Old & New Testament narratives/lessons with 3 timed scenes each (`shortsCatalog.js`) and HTTP `206 Partial Content` streaming (`shortsService.js`, `server.js`).
-  - Synthesized all 50 vertical `720x1280` H.264/AAC MP4 reels (`-movflags +faststart`, 79 MB total) with Gemini Image artwork camera motion and 50/50 Gemini TTS spoken narration + ambient harmonic pads (`generate-shorts-videos.mjs`).
-  - Uploaded all 50 MP4s (54.5 MiB) to `gs://gen-lang-client-0150678391-biblebible-shorts/shorts/` and deployed `biblebible-api` revision `biblebible-api-00003-lqt` in `us-central1`.
-  - Configured Cloud Billing budget `BibleBible Monthly Cap ($100)` (`798e52d4-1a22-43a8-9895-372b04fe8ff9`) on `billingAccounts/0198D2-D43B38-EC3C1E`.
-- Added automated launch-demo hooks (`auto_demo` Intent extra on Android `MainActivity`, `BIBLEBIBLE_AUTO_DEMO=1` env var on iOS `MainViewController`) for reproducible simulator/emulator verification recordings.
+- Built `composeApp/src/commonMain/kotlin/data/analytics/AnalyticsTracker.kt` + platform-specific `getPlatformName()` (`android`, `ios`, `desktop`) with lock-free channel coalescing and batch upload to `POST /v1/analytics/events`.
+- Instrumented a full sweep of lifecycle, navigation, reading, daily verse, Biblical Shorts, Gemini AI summary, preferences/zoom, and error events across:
+  - `App.kt`, `CloudConfigRepository.kt`, `ReadingSession.kt`, `BibleIQDataModel.kt`, `BibleIQRepository.kt`, `GeminiRepository.kt`
+  - `BibleHomeScreen.kt`, `VerseOfTheDayCard.kt`, `BiblicalShortsEntryCard.kt`, `BiblicalShortsScreen.kt`
+  - `BibleScripturesPager.kt`, `BibleScriptures.kt`, `ChapterTopBar.kt`, `GeminiSummary.kt`
+  - `HomeTopBar.kt`, `BibleMenu.kt`, `BookMenu.kt`, `FontMenu.kt`
+- Implemented `backend/src/analyticsService.js` and wired endpoints in `backend/src/server.js`:
+  - `POST /v1/analytics/events` (`202 Accepted`), structured Google Cloud Logging output (`component: "biblebible-analytics"`), and server-side gateway API metrics.
+  - `GET /v1/analytics/summary` (JSON telemetry summary) and `GET /analytics` / `GET /v1/analytics/dashboard` (auto-refreshing dark-mode web dashboard).
+- Added [ADR 0004](adr/0004-first-party-cloud-analytics-and-live-dashboard.md) and updated `docs/PROJECT_CONTEXT.md`.
 
 ## Verified Results
-- `cd backend && npm test`: **7/7 tests passed**.
-- Live Cloud Run `GET https://biblebible-api-687901748717.us-central1.run.app/GetBiblicalShorts?limit=2`: **HTTP 200 OK**.
-- Live Cloud Run & GCS `Range: bytes=0-1023` on `short-01-creation-light.mp4`: **HTTP/2 206**, `content-type: video/mp4`.
-- `./gradlew :composeApp:desktopTest :composeApp:testAndroidHostTest :androidApp:assembleDebug`:
-  - `desktopTest`: **20 suites, 71 tests, 0 failures, 0 errors, 0 skipped**
-  - `testAndroidHostTest`: **12 suites, 42 tests, 0 failures, 0 errors, 0 skipped**
-  - `:androidApp:assembleDebug`: **BUILD SUCCESSFUL** (`androidApp-debug.apk`, 18 MB)
-- End-to-End Mobile Demo Videos Recorded & Visually Verified:
-  - **iOS Simulator (`iPhone 15 Pro`)**: `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/ios-biblical-shorts-demo.mp4` (`26 MB`, `1178x2556` H.264, `16.8s`) verified across Home Screen -> Short #1 -> Short #2 -> Genesis Chapter 6.
-  - **Android Emulator (`B10_Pixel_9_API_35`)**: `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/android-biblical-shorts-demo.mp4` (`12 MB`, `720x1616` H.264, `18.2s`) verified across Home Screen -> Short #1 -> Short #2 -> Genesis Chapter 6.
+- `cd backend && npm test`: **8/8 tests passed** (includes `POST /v1/analytics/events`, `GET /v1/analytics/summary`, and `GET /analytics` HTML dashboard).
+- `./gradlew :composeApp:desktopTest :composeApp:testAndroidHostTest :composeApp:compileKotlinIosSimulatorArm64 --console=plain --max-workers=2`:
+  - `desktopTest`: **21 suites, 72 tests, 0 failures, 0 errors, 0 skipped** (includes `AnalyticsTrackerTest`)
+  - `testAndroidHostTest`: **13 suites, 43 tests, 0 failures, 0 errors, 0 skipped**
+  - `:composeApp:compileKotlinIosSimulatorArm64`: **BUILD SUCCESSFUL**
+- Deployed `biblebible-api` revision `biblebible-api-00004-m7f` to Google Cloud Run (`us-central1`).
+- Live Cloud Run verification:
+  - `POST https://biblebible-api-687901748717.us-central1.run.app/v1/analytics/events`: **200/202 Accepted** (`{"status":"accepted","ingested":3,"totalEvents":3}`).
+  - `GET https://biblebible-api-687901748717.us-central1.run.app/v1/analytics/summary`: **200 OK** JSON summary verified.
+  - `GET https://biblebible-api-687901748717.us-central1.run.app/analytics`: **200 OK** (`text/html`) live dashboard verified.
 - `python3 tools/verify_no_client_secrets.py`: **OK** (0 secret leaks across 204 scanned files).
 
 ## Next Steps
-1. Record and review end-to-end iOS Simulator & Android Emulator demo MP4 videos saved to `/Users/phillipsk7461/Desktop/BibleBible-Shorts-Demo/`.
-2. Open a PR from `feature/biblical-shorts` / `feature/biblical-shorts-and-docs` into `main` / `release/3.0`.
+1. Open `https://biblebible-api-687901748717.us-central1.run.app/analytics` in any desktop or mobile browser to view live telemetry charts and event streams.
+2. Open a PR from `feature/analytics` targeting `feature/biblical-shorts`.
+3. Optional: Route Google Cloud Logging entries matching `jsonPayload.component="biblebible-analytics"` to a BigQuery sink if multi-month historical SQL queries are desired.

@@ -1,6 +1,7 @@
 package data.gemini
 
 import data.GeminiModel
+import data.analytics.AnalyticsTracker
 import data.config.CloudSessionManager
 import data.httpClientGemini
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -76,6 +77,10 @@ suspend fun generateContent(
         currentCoroutineContext().ensureActive()
         if (!response.status.isSuccess()) {
             Napier.e("Gemini request failed (HTTP ${response.status.value})", tag = "GeminiServiceImp")
+            AnalyticsTracker.trackAiSummary(
+                "ai_summary_failed",
+                mapOf("httpStatus" to response.status.value.toString(), "model" to activeModel),
+            )
             GeminiModel.updateGeminiError(when (response.status.value) {
                 402 -> "AI summary unavailable: check Gemini prepaid credits in Google AI Studio."
                 401, 403 -> "Gemini rejected the API key or its permissions. Check the key and API restrictions."
@@ -87,8 +92,16 @@ suspend fun generateContent(
         val responseText = response.body<GeminiResponseDto>()
         currentCoroutineContext().ensureActive()
         if (responseText.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text.isNullOrBlank()) {
+            AnalyticsTracker.trackAiSummary(
+                "ai_summary_failed",
+                mapOf("reason" to "empty_candidates", "model" to activeModel),
+            )
             GeminiModel.updateGeminiError("Gemini returned no summary. Please try again.")
         } else {
+            AnalyticsTracker.trackAiSummary(
+                "ai_summary_generated",
+                mapOf("model" to activeModel, "refresh" to refresh.toString()),
+            )
             GeminiModel.updateGeminiData(responseText)
         }
     } catch (e: CancellationException) {
@@ -96,6 +109,10 @@ suspend fun generateContent(
     } catch (e: Exception) {
         currentCoroutineContext().ensureActive()
         Napier.e("Gemini request failed (${e::class.simpleName})", tag = "GeminiServiceImp")
+        AnalyticsTracker.trackAiSummary(
+            "ai_summary_failed",
+            mapOf("reason" to (e::class.simpleName ?: "exception"), "model" to activeModel),
+        )
         GeminiModel.updateGeminiError("AI summary could not load. Check your connection and try again.")
     }
 }

@@ -9,6 +9,8 @@ actual fun isDesktopPlatform(): Boolean {
     return false
 }
 
+actual fun getPlatformName(): String = "ios"
+
 @Composable
 actual fun SetSystemBarColor(darkColor: Color) {
 /*    val uiColor = UIColor.yellowColor()

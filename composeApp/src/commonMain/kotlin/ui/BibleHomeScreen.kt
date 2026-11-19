@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.GeminiModel
+import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.Chapter
@@ -61,6 +62,18 @@ internal fun BibleHomeScreen(
 
     LaunchedEffect(BibleIQDataModel.showHomePage) {
         localScaffoldState.bottomSheetState.collapse()
+    }
+
+    LaunchedEffect(
+        BibleIQDataModel.showHomePage,
+        BibleIQDataModel.showBiblicalShorts,
+    ) {
+        val activeScreen = when {
+            BibleIQDataModel.showBiblicalShorts -> "biblical_shorts"
+            BibleIQDataModel.showHomePage -> "home"
+            else -> "scripture_reader"
+        }
+        AnalyticsTracker.trackScreenView(activeScreen)
     }
 
     LaunchedEffect(
@@ -107,9 +120,19 @@ internal fun BibleHomeScreen(
                         showBottomSheet = {
                             scope.launch {
                                 if (localScaffoldState.bottomSheetState.isExpanded) {
+                                    AnalyticsTracker.track(
+                                        "bottom_sheet_toggled",
+                                        "navigation",
+                                        mapOf("state" to "collapsed"),
+                                    )
                                     localScaffoldState.bottomSheetState.collapse()
                                 } else {
                                     Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
+                                    AnalyticsTracker.track(
+                                        "bottom_sheet_toggled",
+                                        "navigation",
+                                        mapOf("state" to "expanded"),
+                                    )
                                     localScaffoldState.bottomSheetState.expand()
                                 }
                             }
@@ -183,6 +206,11 @@ internal fun BibleBookList(
                         it.let {
                             Button(
                                 onClick = {
+                                    AnalyticsTracker.trackBookSelected(
+                                        bookId = it.bookId,
+                                        bookName = it.name ?: it.cleanedName ?: it.bookId,
+                                        source = "home_grid",
+                                    )
                                     BibleAPIDataModel.run {
                                         updateBookData(it)
                                         updateSelectedChapter(it.remoteKey)
@@ -237,6 +265,11 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
                     position = ch,
                 )
             },
+    )
+    AnalyticsTracker.trackBookSelected(
+        bookId = shortItem.bookUsfm,
+        bookName = book.name ?: shortItem.bookUsfm,
+        source = "biblical_short",
     )
     BibleIQDataModel.closeBiblicalShorts()
     BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)

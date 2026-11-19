@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.bibleIQ.BibleIQDataModel
 import data.gemini.checkAnimationLastCalled
 import io.github.aakira.napier.Napier
@@ -70,6 +71,11 @@ internal fun SortBibleBooksToggle() {
         onCheckedChange = {
             BibleIQDataModel.sortAZ = !BibleIQDataModel.sortAZ
             checked = it
+            AnalyticsTracker.track(
+                "book_sort_toggled",
+                "preferences",
+                mapOf("sortType" to BibleIQDataModel.selectedSortType),
+            )
         },
         colors = SwitchDefaults.colors(
             checkedThumbColor = Color.White,

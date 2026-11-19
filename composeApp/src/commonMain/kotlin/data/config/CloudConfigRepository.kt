@@ -3,6 +3,7 @@ package data.config
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.analytics.AnalyticsTracker
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersion
 import data.bibleIQ.BibleIQVersions
@@ -110,15 +111,34 @@ object CloudSessionManager {
             }
             if (!response.status.isSuccess()) {
                 Napier.w("Cloud startup config returned HTTP ${response.status.value}", tag = "CloudConfig")
+                AnalyticsTracker.track(
+                    "cloud_config_fallback",
+                    "lifecycle",
+                    mapOf("httpStatus" to response.status.value.toString()),
+                )
                 return null
             }
             val config = response.body<CloudRuntimeConfigDto>()
             applyRuntimeConfig(config)
+            AnalyticsTracker.track(
+                "cloud_config_loaded",
+                "lifecycle",
+                mapOf(
+                    "aiSummariesEnabled" to config.aiSummariesEnabled.toString(),
+                    "geminiModel" to config.geminiModel,
+                    "defaultVersion" to config.defaultVersion,
+                ),
+            )
             config
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Napier.w("Cloud startup config unavailable (${e::class.simpleName}); using local defaults", tag = "CloudConfig")
+            AnalyticsTracker.track(
+                "cloud_config_fallback",
+                "lifecycle",
+                mapOf("reason" to (e::class.simpleName ?: "exception")),
+            )
             null
         }
     }

@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
 import data.bibleIQ.BibleIQDataModel
 import kotlinx.coroutines.delay
@@ -62,6 +63,7 @@ internal fun FontSizeSlider(bottomSheetState: BottomSheetState) {
             },
             onValueChangeFinished = {
                 isSliding = false
+                AnalyticsTracker.trackFontSizeChanged(sliderPosition, source = "slider")
                 coroutineScope.launch {
                     delay(2000)
                     if (!isSliding) {

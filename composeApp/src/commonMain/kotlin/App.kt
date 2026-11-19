@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import data.appPrefs.getUserPreferences
 import data.appPrefs.ObserveReadingSessionLifecycle
 import data.appPrefs.ReadingSession
+import data.analytics.AnalyticsTracker
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
@@ -36,6 +37,7 @@ fun App(modifier: Modifier = Modifier) {
         SetSystemBarColor(MaterialTheme.colors.background)
 
         LaunchedEffect(true) {
+            AnalyticsTracker.track("app_launch", "lifecycle")
             launch {
                 async { checkDatabaseSize() }
                 async { cleanReadingHistory() }
@@ -51,6 +53,14 @@ fun App(modifier: Modifier = Modifier) {
 
             Napier.v("App :: LaunchedEffect", tag = "BB2452")
             isLoading.value = false
+            AnalyticsTracker.track(
+                name = "app_startup_complete",
+                category = "lifecycle",
+                properties = mapOf(
+                    "version" to BibleIQDataModel.selectedVersion,
+                    "startScreen" to if (BibleIQDataModel.showHomePage) "home" else "scripture_reader",
+                ),
+            )
         }
 
         if (isLoading.value) {

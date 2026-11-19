@@ -7,6 +7,8 @@ actual fun isDesktopPlatform(): Boolean {
     return true
 }
 
+actual fun getPlatformName(): String = "desktop"
+
 @Composable
 actual fun SetSystemBarColor(darkColor: Color) {
 }
