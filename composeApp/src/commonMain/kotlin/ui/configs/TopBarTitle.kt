@@ -7,7 +7,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,7 +22,7 @@ internal fun TopBarTitle(title: String, showHomePage: Boolean = true, onClick: (
     Row(Modifier.clickable(onClick = onClick)) {
         if (!showHomePage) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back to Home",
                 tint = Color.White,
                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 6.dp)

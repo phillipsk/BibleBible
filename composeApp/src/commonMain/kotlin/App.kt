@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import data.appPrefs.getUserPreferences
+import data.appPrefs.ObserveReadingSessionLifecycle
+import data.appPrefs.ReadingSession
 import data.apiBible.getBooksBibleAPI
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.checkDatabaseSize
@@ -26,6 +28,7 @@ import ui.LoadingScreen
 @Composable
 fun App(modifier: Modifier = Modifier) {
     BibleBibleTheme {
+        ObserveReadingSessionLifecycle()
 
         initializeNapier()
         val isLoading = remember { mutableStateOf(true) }
@@ -44,6 +47,7 @@ fun App(modifier: Modifier = Modifier) {
             booksJob.await()
 
             getUserPreferences()
+            ReadingSession.restore()
 
             Napier.v("App :: LaunchedEffect", tag = "BB2452")
             isLoading.value = false

@@ -131,3 +131,25 @@ UPDATE UserPreferences SET bibleVersion = ? WHERE uuid = 1;
 
 selectUserPrefs:
 SELECT * FROM UserPreferences;
+
+CREATE TABLE SavedReadingPosition (
+    uuid INTEGER PRIMARY KEY CHECK (uuid = 1),
+    bookKey TEXT NOT NULL,
+    chapter INTEGER NOT NULL CHECK (chapter >= 1),
+    bibleVersion TEXT NOT NULL,
+    characterOffset INTEGER NOT NULL DEFAULT 0 CHECK (characterOffset >= 0),
+    lineFraction REAL NOT NULL DEFAULT 0,
+    isHome INTEGER NOT NULL DEFAULT 0,
+    lastActiveMillis INTEGER NOT NULL
+);
+
+saveReadingSession:
+INSERT OR REPLACE INTO SavedReadingPosition (
+    uuid, bookKey, chapter, bibleVersion, characterOffset, lineFraction, isHome, lastActiveMillis
+) VALUES (1, ?, ?, ?, ?, ?, ?, ?);
+
+selectReadingSession:
+SELECT * FROM SavedReadingPosition WHERE uuid = 1;
+
+clearReadingSession:
+DELETE FROM SavedReadingPosition WHERE uuid = 1;

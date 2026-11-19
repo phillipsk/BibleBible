@@ -7,8 +7,20 @@ import data.bibleIQ.BibleIQDataModel
 import data.config.CloudSessionManager
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 
 object GeminiModel {
+    private var pendingSummary: Job? = null
+
+    internal fun cancelPendingSummary() {
+        pendingSummary?.cancel()
+        pendingSummary = null
+        showSummary = false
+        isLoading = false
+        updateGeminiData(GeminiResponseDto())
+        geminiFullResponse = ""
+    }
 
     internal var showSummary by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
@@ -44,14 +56,24 @@ object GeminiModel {
                 BibleIQDataModel.selectedBook.cleanedName + " " +
                 BibleIQDataModel.bibleChapter?.chapterId
 
-    internal suspend fun generateAISummary(pullToRefresh: Boolean = false) {
-        if (!isAvailable) {
+    internal suspend fun generateAISummary(
+        pullToRefresh: Boolean = false,
+        available: Boolean = isAvailable,
+        generate: suspend (String) -> Unit = { generateContent(it, refresh = pullToRefresh) },
+    ) {
+        if (!available) {
             updateGeminiError("AI summaries are currently unavailable.")
             showSummary = false
             return
         }
         if (pullToRefresh || showSummary && isLoading && geminiDataText.isNullOrEmpty()) {
-            generateContent(geminiQuery, refresh = pullToRefresh)
+            val job = currentCoroutineContext()[Job]
+            pendingSummary = job
+            try {
+                generate(geminiQuery)
+            } finally {
+                if (pendingSummary === job) pendingSummary = null
+            }
         }
     }
 }
