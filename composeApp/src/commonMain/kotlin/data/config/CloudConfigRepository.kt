@@ -28,6 +28,19 @@ import kotlinx.serialization.Serializable
 import kotlin.native.concurrent.ThreadLocal
 
 @Serializable
+data class CloudAuthConfigDto(
+    val enabled: Boolean = false,
+    val firebaseApiKey: String = "",
+    val firebaseAuthDomain: String = "",
+    val providers: List<String> = emptyList(),
+    val googleWebClientId: String = "",
+    val googleIosClientId: String = "",
+    val googleDesktopClientId: String = "",
+    val appleServicesId: String = "",
+    val emailLinkContinueUrl: String = "",
+)
+
+@Serializable
 data class CloudRuntimeConfigDto(
     val schemaVersion: Int = 1,
     val aiSummariesEnabled: Boolean = true,
@@ -36,9 +49,10 @@ data class CloudRuntimeConfigDto(
     val supportedVersions: List<BibleIQVersion> = emptyList(),
     val sessionToken: String = "",
     val tokenExpiresInSeconds: Long = 3600L,
+    val auth: CloudAuthConfigDto? = null,
 ) {
     override fun toString(): String =
-        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, sessionToken=[redacted])"
+        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, sessionToken=[redacted], authEnabled=${auth?.enabled == true})"
 }
 
 @Serializable
@@ -66,7 +80,17 @@ object CloudSessionManager {
             return if (pathSuffix.isEmpty()) parsed.host else "${parsed.host}/$pathSuffix"
         }
 
-    var sessionToken: String by mutableStateOf("")
+    private var anonSessionToken: String by mutableStateOf("")
+
+    var userSessionToken: String? by mutableStateOf(null)
+
+    var sessionToken: String
+        get() = userSessionToken?.takeIf { it.isNotBlank() } ?: anonSessionToken
+        internal set(value) {
+            anonSessionToken = value
+        }
+
+    var authConfig: CloudAuthConfigDto? by mutableStateOf(null)
         internal set
 
     var aiSummariesEnabled: Boolean by mutableStateOf(BuildKonfig.AI_SUMMARIES_ENABLED)
@@ -81,7 +105,9 @@ object CloudSessionManager {
 
     internal fun resetForTesting() {
         gatewayUrlOverride = null
-        sessionToken = ""
+        anonSessionToken = ""
+        userSessionToken = null
+        authConfig = null
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED
         geminiModel = GEMINI_MODEL
     }
@@ -172,7 +198,10 @@ object CloudSessionManager {
 
     internal fun applyRuntimeConfig(config: CloudRuntimeConfigDto) {
         if (config.sessionToken.isNotBlank()) {
-            sessionToken = config.sessionToken
+            anonSessionToken = config.sessionToken
+        }
+        if (config.auth != null) {
+            authConfig = config.auth
         }
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED && config.aiSummariesEnabled
         if (config.geminiModel.isNotBlank()) {

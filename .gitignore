@@ -40,3 +40,5 @@ request.json
 backend/
 .env
 .env.*
+*.db
+firebase-debug.log

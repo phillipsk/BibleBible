@@ -41,7 +41,10 @@ fun App(modifier: Modifier = Modifier) {
             launch {
                 async { checkDatabaseSize() }
                 async { cleanReadingHistory() }
-                async { CloudSessionManager.initializeStartupConfig() }
+                async {
+                    CloudSessionManager.initializeStartupConfig()
+                    data.auth.AuthRepository.restoreSession()
+                }
             }
             val versionsJob = async { getVersionsBibleIQ() }
             val booksJob = async { getBooksBibleAPI() }
