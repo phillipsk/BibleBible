@@ -37,3 +37,6 @@ captures
 composeApp/release/
 gemini.sh
 request.json
+backend/
+.env
+.env.*

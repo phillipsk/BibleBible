@@ -124,15 +124,10 @@ val aiSummariesEnabled = providers.gradleProperty("AI_SUMMARIES_ENABLED")
 val diagnosticLoggingEnabled = providers.gradleProperty("ENABLE_DIAGNOSTIC_LOGGING")
     .orElse(localAppProperties.getProperty("ENABLE_DIAGNOSTIC_LOGGING") ?: "false")
     .get().toBooleanStrict()
-
-fun obfuscateSecret(plain: String): String {
-    val mask = 0x5A
-    return plain.map { (it.code xor mask).toChar() }.joinToString("")
-}
-
-val rawIqKey = localAppProperties.getProperty("IQ_BIBLE_API_KEY") ?: ""
-val rawApiBibleKey = localAppProperties.getProperty("api_key_api_bible") ?: ""
-val rawGeminiKey = if (aiSummariesEnabled) localAppProperties.getProperty("GEMINI_API_KEY") ?: "" else ""
+val cloudGatewayUrl = providers.gradleProperty("CLOUD_GATEWAY_URL")
+    .orElse(localAppProperties.getProperty("CLOUD_GATEWAY_URL") ?: "https://biblebible-api-5jdy3d7zua-uc.a.run.app")
+    .get()
+    .trim()
 
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
@@ -140,18 +135,8 @@ buildkonfig {
     defaultConfigs {
         buildConfigField(
             STRING,
-            "API_KEY",
-            obfuscateSecret(rawIqKey)
-        )
-        buildConfigField(
-            STRING,
-            "API_KEY_API_BIBLE",
-            obfuscateSecret(rawApiBibleKey)
-        )
-        buildConfigField(
-            STRING,
-            "GEMINI_API_KEY",
-            obfuscateSecret(rawGeminiKey)
+            "CLOUD_GATEWAY_URL",
+            cloudGatewayUrl
         )
         buildConfigField(BOOLEAN, "AI_SUMMARIES_ENABLED", aiSummariesEnabled.toString())
         buildConfigField(BOOLEAN, "ENABLE_DIAGNOSTIC_LOGGING", diagnosticLoggingEnabled.toString())

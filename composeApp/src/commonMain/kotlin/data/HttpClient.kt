@@ -1,8 +1,7 @@
 package data
 
 import data.bibleIQ.BibleIQDataModel
-import data.security.SecretObfuscator
-import email.kevinphillips.biblebible.BuildKonfig
+import data.config.CloudSessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
@@ -10,21 +9,23 @@ import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.SIMPLE
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 data class AppHttpClientConfig(
     val baseUrl: String,
-    val apiKeyHeader: String,
-    val apiKey: String,
-    val path: String? = null
+    val apiKeyHeader: String = "",
+    val apiKey: String = "",
+    val path: String? = null,
+    val tokenProvider: () -> String = { CloudSessionManager.sessionToken },
 )
 
 const val TIMEOUT_LIMIT = 20_000L
@@ -38,6 +39,7 @@ internal fun createHttpClient(
     enableLogging: Boolean = !BibleIQDataModel.RELEASE_BUILD,
 ): HttpClient {
     val configure: HttpClientConfig<*>.() -> Unit = {
+        followRedirects = false
         install(HttpTimeout) {
             requestTimeoutMillis = timeout
             connectTimeoutMillis = timeout
@@ -52,7 +54,8 @@ internal fun createHttpClient(
                     it.equals("x-goog-api-key", ignoreCase = true) ||
                         it.equals("X-RapidAPI-Key", ignoreCase = true) ||
                         it.equals("api-key", ignoreCase = true) ||
-                        it.equals("Authorization", ignoreCase = true)
+                        it.equals("X-Firebase-AppCheck", ignoreCase = true) ||
+                        it.equals(HttpHeaders.Authorization, ignoreCase = true)
                 }
             }
         }
@@ -69,34 +72,43 @@ internal fun createHttpClient(
                 host = config.baseUrl
                 protocol = URLProtocol.HTTPS
             }
-            if (config.apiKeyHeader.isNotEmpty()) {
+            if (config.apiKeyHeader.isNotEmpty() && config.apiKey.isNotEmpty()) {
                 header(config.apiKeyHeader, config.apiKey)
+            } else {
+                val bearer = config.tokenProvider().trim()
+                if (bearer.isNotEmpty()) {
+                    header(HttpHeaders.Authorization, "Bearer $bearer")
+                }
             }
         }
     }
-return if (engine == null) HttpClient(configure) else HttpClient(engine, configure)
+    return if (engine == null) HttpClient(configure) else HttpClient(engine, configure)
+}
+
+val httpClientCloudGateway: HttpClient by lazy {
+    val config = AppHttpClientConfig(
+        baseUrl = CloudSessionManager.gatewayHost,
+    )
+    createHttpClient(config)
 }
 
 val httpClientBibleAPI: HttpClient by lazy {
     val config = AppHttpClientConfig(
-        baseUrl = "api.scripture.api.bible/v1", apiKeyHeader = "api-key",
-        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY_API_BIBLE)
+        baseUrl = CloudSessionManager.gatewayHost,
     )
     createHttpClient(config)
 }
 
 val httpClientBibleIQ: HttpClient by lazy {
     val config = AppHttpClientConfig(
-        baseUrl = "iq-bible.p.rapidapi.com", apiKeyHeader = "X-RapidAPI-Key",
-        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.API_KEY)
+        baseUrl = CloudSessionManager.gatewayHost,
     )
     createHttpClient(config)
 }
 
 val httpClientGemini: HttpClient by lazy {
     val config = AppHttpClientConfig(
-        baseUrl = "generativelanguage.googleapis.com", apiKeyHeader = "x-goog-api-key",
-        apiKey = SecretObfuscator.deobfuscate(BuildKonfig.GEMINI_API_KEY)
+        baseUrl = CloudSessionManager.gatewayHost,
     )
     createHttpClient(config, timeout = TIMEOUT_LIMIT_GEMINI)
 }

@@ -1,25 +1,33 @@
 package data.bibleIQ
 
-import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import JSON_VERSIONS
 import data.apiBible.BibleAPIBook
 import data.apiBible.BibleAPIDataModel
+import data.apiBible.json.JSON_BOOKS_API_BIBLE
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class BibleReadingRegressionTest {
     private val originalBooks = BibleAPIDataModel.bibleBooks
     private val originalSort = BibleIQDataModel.sortAZ
     private val originalVersion = BibleIQDataModel.selectedVersion
 
-    @AfterTest fun restore() {
+    @AfterTest
+    fun restore() {
         BibleAPIDataModel.updateBooks(originalBooks)
         BibleIQDataModel.sortAZ = originalSort
         BibleIQDataModel.updateSelectedVersion(originalVersion)
         BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
     }
 
-    @Test fun everyCanonicalBookMapsToItsIqOrdinalEvenWhenSorted() {
+    @Test
+    fun everyCanonicalBookMapsToItsOrdinalEvenWhenSorted() {
         val books = Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
         BibleAPIDataModel.updateBooks(books)
         assertEquals(66, books.data!!.size)
@@ -31,12 +39,14 @@ class BibleReadingRegressionTest {
         }
     }
 
-    @Test fun bundledVersionsContainRequestedTranslations() {
+    @Test
+    fun bundledVersionsContainLeanSixPublicDomainTranslations() {
         val versions = Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
-        assertTrue(versions.map { it.abbreviation }.containsAll(listOf("KJV", "BBE", "ASV", "RV1909", "SVD")))
+        assertEquals(listOf("KJV", "BSB", "WEB", "BBE", "RV1909", "SVD"), versions.map { it.abbreviation })
     }
 
-    @Test fun chapterFormattingPreservesVerseNumbersAndUnicode() {
+    @Test
+    fun chapterFormattingPreservesVerseNumbersAndUnicode() {
         val verses = listOf(BibleChapter("1", "43", "3", "16", "لأن الله"), BibleChapter("2", "43", "3", "18", "العالم"))
         BibleIQDataModel.updateBibleChapter(verses, ChapterCount(21), "svd")
         assertEquals("16 لأن الله\n18 العالم", BibleIQDataModel.bibleChapter?.text)
@@ -45,15 +55,48 @@ class BibleReadingRegressionTest {
         assertEquals((1L..21L).toList(), BibleIQDataModel.bibleChapter?.chapterList)
     }
 
-    @Test fun emptyChapterClearsPreviousPassage() {
+    @Test
+    fun emptyChapterClearsPreviousPassage() {
         BibleIQDataModel.updateBibleChapter(listOf(BibleChapter("1", "1", "1", "1", "Previous")), ChapterCount(50), "KJV")
         BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
         assertNull(BibleIQDataModel.bibleChapter)
     }
 
-    @Test fun nullVersionUpdatePreservesUserChoice() {
-        BibleIQDataModel.updateSelectedVersion("BBE")
+    @Test
+    fun nullVersionPreservesChoiceAndUnsupportedVersionFallsBackToKjv() {
+        BibleIQDataModel.updateSelectedVersion("BSB")
         BibleIQDataModel.updateSelectedVersion(null)
-        assertEquals("BBE", BibleIQDataModel.selectedVersion)
+        assertEquals("BSB", BibleIQDataModel.selectedVersion)
+
+        BibleIQDataModel.updateSelectedVersion("UNKNOWN_LEGACY")
+        assertEquals("KJV", BibleIQDataModel.selectedVersion)
+    }
+
+    @Test
+    fun dailyVerseRepositoryCachesPerDateAndTranslationAndRecoversFromErrors() = runTest {
+        var currentDay = "2026-11-17"
+        var calls = 0
+        var shouldFail = true
+        val repo = DailyVerseRepository(
+            fetch = { version ->
+                calls++
+                if (shouldFail) error("network down")
+                DailyVerse(version, currentDay, DailyVerseData(43, 3, 16, "Verse in $version ($currentDay)", "JHN"))
+            },
+            today = { currentDay },
+        )
+
+        assertFailsWith<IllegalStateException> { repo.get("BSB") }
+        shouldFail = false
+
+        val first = repo.get("bsb")
+        val second = repo.get("BSB")
+        assertEquals(first, second)
+        assertEquals(2, calls)
+
+        currentDay = "2026-11-18"
+        val nextDay = repo.get("BSB")
+        assertEquals("2026-11-18", nextDay.date)
+        assertTrue(calls == 3)
     }
 }

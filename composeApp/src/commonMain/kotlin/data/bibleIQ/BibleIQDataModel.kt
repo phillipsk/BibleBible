@@ -59,7 +59,7 @@ object BibleIQDataModel {
     val selectedVersion: String by _selectedVersion
     internal fun updateSelectedVersion(version: String? = null) {
         Napier.v("updateSelectedVersion: $version", tag = "AP8243")
-        _selectedVersion.value = version ?: (selectedVersion)
+        _selectedVersion.value = normalizedTranslation(version ?: selectedVersion)
     }
 
     var bibleBooks by mutableStateOf(BibleIQBooks())

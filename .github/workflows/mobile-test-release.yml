@@ -46,10 +46,11 @@ jobs:
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           IQ_BIBLE_KEY: ${{ secrets.IQ_BIBLE_API_KEY }}
           API_BIBLE_KEY: ${{ secrets.API_BIBLE_KEY }}
+          CLOUD_GATEWAY_URL: ${{ vars.CLOUD_GATEWAY_URL }}
         run: |
           python3 - <<'PY'
           import base64, os, pathlib
-          required = ['UPLOAD_KEYSTORE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD', 'GEMINI_KEY', 'IQ_BIBLE_KEY']
+          required = ['UPLOAD_KEYSTORE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD']
           missing = [name for name in required if not os.environ.get(name)]
           if missing:
               raise SystemExit('Missing required release secrets: ' + ', '.join(missing))
@@ -67,8 +68,9 @@ jobs:
               'ANDROID_RELEASE_STORE_PASSWORD': os.environ['STORE_PASSWORD'],
               'ANDROID_RELEASE_KEY_ALIAS': os.environ['KEY_ALIAS'],
               'ANDROID_RELEASE_KEY_PASSWORD': os.environ['KEY_PASSWORD'],
-              'GEMINI_API_KEY': os.environ['GEMINI_KEY'],
-              'IQ_BIBLE_API_KEY': os.environ['IQ_BIBLE_KEY'],
+              'CLOUD_GATEWAY_URL': os.environ.get('CLOUD_GATEWAY_URL') or 'https://biblebible-api-5jdy3d7zua-uc.a.run.app',
+              'GEMINI_API_KEY': os.environ.get('GEMINI_KEY', ''),
+              'IQ_BIBLE_API_KEY': os.environ.get('IQ_BIBLE_KEY', ''),
               'api_key_api_bible': os.environ.get('API_BIBLE_KEY', ''),
           }
           (root / 'local.properties').write_text(''.join(f'{key}={escaped(value)}\n' for key, value in values.items()))
@@ -114,10 +116,11 @@ jobs:
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
           IQ_BIBLE_KEY: ${{ secrets.IQ_BIBLE_API_KEY }}
           API_BIBLE_KEY: ${{ secrets.API_BIBLE_KEY }}
+          CLOUD_GATEWAY_URL: ${{ vars.CLOUD_GATEWAY_URL }}
         run: |
           python3 - <<'PY'
           import base64, os, pathlib
-          required = ['P12_BASE64', 'P12_PASSWORD', 'ASC_PRIVATE_KEY', 'GEMINI_KEY', 'IQ_BIBLE_KEY']
+          required = ['P12_BASE64', 'P12_PASSWORD', 'ASC_PRIVATE_KEY']
           missing = [name for name in required if not os.environ.get(name)]
           if missing:
               raise SystemExit('Missing required release secrets: ' + ', '.join(missing))
@@ -125,8 +128,9 @@ jobs:
           (temp / 'distribution.p12').write_bytes(base64.b64decode(os.environ['P12_BASE64']))
           (temp / 'AuthKey.p8').write_text(os.environ['ASC_PRIVATE_KEY'])
           values = {
-              'GEMINI_API_KEY': os.environ['GEMINI_KEY'],
-              'IQ_BIBLE_API_KEY': os.environ['IQ_BIBLE_KEY'],
+              'CLOUD_GATEWAY_URL': os.environ.get('CLOUD_GATEWAY_URL') or 'https://biblebible-api-5jdy3d7zua-uc.a.run.app',
+              'GEMINI_API_KEY': os.environ.get('GEMINI_KEY', ''),
+              'IQ_BIBLE_API_KEY': os.environ.get('IQ_BIBLE_KEY', ''),
               'api_key_api_bible': os.environ.get('API_BIBLE_KEY', ''),
           }
           pathlib.Path('local.properties').write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
