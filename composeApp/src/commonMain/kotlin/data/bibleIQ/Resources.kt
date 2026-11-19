@@ -22,3 +22,9 @@ class GetChapterCount(val bookId: Int)
 class GetVerseOfTheDay(
     val versionId: String = BibleIQDataModel.selectedVersion.lowercase()
 )
+
+@Resource("/GetBiblicalShorts")
+class GetBiblicalShorts(
+    val category: String? = null,
+    val limit: Int? = null,
+)

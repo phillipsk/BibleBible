@@ -9,6 +9,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel
 import data.GeminiModel
 import data.apiBible.BookData
@@ -27,6 +28,30 @@ object BibleIQDataModel {
     var bottomSheetViewCount by mutableStateOf(0)
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+    var showBiblicalShorts by mutableStateOf(false)
+    var selectedShortsCategory by mutableStateOf("All")
+    var autoDemoTourEnabled by mutableStateOf(false)
+
+    fun openBiblicalShorts(category: String = "All") {
+        selectedShortsCategory = category
+        showBiblicalShorts = true
+        AnalyticsTracker.track(
+            "shorts_feed_opened",
+            "biblical_shorts",
+            mapOf("category" to category),
+        )
+    }
+
+    fun closeBiblicalShorts() {
+        if (showBiblicalShorts) {
+            AnalyticsTracker.track(
+                "shorts_feed_closed",
+                "biblical_shorts",
+                mapOf("category" to selectedShortsCategory),
+            )
+        }
+        showBiblicalShorts = false
+    }
 
     val snackBarChannel = Channel<String>(capacity = 1)
 
@@ -150,6 +175,8 @@ object BibleIQDataModel {
     val onHomeClick: () -> Unit = {
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
+        AnalyticsTracker.track("home_top_bar_click", "navigation")
+        BibleIQDataModel.showBiblicalShorts = false
         BibleIQDataModel.showHomePage = true
         ReadingSession.goHome()
     }
@@ -157,6 +184,11 @@ object BibleIQDataModel {
 
     internal fun updateErrorSnackBar(error: String) {
         Napier.v("snackBarChannel :: updateErrorSnackBar: $error", tag = "BB2452")
+        AnalyticsTracker.track(
+            "snackbar_error_shown",
+            "error",
+            mapOf("message" to error.take(160)),
+        )
         snackBarChannel.trySend(error)
     }
 }

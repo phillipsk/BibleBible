@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPrefsBibleVersion
 import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.BibleIQVersions
@@ -48,9 +49,11 @@ internal fun BibleMenu(
                 val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
                 FilterChip(
                     onClick = {
+                        val previousVersion = BibleIQDataModel.selectedVersion
                         BibleIQDataModel.run {
                             updateSelectedVersion(version.abbreviation)
                         }
+                        AnalyticsTracker.trackTranslationChanged(previousVersion, version.abbreviation)
                         scope.launch {
                             Napier.v(
                                 "updateUserPrefsBibleVersion :: selectedVersion ${version.abbreviation}",

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
 import data.bibleIQ.BibleChapterUIState
 import data.bibleIQ.BibleIQDataModel
@@ -121,7 +122,16 @@ internal fun BibleScriptures(
                                     changeFontSize(gestureFontSize)
                                     event.changes.forEach { it.consume() }
                                 }
-                            } else readingState.endZoom()
+                            } else {
+                                if (readingState.zooming) {
+                                    AnalyticsTracker.track(
+                                        "scripture_pinch_zoom",
+                                        "preferences",
+                                        mapOf("fontSize" to gestureFontSize.toInt().toString()),
+                                    )
+                                }
+                                readingState.endZoom()
+                            }
                         }
                     }
                 } finally {
@@ -135,6 +145,11 @@ internal fun BibleScriptures(
                         previousFontSize = currentFontSize
                         30f
                     }
+                    AnalyticsTracker.track(
+                        "scripture_double_tap_zoom",
+                        "preferences",
+                        mapOf("fontSize" to nextSize.toInt().toString()),
+                    )
                     changeFontSize(nextSize)
                 })
             }

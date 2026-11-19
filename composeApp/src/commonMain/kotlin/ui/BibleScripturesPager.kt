@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import data.analytics.AnalyticsTracker
 import data.apiBible.BookData
 import data.appPrefs.ReadingSession
 import data.appPrefs.canonicalBookKey
@@ -66,6 +67,16 @@ internal fun BibleScripturesPager(
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
             val chapter = pagerState.settledPage + 1
             ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
+            AnalyticsTracker.track(
+                name = "chapter_page_changed",
+                category = "reading",
+                properties = mapOf(
+                    "bookKey" to canonicalBookKey(selectedBook),
+                    "bookName" to (selectedBook.name ?: canonicalBookKey(selectedBook)),
+                    "chapter" to chapter.toString(),
+                    "version" to bibleVersion,
+                ),
+            )
             val loaded = sameBook && chapters.chapterId == chapter &&
                 chapters.version.equals(bibleVersion, ignoreCase = true)
             if (!loaded) {
@@ -99,7 +110,17 @@ internal fun BibleScripturesPager(
                     chapters.chapterList.forEachIndexed { index, chapter ->
                         Tab(
                             selected = pagerState.currentPage == index,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            onClick = {
+                                AnalyticsTracker.track(
+                                    "chapter_tab_clicked",
+                                    "reading",
+                                    mapOf(
+                                        "bookKey" to canonicalBookKey(selectedBook),
+                                        "chapter" to chapter.toString(),
+                                    ),
+                                )
+                                scope.launch { pagerState.animateScrollToPage(index) }
+                            },
                             text = { Text(chapter.toString(), fontWeight = FontWeight.Bold) }
                         )
                     }
