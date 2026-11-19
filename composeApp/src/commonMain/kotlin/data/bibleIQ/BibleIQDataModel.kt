@@ -27,6 +27,18 @@ object BibleIQDataModel {
     var bottomSheetViewCount by mutableStateOf(0)
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
+    var showBiblicalShorts by mutableStateOf(false)
+    var selectedShortsCategory by mutableStateOf("All")
+    var autoDemoTourEnabled by mutableStateOf(false)
+
+    fun openBiblicalShorts(category: String = "All") {
+        selectedShortsCategory = category
+        showBiblicalShorts = true
+    }
+
+    fun closeBiblicalShorts() {
+        showBiblicalShorts = false
+    }
 
     val snackBarChannel = Channel<String>(capacity = 1)
 
@@ -150,6 +162,7 @@ object BibleIQDataModel {
     val onHomeClick: () -> Unit = {
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
+        BibleIQDataModel.showBiblicalShorts = false
         BibleIQDataModel.showHomePage = true
         ReadingSession.goHome()
     }

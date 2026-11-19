@@ -37,12 +37,17 @@ import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
+import data.apiBible.Chapter
 import data.bibleIQ.BibleIQDataModel
+import data.shorts.BiblicalShortDto
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
+import ui.shorts.BiblicalShortsEntryCard
+import ui.shorts.BiblicalShortsScreen
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -56,6 +61,19 @@ internal fun BibleHomeScreen(
 
     LaunchedEffect(BibleIQDataModel.showHomePage) {
         localScaffoldState.bottomSheetState.collapse()
+    }
+
+    LaunchedEffect(
+        BibleIQDataModel.autoDemoTourEnabled,
+        BibleIQDataModel.showBiblicalShorts,
+    ) {
+        if (BibleIQDataModel.autoDemoTourEnabled && !BibleIQDataModel.showBiblicalShorts) {
+            BibleIQDataModel.showHomePage = true
+            delay(4500L)
+            if (BibleIQDataModel.autoDemoTourEnabled) {
+                BibleIQDataModel.openBiblicalShorts()
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -83,23 +101,37 @@ internal fun BibleHomeScreen(
                 modifier = modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                BibleBibleTopBar(
-                    onClick = BibleIQDataModel.onHomeClick,
-                    showBottomSheet = {
-                        scope.launch {
-                            if (localScaffoldState.bottomSheetState.isExpanded) {
-                                localScaffoldState.bottomSheetState.collapse()
-                            } else {
-                                Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
-                                localScaffoldState.bottomSheetState.expand()
+                if (!BibleIQDataModel.showBiblicalShorts) {
+                    BibleBibleTopBar(
+                        onClick = BibleIQDataModel.onHomeClick,
+                        showBottomSheet = {
+                            scope.launch {
+                                if (localScaffoldState.bottomSheetState.isExpanded) {
+                                    localScaffoldState.bottomSheetState.collapse()
+                                } else {
+                                    Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
+                                    localScaffoldState.bottomSheetState.expand()
+                                }
                             }
                         }
-                    }
-                )
-                if (BibleIQDataModel.showHomePage) {
+                    )
+                }
+                if (BibleIQDataModel.showBiblicalShorts) {
+                    BiblicalShortsScreen(
+                        onBack = { BibleIQDataModel.closeBiblicalShorts() },
+                        onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
+                    )
+                } else if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
-                        header = { VerseOfTheDay(BibleIQDataModel.selectedVersion) },
+                        header = {
+                            Column {
+                                VerseOfTheDay(BibleIQDataModel.selectedVersion)
+                                BiblicalShortsEntryCard(
+                                    onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
+                                )
+                            }
+                        },
                     )
                 } else {
                     BibleIQDataModel.bibleChapter?.let { it1 ->
@@ -189,4 +221,23 @@ internal fun BibleBookList(
             }
         }
     }
+}
+
+private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
+    val book = BibleAPIDataModel.bibleBooks.data?.find {
+        it.bookId.equals(shortItem.bookUsfm, ignoreCase = true)
+    } ?: BookData(
+        name = shortItem.scriptureReference.substringBeforeLast(" "),
+        chapters = listOf(Chapter(bookId = "${shortItem.bookUsfm}.intro")) +
+            (1..shortItem.chapter.coerceAtLeast(1)).map { ch ->
+                Chapter(
+                    name = "${shortItem.bookUsfm}.$ch",
+                    bookId = shortItem.bookUsfm,
+                    number = ch.toString(),
+                    position = ch,
+                )
+            },
+    )
+    BibleIQDataModel.closeBiblicalShorts()
+    BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)
 }
