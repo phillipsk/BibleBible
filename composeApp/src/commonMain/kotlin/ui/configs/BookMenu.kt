@@ -3,7 +3,7 @@ package ui.configs
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.clickable
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
 import data.apiBible.BookData
 import data.bibleIQ.BibleIQDataModel
@@ -45,10 +45,10 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
         tag = "IQ2455"
     )
     Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
-        ClickableText(
-            text = AnnotatedString(selectedBookData.abbreviation ?: "Gen"),
+        Text(
+            text = selectedBookData.abbreviation ?: "Gen",
             style = MaterialTheme.typography.subtitle1.copy(fontSize = 14.sp, color = Color.White),
-            onClick = { expanded = !expanded }
+            modifier = Modifier.clickable(role = Role.Button) { expanded = !expanded }
         )
         IconButton(onClick = { expanded = !expanded }) {
             Icon(

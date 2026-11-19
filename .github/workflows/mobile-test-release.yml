@@ -1,0 +1,229 @@
+name: Mobile test release
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to publish
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - android
+          - ios
+  push:
+    tags:
+      - "test-release-*"
+      - "testflight-release-*"
+      - "play-release-*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-test-release
+  cancel-in-progress: false
+
+jobs:
+  google-play-internal:
+    if: ${{ !startsWith(github.ref, 'refs/tags/testflight-release-') && (github.event_name != 'workflow_dispatch' || inputs.platform != 'ios') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Configure Android signing and API keys
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IQ_BIBLE_KEY: ${{ secrets.IQ_BIBLE_API_KEY }}
+          API_BIBLE_KEY: ${{ secrets.API_BIBLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib
+          required = ['UPLOAD_KEYSTORE', 'STORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD', 'GEMINI_KEY', 'IQ_BIBLE_KEY']
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit('Missing required release secrets: ' + ', '.join(missing))
+          root = pathlib.Path.cwd()
+          keystore = pathlib.Path(os.environ['RUNNER_TEMP']) / 'upload.keystore'
+          keystore.write_bytes(base64.b64decode(os.environ['UPLOAD_KEYSTORE']))
+          keystore.chmod(0o600)
+          def escaped(value):
+              value = value.replace('\\', '\\\\')
+              for character in '=:# !':
+                  value = value.replace(character, '\\' + character)
+              return value
+          values = {
+              'ANDROID_RELEASE_STORE_FILE': str(keystore),
+              'ANDROID_RELEASE_STORE_PASSWORD': os.environ['STORE_PASSWORD'],
+              'ANDROID_RELEASE_KEY_ALIAS': os.environ['KEY_ALIAS'],
+              'ANDROID_RELEASE_KEY_PASSWORD': os.environ['KEY_PASSWORD'],
+              'GEMINI_API_KEY': os.environ['GEMINI_KEY'],
+              'IQ_BIBLE_API_KEY': os.environ['IQ_BIBLE_KEY'],
+              'api_key_api_bible': os.environ.get('API_BIBLE_KEY', ''),
+          }
+          (root / 'local.properties').write_text(''.join(f'{key}={escaped(value)}\n' for key, value in values.items()))
+          PY
+      - name: Build signed release bundle
+        run: ./gradlew :androidApp:bundleRelease --stacktrace
+      - name: Authenticate to Google Play
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: python3 tools/google_service_account_token.py
+      - name: Upload to internal testing
+        run: |
+          RELEASE_NAME=$(python3 - <<'PY'
+          import pathlib, re
+          source = pathlib.Path('androidApp/build.gradle.kts').read_text()
+          name = re.search(r'versionName\s*=\s*"([^"]+)"', source).group(1)
+          code = re.search(r'versionCode\s*=\s*(\d+)', source).group(1)
+          print(f'BibleBible {name} ({code})')
+          PY
+          )
+          python3 tools/google_play_upload.py \
+            --package email.kevinphillips.biblebible \
+            --bundle androidApp/build/outputs/bundle/release/androidApp-release.aab \
+            --track internal \
+            --release-name "$RELEASE_NAME"
+
+  testflight:
+    if: ${{ !startsWith(github.ref, 'refs/tags/play-release-') && (github.event_name != 'workflow_dispatch' || inputs.platform != 'android') }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+      - name: Configure Apple signing and API keys
+        env:
+          P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          IQ_BIBLE_KEY: ${{ secrets.IQ_BIBLE_API_KEY }}
+          API_BIBLE_KEY: ${{ secrets.API_BIBLE_KEY }}
+        run: |
+          python3 - <<'PY'
+          import base64, os, pathlib
+          required = ['P12_BASE64', 'P12_PASSWORD', 'ASC_PRIVATE_KEY', 'GEMINI_KEY', 'IQ_BIBLE_KEY']
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit('Missing required release secrets: ' + ', '.join(missing))
+          temp = pathlib.Path(os.environ['RUNNER_TEMP'])
+          (temp / 'distribution.p12').write_bytes(base64.b64decode(os.environ['P12_BASE64']))
+          (temp / 'AuthKey.p8').write_text(os.environ['ASC_PRIVATE_KEY'])
+          values = {
+              'GEMINI_API_KEY': os.environ['GEMINI_KEY'],
+              'IQ_BIBLE_API_KEY': os.environ['IQ_BIBLE_KEY'],
+              'api_key_api_bible': os.environ.get('API_BIBLE_KEY', ''),
+          }
+          pathlib.Path('local.properties').write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
+          PY
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          KEYCHAIN_PATH="$RUNNER_TEMP/biblebible-signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/distribution.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+      - name: Build the release Kotlin framework
+        run: |
+          set -o pipefail
+          ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --stacktrace 2>&1 | tee "$RUNNER_TEMP/kotlin-release.log"
+      - name: Install App Store provisioning profile
+        run: |
+          PROFILE_SOURCE="iosApp/Configuration/BibleBible_AppStore.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/BibleBible-AppStore.plist"
+          security cms -D -i "$PROFILE_SOURCE" > "$PROFILE_PLIST"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          python3 - "$PROFILE_PLIST" <<'PY'
+          import datetime, plistlib, sys
+          profile = plistlib.load(open(sys.argv[1], 'rb'))
+          remaining = profile['ExpirationDate'] - datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+          print(f"Provisioning profile expires in {remaining.days} days.")
+          if remaining.days < 30:
+              print(f"::warning title=App Store profile expires soon::Renew the provisioning profile within {remaining.days} days.")
+          PY
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_SOURCE" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "IOS_PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+      - name: Archive the iOS application
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_ISSUER_ID"
+          set -o pipefail
+          xcodebuild archive \
+            -project iosApp/BibleBible.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/BibleBible.xcarchive" \
+            DEVELOPMENT_TEAM=7JJ7U4528N \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
+            2>&1 | tee "$RUNNER_TEMP/xcode-archive.log"
+      - name: Export and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          python3 - <<'PY'
+          import os, pathlib
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'ExportOptions.plist').write_text('''<?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>teamID</key><string>7JJ7U4528N</string>
+            <key>provisioningProfiles</key><dict>
+              <key>email.kevinphillips.biblebible</key><string>''' + os.environ['IOS_PROFILE_NAME'] + '''</string>
+            </dict>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>''')
+          PY
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/BibleBible.xcarchive" \
+            -exportPath "$RUNNER_TEMP/TestFlight" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/xcode-export.log"
+      - name: Expose release failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          for log in "$RUNNER_TEMP/xcode-export.log" "$RUNNER_TEMP/xcode-archive.log" "$RUNNER_TEMP/kotlin-release.log"; do
+            if [[ -f "$log" ]]; then
+              tail -n 8 "$log" | while IFS= read -r line; do
+                line=${line//'%'/'%25'}
+                line=${line//$'\r'/'%0D'}
+                line=${line//$'\n'/'%0A'}
+                echo "::error title=$(basename "$log")::$line"
+              done
+              break
+            fi
+          done

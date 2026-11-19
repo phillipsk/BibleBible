@@ -4,6 +4,8 @@ import data.apiBible.BibleAPIBook
 import data.apiBible.BibleAPIDataModel
 import data.apiBible.json.JSON_BOOKS_API_BIBLE
 import data.bibleIQ.*
+import email.kevinphillips.biblebible.cache.DriverFactory
+import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.ktor.client.engine.mock.*
 import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
@@ -12,10 +14,17 @@ import kotlinx.coroutines.test.*
 import kotlinx.serialization.json.Json
 import kotlin.test.*
 
-/** Desktop's disabled persistent cache makes these deterministic network-to-model tests. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class BibleRepositoryIntegrationTest {
+    private fun clearCache() {
+        DriverFactory.createDriver()?.let { driver ->
+            BibleBibleDatabase(driver).bibleBibleDatabaseQueries.removeExcessVerses(0)
+            driver.execute(null, "DELETE FROM ChapterCounts", 0)
+        }
+    }
+
     @Test fun chapterLoadsThroughRepositoryAndUpdatesReader() = runTest {
+        clearCache()
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         val original = BibleAPIDataModel.bibleBooks
         val paths = mutableListOf<String>()
@@ -40,6 +49,7 @@ class BibleRepositoryIntegrationTest {
             assertEquals("[1] At the first God made the heaven and the earth.", BibleIQDataModel.bibleChapter?.text)
             assertEquals(50, BibleIQDataModel.bibleChapter?.chapterList?.size)
         } finally {
+            clearCache()
             client.close()
             BibleAPIDataModel.updateBooks(original)
             BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
@@ -48,6 +58,7 @@ class BibleRepositoryIntegrationTest {
     }
 
     @Test fun emptyApiResponseReportsErrorInsteadOfReplacingPassage() = runTest {
+        clearCache()
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         while (BibleIQDataModel.snackBarChannel.tryReceive().isSuccess) { }
         val client = createHttpClient(AppHttpClientConfig("iq-bible.p.rapidapi.com", "X-RapidAPI-Key", "test"),
@@ -58,6 +69,7 @@ class BibleRepositoryIntegrationTest {
             assertEquals("Error fetching chapter", BibleIQDataModel.snackBarChannel.tryReceive().getOrNull())
             assertEquals("[1] Previous", BibleIQDataModel.bibleChapter?.text)
         } finally {
+            clearCache()
             client.close()
             BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
             Dispatchers.resetMain()

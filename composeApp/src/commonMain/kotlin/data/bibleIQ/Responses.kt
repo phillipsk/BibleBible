@@ -58,6 +58,7 @@ data class BibleChapterUIState(
     val chapterId: Int? = 1,
     val text: String? = null,
     val chapterList: List<Long>? = null,
+    val version: String? = null,
 )
 
 val bibleBooks = listOf(

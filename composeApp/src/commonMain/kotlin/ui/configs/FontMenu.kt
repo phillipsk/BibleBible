@@ -75,7 +75,7 @@ internal fun FontSizeSlider(bottomSheetState: BottomSheetState) {
                 activeTrackColor = Color.Gray,
                 inactiveTrackColor = Color.LightGray
             ),
-            valueRange = fontSizes.first().toFloat()..fontSizes.last().toFloat(),
+            valueRange = fontSizes.first()..fontSizes.last(),
         )
     }
 }
