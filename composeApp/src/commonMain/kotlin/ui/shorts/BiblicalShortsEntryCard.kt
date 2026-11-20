@@ -95,7 +95,7 @@ internal fun BiblicalShortsEntryCard(
         },
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 18.dp)
+            .padding(bottom = 16.dp)
             .testTag("biblical_shorts_entry_card")
             .pointerInput(onOpenShorts) {
                 detectHorizontalDragGestures(
@@ -121,6 +121,7 @@ internal fun BiblicalShortsEntryCard(
     ) {
         Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(cardBrush)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -153,16 +154,16 @@ internal fun BiblicalShortsEntryCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "Biblical Shorts · 50 Life Lessons",
+                            text = "Biblical Words",
                             style = MaterialTheme.typography.subtitle1.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                             ),
                         )
                     }
                     Text(
-                        text = "Swipe or tap to watch <30s scripture reels",
+                        text = "Short scripture moments to inspire your day",
                         style = MaterialTheme.typography.body2.copy(
                             color = Color(0xFFDCE6F2),
                             fontSize = 12.sp,
@@ -180,9 +181,10 @@ internal fun BiblicalShortsEntryCard(
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color(0x33FBD38D),
+                    elevation = 0.dp,
                 ) {
                     Text(
-                        text = "50 Reels",
+                        text = "Watch",
                         color = Color(0xFFFBD38D),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,

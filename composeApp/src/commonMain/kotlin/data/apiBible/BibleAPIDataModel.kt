@@ -30,17 +30,18 @@ object BibleAPIDataModel {
     private val apocalypticLiterature = setOf(66)
 
 
-    private val lightGreen = Color(0x80CCFFCC)
-    private val lightBlue = Color(0x8080D4EA)
-    private val yellow = Color(0x80FFFF99)
-    private val orange = Color(0x80FFCC99)
-    private val lightPurple = Color(0x80E0B0FF)
-    private val red = Color(0x80FF9999)
-    private val lightRed = Color(0x80FFA07A)
-    private val darkBlue = Color(0x808B9DC3)
-    private val darkGreen = Color(0x809CCEA0)
-    private val darkPurple = Color(0x806B5B95)
-    private val defaultColor = Color(0x80FFFFFF)
+    // Brightened jewel-tone palette harmonized with the navy base for crisp readability
+    private val lightGreen = Color(0xFF3E8E89)    // Pentateuch — Luminous Seafoam Teal
+    private val lightBlue = Color(0xFF3B76B0)     // Historical — Bright Sapphire Blue
+    private val yellow = Color(0xFFB59442)        // Poetry & Wisdom — Warm Sunlit Gold
+    private val orange = Color(0xFFB37044)        // Major Prophets — Bright Copper Amber
+    private val lightPurple = Color(0xFF7B5FA8)   // Minor Prophets — Vibrant Royal Plum
+    private val red = Color(0xFFB04F66)           // Gospels — Bright Crimson Rose
+    private val lightRed = Color(0xFFC46854)      // Acts — Warm Terracotta Coral
+    private val darkBlue = Color(0xFF4A6BB0)      // Pauline Epistles — Bright Cobalt
+    private val darkGreen = Color(0xFF458C6E)     // General Epistles — Vibrant Emerald
+    private val darkPurple = Color(0xFF724B99)    // Revelation — Luminous Amethyst
+    private val defaultColor = Color(0xFF4F7294)  // Default — Bright Slate Blue
 
     @Composable
     fun getBibleBookColor(ordinal: Int): Color {

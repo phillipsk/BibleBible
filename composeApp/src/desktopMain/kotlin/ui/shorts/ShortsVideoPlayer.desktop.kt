@@ -11,6 +11,8 @@ internal actual fun ShortsVideoPlayer(
     isMuted: Boolean,
     isPaused: Boolean,
     elapsedSeconds: Int,
+    seekTargetSeconds: Int,
+    seekRequestId: Int,
     modifier: Modifier,
 ) {
     ShortsStoryboardBackdrop(

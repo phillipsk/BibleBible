@@ -7,6 +7,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import data.shorts.BiblicalShortDto
+import data.shorts.InMemorySeenWordsStore
+import data.shorts.InMemoryShortsPrefsBacking
+import data.shorts.ShortsProgressManager
 import data.shorts.defaultBiblicalShortsCatalog
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
@@ -27,18 +30,23 @@ class BiblicalShortsUiTest {
                 )
             }
         }
-        onNodeWithText("Biblical Shorts · 50 Life Lessons").assertIsDisplayed()
-        onNodeWithText("50 Reels").assertIsDisplayed()
+        onNodeWithText("Biblical Words").assertIsDisplayed()
+        onNodeWithText("Watch").assertIsDisplayed()
+        onNodeWithText("50 Reels").assertDoesNotExist()
         onNodeWithTag("biblical_shorts_entry_arrow").performClick()
         runOnIdle { assertEquals(1, opened) }
     }
 
     @Test
-    fun shortsScreenDisplaysCuratedShortsFiltersAndTriggersReadChapter() = runComposeUiTest {
+    fun shortsScreenShowsTutorialDefaultsSoundOffIncludesScrubberAndTriggersReadChapter() = runComposeUiTest {
         val sampleShorts = defaultBiblicalShortsCatalog("")
         var selectedCategory = "All"
         var openedChapter: BiblicalShortDto? = null
         var backClicks = 0
+        val testProgressManager = ShortsProgressManager(
+            backing = InMemoryShortsPrefsBacking(),
+            seenStore = InMemorySeenWordsStore(),
+        )
 
         setContent {
             BibleBibleTheme {
@@ -49,18 +57,33 @@ class BiblicalShortsUiTest {
                     onBack = { backClicks++ },
                     onReadChapter = { openedChapter = it },
                     enablePlaybackTimer = false,
+                    progressManager = testProgressManager,
                 )
             }
         }
 
-        onNodeWithText("Biblical Shorts").assertIsDisplayed()
-        onNodeWithText("Creation & The Power of Light").assertIsDisplayed()
-        onNodeWithText("Genesis 1:3-5").assertIsDisplayed()
-        onNodeWithText("Key Lesson:", substring = true).assertIsDisplayed()
+        // First-time gesture tutorial renders and dismisses cleanly
+        onNodeWithText("Welcome to Biblical Words").assertIsDisplayed()
+        onNodeWithText("Double-tap center").assertIsDisplayed()
+        onNodeWithText("Tap once").assertIsDisplayed()
+        onNodeWithText("Swipe up").assertIsDisplayed()
+        onNodeWithTag("shorts_tutorial_dismiss_btn").performClick()
+        onNodeWithText("Welcome to Biblical Words").assertDoesNotExist()
 
-        onNodeWithText("Next Short").performClick()
-        onNodeWithText("Noah's Quiet Perseverance").assertIsDisplayed()
+        onNodeWithText("Biblical Words").assertIsDisplayed()
+        // Sound defaults to OFF and toggles cleanly
+        onNodeWithText("Sound Off").assertIsDisplayed()
+        onNodeWithTag("shorts_mute_toggle").performClick()
+        onNodeWithText("Sound On").assertIsDisplayed()
 
+        // Decluttered bottom: Key Lesson removed, scrubber + bottom categories + weekly hint present
+        onNodeWithText("Key Lesson:", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
+
+        // Advance to second short and tap Read Chapter
+        onNodeWithText("Next").performClick()
         onNodeWithTag("read_chapter_btn_short-02-noah-perseverance").performClick()
         runOnIdle {
             assertEquals("short-02-noah-perseverance", openedChapter?.id)

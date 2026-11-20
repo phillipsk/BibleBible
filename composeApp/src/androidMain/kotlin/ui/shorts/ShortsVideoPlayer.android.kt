@@ -26,10 +26,35 @@ internal actual fun ShortsVideoPlayer(
     isMuted: Boolean,
     isPaused: Boolean,
     elapsedSeconds: Int,
+    seekTargetSeconds: Int,
+    seekRequestId: Int,
     modifier: Modifier,
 ) {
     var videoReady by remember(shortItem.id) { mutableStateOf(false) }
     var mediaPlayerRef by remember(shortItem.id) { mutableStateOf<MediaPlayer?>(null) }
+
+    LaunchedEffect(seekRequestId, isActive) {
+        if (seekRequestId > 0 && isActive && videoReady) {
+            runCatching {
+                mediaPlayerRef?.seekTo((seekTargetSeconds.coerceAtLeast(0)) * 1000)
+            }
+        }
+    }
+
+    LaunchedEffect(isActive, isPaused, isMuted, videoReady) {
+        val player = mediaPlayerRef ?: return@LaunchedEffect
+        val volume = if (isMuted) 0f else 1f
+        runCatching {
+            player.setVolume(volume, volume)
+            if (videoReady) {
+                if (isActive && !isPaused && !player.isPlaying) {
+                    player.start()
+                } else if ((!isActive || isPaused) && player.isPlaying) {
+                    player.pause()
+                }
+            }
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         ShortsStoryboardBackdrop(

@@ -153,3 +153,18 @@ SELECT * FROM SavedReadingPosition WHERE uuid = 1;
 
 clearReadingSession:
 DELETE FROM SavedReadingPosition WHERE uuid = 1;
+
+CREATE TABLE IF NOT EXISTS SeenBiblicalWords (
+    short_id TEXT PRIMARY KEY NOT NULL,
+    seen_at INTEGER NOT NULL
+);
+
+insertSeenBiblicalWord:
+INSERT OR REPLACE INTO SeenBiblicalWords (short_id, seen_at)
+VALUES (?, ?);
+
+selectSeenBiblicalWordIds:
+SELECT short_id FROM SeenBiblicalWords;
+
+clearSeenBiblicalWords:
+DELETE FROM SeenBiblicalWords;
