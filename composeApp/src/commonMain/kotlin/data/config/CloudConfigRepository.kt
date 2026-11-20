@@ -28,6 +28,12 @@ import kotlinx.serialization.Serializable
 import kotlin.native.concurrent.ThreadLocal
 
 @Serializable
+data class CloudFeatureFlagsDto(
+    val biblicalShortsEnabled: Boolean = true,
+    val verseOfTheDayEnabled: Boolean = true,
+)
+
+@Serializable
 data class CloudRuntimeConfigDto(
     val schemaVersion: Int = 1,
     val aiSummariesEnabled: Boolean = true,
@@ -36,9 +42,10 @@ data class CloudRuntimeConfigDto(
     val supportedVersions: List<BibleIQVersion> = emptyList(),
     val sessionToken: String = "",
     val tokenExpiresInSeconds: Long = 3600L,
+    val features: CloudFeatureFlagsDto = CloudFeatureFlagsDto(),
 ) {
     override fun toString(): String =
-        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, sessionToken=[redacted])"
+        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, features=$features, sessionToken=[redacted])"
 }
 
 @Serializable
@@ -75,6 +82,15 @@ object CloudSessionManager {
     var geminiModel: String by mutableStateOf(GEMINI_MODEL)
         internal set
 
+    var featureFlags: CloudFeatureFlagsDto by mutableStateOf(CloudFeatureFlagsDto())
+        internal set
+
+    val biblicalShortsEnabled: Boolean
+        get() = featureFlags.biblicalShortsEnabled
+
+    val verseOfTheDayEnabled: Boolean
+        get() = featureFlags.verseOfTheDayEnabled
+
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url
     }
@@ -84,6 +100,7 @@ object CloudSessionManager {
         sessionToken = ""
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED
         geminiModel = GEMINI_MODEL
+        featureFlags = CloudFeatureFlagsDto()
     }
 
     internal fun parseSecureGatewayUrl(rawUrl: String): Url? {
@@ -175,6 +192,7 @@ object CloudSessionManager {
             sessionToken = config.sessionToken
         }
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED && config.aiSummariesEnabled
+        featureFlags = config.features
         if (config.geminiModel.isNotBlank()) {
             geminiModel = config.geminiModel
         }

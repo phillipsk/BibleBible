@@ -1,5 +1,7 @@
 package ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -170,17 +172,31 @@ internal fun BibleScripturesPager(
                 verticalAlignment = Alignment.Top,
                 userScrollEnabled = !isDesktopPlatform()
             ) { page ->
-                when {
-                    !sameBook || chapters.chapterId != page + 1 || chapters.text == null -> LoadingScreen()
-                    isAISummaryLoading && showAISummary -> LoadingScreen()
-                    showAISummary -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
-                    else -> BibleScriptures(
-                        chapters,
-                        scriptureScrollState,
-                        BibleIQDataModel.selectedFontSize,
-                        onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
-                        readingState = readingState
-                    )
+                val targetChapter = page + 1
+                val bookDisplayName = selectedBook.name ?: selectedBook.cleanedName ?: canonicalBookKey(selectedBook)
+                val pageMode = when {
+                    !sameBook || chapters.chapterId != targetChapter || chapters.text == null -> "loading"
+                    isAISummaryLoading && showAISummary -> "summary_loading"
+                    showAISummary -> "summary"
+                    else -> "scripture"
+                }
+                Crossfade(
+                    targetState = pageMode,
+                    animationSpec = tween(durationMillis = 220),
+                    label = "chapter_page_crossfade",
+                ) { mode ->
+                    when (mode) {
+                        "loading" -> LoadingScreen(message = "Loading $bookDisplayName $targetChapter…")
+                        "summary_loading" -> LoadingScreen(message = "Generating AI summary…")
+                        "summary" -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
+                        else -> BibleScriptures(
+                            chapters,
+                            scriptureScrollState,
+                            BibleIQDataModel.selectedFontSize,
+                            onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
+                            readingState = readingState
+                        )
+                    }
                 }
             }
         }

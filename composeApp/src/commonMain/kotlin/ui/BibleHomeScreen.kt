@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,6 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +44,9 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.Chapter
 import data.bibleIQ.BibleIQDataModel
+import data.config.CloudSessionManager
 import data.shorts.BiblicalShortDto
+import email.kevinphillips.biblebible.PlatformBackHandler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import io.github.aakira.napier.Napier
@@ -92,6 +98,25 @@ internal fun BibleHomeScreen(
     LaunchedEffect(Unit) {
         channel.receiveAsFlow().collect { errorMsg ->
             localScaffoldState.snackbarHostState.showSnackbar(message = errorMsg)
+        }
+    }
+
+    val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
+    val canNavigateBack = isBottomSheetExpanded ||
+        BibleIQDataModel.showBiblicalShorts ||
+        !BibleIQDataModel.showHomePage
+
+    PlatformBackHandler(enabled = canNavigateBack) {
+        when {
+            isBottomSheetExpanded -> scope.launch {
+                localScaffoldState.bottomSheetState.collapse()
+            }
+            BibleIQDataModel.showBiblicalShorts -> {
+                BibleIQDataModel.closeBiblicalShorts()
+            }
+            !BibleIQDataModel.showHomePage -> {
+                BibleIQDataModel.onHomeClick()
+            }
         }
     }
 
@@ -149,10 +174,14 @@ internal fun BibleHomeScreen(
                         bookData = BibleAPIDataModel.uiBooks.data,
                         header = {
                             Column {
-                                VerseOfTheDay(BibleIQDataModel.selectedVersion)
-                                BiblicalShortsEntryCard(
-                                    onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
-                                )
+                                if (CloudSessionManager.verseOfTheDayEnabled) {
+                                    VerseOfTheDay(BibleIQDataModel.selectedVersion)
+                                }
+                                if (CloudSessionManager.biblicalShortsEnabled) {
+                                    BiblicalShortsEntryCard(
+                                        onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
+                                    )
+                                }
                             }
                         },
                     )
@@ -196,9 +225,15 @@ internal fun BibleBookList(
                         item(span = { GridItemSpan(maxLineSpan) }) { header() }
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
-                                "Read the Bible",
-                                style = MaterialTheme.typography.h6,
-                                modifier = Modifier.padding(bottom = 12.dp)
+                                text = "Study the Word",
+                                style = TextStyle(
+                                    fontFamily = MaterialTheme.typography.h1.fontFamily,
+                                    letterSpacing = 1.8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 23.sp,
+                                    color = Color.White,
+                                ),
+                                modifier = Modifier.padding(top = 2.dp, bottom = 12.dp, start = 4.dp)
                             )
                         }
                     }
@@ -218,25 +253,32 @@ internal fun BibleBookList(
                                     BibleIQDataModel.updateSelectedBook(it)
                                     BibleIQDataModel.showHomePage = false
                                 },
-                                shape = RoundedCornerShape(50), // Rounded corners
+                                shape = RoundedCornerShape(14.dp),
+                                border = BorderStroke(1.dp, Color(0x38FFFFFF)),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = 3.dp,
+                                    pressedElevation = 1.dp,
+                                ),
                                 colors = ButtonDefaults.buttonColors(
                                     backgroundColor = BibleAPIDataModel.getBibleBookColor(
                                         BibleIQDataModel.getAPIBibleOrdinal(it.bookId)
                                     )
                                 ),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
                                 modifier = Modifier
-                                    .padding(2.dp)
+                                    .padding(4.dp)
                                     .height(IntrinsicSize.Min)
                                     .defaultMinSize(
                                         minWidth = 100.dp,
-                                        minHeight = 40.dp
+                                        minHeight = 44.dp
                                     )
                             ) {
                                 it.cleanedName?.let { name ->
                                     Text(
                                         fontFamily = MaterialTheme.typography.h3.fontFamily,
+                                        fontWeight = FontWeight.SemiBold,
                                         text = name,
-                                        fontSize = 14.sp,
+                                        fontSize = 13.5.sp,
                                         color = MaterialTheme.colors.onPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis

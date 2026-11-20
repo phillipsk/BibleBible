@@ -1,5 +1,7 @@
 package ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
@@ -19,9 +22,13 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.apiBible.BibleAPIDataModel
 import data.bibleIQ.DailyVerse
@@ -92,23 +99,62 @@ internal fun VerseOfTheDayCard(
     version: String,
     onRetry: () -> Unit,
 ) {
+    val cardBrush = Brush.horizontalGradient(
+        colors = listOf(
+            Color(0xFF19304F),
+            Color(0xFF24426B),
+            Color(0xFF2F5380),
+        )
+    )
     Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
         shape = RoundedCornerShape(20.dp),
-        elevation = 3.dp,
-        backgroundColor = MaterialTheme.colors.primaryVariant,
+        elevation = 4.dp,
+        border = BorderStroke(1.dp, Color(0x44FBD38D)),
+        backgroundColor = Color(0xFF19304F),
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Verse of the day", style = MaterialTheme.typography.h6)
+        Column(
+            modifier = Modifier
+                .background(cardBrush)
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color(0x2AFBD38D),
+            ) {
+                Text(
+                    text = "Verse of the day",
+                    style = MaterialTheme.typography.subtitle2.copy(
+                        color = Color(0xFFFBD38D),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        letterSpacing = 0.6.sp,
+                    ),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
             when (state) {
                 DailyVerseState.Loading -> {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text("Loading today’s verse…", style = MaterialTheme.typography.body2)
+                    LinearProgressIndicator(
+                        color = Color(0xFFFBD38D),
+                        backgroundColor = Color(0x33FFFFFF),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        "Loading today’s verse…",
+                        style = MaterialTheme.typography.body2.copy(color = Color(0xFFCBD5E1)),
+                    )
                 }
 
                 DailyVerseState.Unavailable -> {
-                    Text("Today’s verse couldn’t be loaded. You can still browse the books below.")
-                    TextButton(onClick = onRetry) { Text("Try again") }
+                    Text(
+                        "Today’s verse couldn’t be loaded. You can still browse the books below.",
+                        style = MaterialTheme.typography.body2.copy(color = Color(0xFFE2E8F0)),
+                    )
+                    TextButton(onClick = onRetry) {
+                        Text("Try again", color = Color(0xFFFBD38D), fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 is DailyVerseState.Ready -> {
@@ -119,14 +165,24 @@ internal fun VerseOfTheDayCard(
                     ) {
                         Text(
                             verse.text,
-                            style = MaterialTheme.typography.body1,
+                            style = MaterialTheme.typography.body1.copy(
+                                color = Color.White,
+                                lineHeight = 23.sp,
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                     val book = BibleAPIDataModel.bibleBooks.data?.find { it.bookId == verse.bookUsfm }?.name
                         ?: bibleBooksFull.getOrNull(verse.bookNumber - 1)
                         ?: verse.bookUsfm.orEmpty()
-                    Text("$book ${verse.chapter}:${verse.verse} · $version", style = MaterialTheme.typography.caption)
+                    Text(
+                        "$book ${verse.chapter}:${verse.verse} · $version",
+                        style = MaterialTheme.typography.caption.copy(
+                            color = Color(0xFFFBD38D),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                        ),
+                    )
                 }
             }
         }

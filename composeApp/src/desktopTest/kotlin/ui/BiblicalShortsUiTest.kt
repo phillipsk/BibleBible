@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import data.shorts.BiblicalShortDto
+import data.shorts.InMemoryShortsPrefsBacking
+import data.shorts.ShortsProgressManager
 import data.shorts.defaultBiblicalShortsCatalog
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
@@ -34,11 +36,12 @@ class BiblicalShortsUiTest {
     }
 
     @Test
-    fun shortsScreenDisplaysCuratedShortsFiltersAndTriggersReadChapter() = runComposeUiTest {
+    fun shortsScreenDefaultsSoundOffDecluttersBottomShowsWeeklyHintAndTriggersReadChapter() = runComposeUiTest {
         val sampleShorts = defaultBiblicalShortsCatalog("")
         var selectedCategory = "All"
         var openedChapter: BiblicalShortDto? = null
         var backClicks = 0
+        val testProgressManager = ShortsProgressManager(backing = InMemoryShortsPrefsBacking())
 
         setContent {
             BibleBibleTheme {
@@ -49,18 +52,24 @@ class BiblicalShortsUiTest {
                     onBack = { backClicks++ },
                     onReadChapter = { openedChapter = it },
                     enablePlaybackTimer = false,
+                    progressManager = testProgressManager,
                 )
             }
         }
 
         onNodeWithText("Biblical Shorts").assertIsDisplayed()
-        onNodeWithText("Creation & The Power of Light").assertIsDisplayed()
-        onNodeWithText("Genesis 1:3-5").assertIsDisplayed()
-        onNodeWithText("Key Lesson:", substring = true).assertIsDisplayed()
+        // Sound defaults to OFF and toggles cleanly
+        onNodeWithText("Sound Off").assertIsDisplayed()
+        onNodeWithTag("shorts_mute_toggle").performClick()
+        onNodeWithText("Sound On").assertIsDisplayed()
 
+        // Decluttered bottom: Key Lesson box removed, bottom categories + weekly swipe hint present
+        onNodeWithText("Key Lesson:", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
+
+        // Advance to second short and tap Read Chapter
         onNodeWithText("Next Short").performClick()
-        onNodeWithText("Noah's Quiet Perseverance").assertIsDisplayed()
-
         onNodeWithTag("read_chapter_btn_short-02-noah-perseverance").performClick()
         runOnIdle {
             assertEquals("short-02-noah-perseverance", openedChapter?.id)
