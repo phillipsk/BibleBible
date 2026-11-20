@@ -79,11 +79,12 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                     readTimeout = 5000
                 }
                 val fallbackJson = fallbackConn.inputStream.bufferedReader().use { it.readText() }
-                val obj = Json.parseToJsonElement(fallbackJson).jsonObject
-                val bookUsfm = obj["bookUsfm"]?.jsonPrimitive?.content ?: "JHN"
-                val ch = obj["c"]?.jsonPrimitive?.intOrNull ?: 3
-                val v = obj["v"]?.jsonPrimitive?.intOrNull ?: 16
-                val text = obj["t"]?.jsonPrimitive?.content.orEmpty()
+                val root = Json.parseToJsonElement(fallbackJson).jsonObject
+                val dataNode = root["data"]?.jsonObject ?: root
+                val bookUsfm = dataNode["book_usfm"]?.jsonPrimitive?.content ?: "PSA"
+                val ch = dataNode["chapter_number"]?.jsonPrimitive?.intOrNull ?: 23
+                val v = dataNode["verse_number"]?.jsonPrimitive?.intOrNull ?: 1
+                val text = dataNode["text"]?.jsonPrimitive?.content.orEmpty()
                 return VotdPayload(
                     title = "Verse of the Day · $bookUsfm $ch:$v",
                     body = text,
