@@ -566,23 +566,14 @@ internal fun BiblicalShortsScreen(
             }
         }
 
-        // Solid-to-transparent top header band cleanly covers any baked-in top badge on existing videos
+        // Transparent top header so video titles ("Job: Anchored Beyond Circumstances") stay bright & unobstructed
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color(0xFF09111E),
-                            0.74f to Color(0xFF09111E),
-                            0.92f to Color(0xCC09111E),
-                            1.0f to Color.Transparent,
-                        )
-                    )
-                )
+                .background(Color.Transparent)
                 .statusBarsPadding()
-                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 26.dp),
+                .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {

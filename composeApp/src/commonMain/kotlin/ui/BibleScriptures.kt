@@ -4,6 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
@@ -103,7 +104,8 @@ internal fun BibleScriptures(
                 }
             }
             .verticalScroll(scrollState)
-            .padding(4.dp)
+            .navigationBarsPadding()
+            .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 18.dp)
             .pointerInput(Unit) {
                 try {
                     awaitPointerEventScope {

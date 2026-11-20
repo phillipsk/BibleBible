@@ -112,13 +112,13 @@ internal fun BibleScripturesPager(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .background(MaterialTheme.colors.primary),
+                        .background(MaterialTheme.colors.surface),
                 ) {
                     val viewportPx = with(density) { maxWidth.toPx() }
-                    val itemWidthPx = with(density) { 44.dp.toPx() }
+                    val itemWidthPx = with(density) { 40.dp.toPx() }
                     val selectedIdx = pagerState.currentPage.coerceIn(0, chapterCount - 1)
 
-                    // Re-center the active chapter pill on page changes AND orientation/width changes (landscape <-> portrait)
+                    // Re-center the active chapter on page changes AND orientation/width changes (landscape <-> portrait)
                     LaunchedEffect(selectedIdx, chapterCount, maxWidth) {
                         val centerOffset = -((viewportPx - itemWidthPx) / 2f).toInt()
                         chapterListState.animateScrollToItem(index = selectedIdx, scrollOffset = centerOffset)
@@ -126,8 +126,8 @@ internal fun BibleScripturesPager(
 
                     LazyRow(
                         state = chapterListState,
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxSize(),
                     ) {
@@ -136,14 +136,11 @@ internal fun BibleScripturesPager(
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(38.dp)
+                                    .size(34.dp)
                                     .clip(CircleShape)
-                                    .background(
-                                        if (isSelected) Color(0x33FBD38D) else Color.Transparent
-                                    )
                                     .then(
                                         if (isSelected) {
-                                            Modifier.border(2.dp, Color(0xFFFBD38D), CircleShape)
+                                            Modifier.border(2.dp, MaterialTheme.colors.primary, CircleShape)
                                         } else {
                                             Modifier
                                         }
@@ -162,9 +159,9 @@ internal fun BibleScripturesPager(
                             ) {
                                 Text(
                                     text = chapter.toString(),
-                                    color = if (isSelected) Color(0xFFFBD38D) else Color.White.copy(alpha = 0.85f),
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.72f),
                                     fontSize = 14.sp,
-                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
                                 )
                             }
                         }
@@ -225,11 +222,12 @@ internal fun BibleScripturesPager(
                 Crossfade(
                     targetState = pageMode,
                     animationSpec = tween(durationMillis = 180),
+                    modifier = Modifier.fillMaxSize(),
                     label = "chapter_page_crossfade",
                 ) { mode ->
                     when (mode) {
                         "loading" -> ScriptureShimmerLoading()
-                        "summary_loading" -> LoadingScreen(message = "Generating AI summary…")
+                        "summary_loading" -> AiSummaryLoadingView()
                         "summary" -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
                         else -> BibleScriptures(
                             chapters,

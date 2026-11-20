@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.primarySurface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,7 +19,7 @@ import ui.configs.home.HomeTopBar
 internal fun BibleBibleTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) {
     TopAppBar(
         modifier = Modifier
-            .background(MaterialTheme.colors.primary)
+            .background(MaterialTheme.colors.primarySurface)
             .statusBarsPadding(),
         elevation = 4.dp,
     ) {

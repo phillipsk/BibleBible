@@ -113,8 +113,8 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
             .pullRefresh(state)
     ) {
         val summaryText = content
-        if (summaryText.isNullOrBlank()) {
-            LoadingScreen(message = "Generating AI summary…")
+        if (summaryText.isNullOrBlank() || GeminiModel.isLoading) {
+            AiSummaryLoadingView()
         } else {
             val blocks = remember(summaryText) { parseMarkdownSummaryBlocks(summaryText) }
             Column(

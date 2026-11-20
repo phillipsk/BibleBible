@@ -210,6 +210,12 @@
           <td>Stores cross-device reading position, preferences, history (capped 500), and bookmarks with Last-Write-Wins merge. Only Cloud Run accesses Firestore.</td>
         </tr>
         <tr>
+          <td><strong>Daily 6:07 AM Push Notifications</strong></td>
+          <td>Google Cloud Scheduler + FCM HTTP v1</td>
+          <td>Job <code>biblebible-votd-daily-607am</code> (<code>7 6 * * *</code> <code>America/New_York</code>) → <code>POST /v1/notifications/send-votd</code></td>
+          <td>Dispatches daily morning Verse of the Day push notifications to Android &amp; iOS (<code>topic: votd_daily</code>) + local 6:07 AM client schedule.</td>
+        </tr>
+        <tr>
           <td><strong>Long-Term Telemetry Logs</strong></td>
           <td>Google Cloud Logging</td>
           <td>Filter: <code>jsonPayload.component="biblebible-analytics"</code></td>

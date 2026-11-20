@@ -54,7 +54,11 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -294,21 +298,18 @@ internal fun BibleBookList(
     lazyGridState: LazyGridState = rememberLazyGridState(),
     header: (@Composable (isWideLayout: Boolean) -> Unit)? = null,
 ) {
-    // Unified diagonal "Living Word" luminous lightning-glare wave across all book rows
-    val infiniteTransition = rememberInfiniteTransition(label = "living_word_sheen")
-    val diagonalWave by infiniteTransition.animateFloat(
-        initialValue = -0.35f,
-        targetValue = 1.65f,
+    // Unified 2-phase electrifying diagonal lightning cycle:
+    // Phase 0..1: crackles diagonally down-right starting from Genesis (top-left)
+    // Phase 1..2: crackles diagonally down-left starting from Leviticus (top-right)
+    val infiniteTransition = rememberInfiniteTransition(label = "living_word_lightning")
+    val lightningCycle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f,
         animationSpec = infiniteRepeatable(
-            animation = keyframes {
-                durationMillis = 3800
-                -0.35f at 0 using LinearEasing
-                1.65f at 2200 using LinearEasing
-                1.65f at 3800 using LinearEasing
-            },
+            animation = tween(durationMillis = 4800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
-        label = "diagonal_wave",
+        label = "lightning_cycle",
     )
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
@@ -362,9 +363,14 @@ internal fun BibleBookList(
                                 Color(0x1809111E).compositeOver(solidBase),
                             )
                         )
-                        val tileCoord = (col * 0.14f) + ((row % 7) * 0.11f)
-                        val distance = abs(diagonalWave - tileCoord)
-                        val glareIntensity = ((1f - (distance / 0.42f)).coerceIn(0f, 1f))
+                        // Phase 1 (0..1): Genesis -> down-right diagonal; Phase 2 (1..2): Leviticus -> down-left diagonal
+                        val isLeftToRight = lightningCycle < 1f
+                        val passProgress = if (isLeftToRight) lightningCycle else (lightningCycle - 1f)
+                        val waveHead = -0.25f + (passProgress * 1.55f)
+                        val horizStep = if (isLeftToRight) col else (columnsCount - 1 - col)
+                        val tileCoord = (horizStep * 0.16f) + ((row % 7) * 0.11f)
+                        val distance = abs(waveHead - tileCoord)
+                        val boltPower = (1f - (distance / 0.24f)).coerceIn(0f, 1f)
 
                         val tileShape = RoundedCornerShape(14.dp)
                         Box(
@@ -376,9 +382,9 @@ internal fun BibleBookList(
                                 .clip(tileShape)
                                 .background(tileBrush)
                                 .border(
-                                    width = if (glareIntensity > 0.3f) 1.5.dp else 1.dp,
-                                    color = if (glareIntensity > 0.15f) {
-                                        Color(0xFFFBD38D).copy(alpha = 0.28f + (glareIntensity * 0.52f))
+                                    width = if (boltPower > 0.2f) 2.dp else 1.dp,
+                                    color = if (boltPower > 0.08f) {
+                                        Color(0xFFFBD38D).copy(alpha = (0.35f + boltPower * 0.65f).coerceIn(0f, 1f))
                                     } else {
                                         Color(0x36FFFFFF)
                                     },
@@ -386,20 +392,58 @@ internal fun BibleBookList(
                                 )
                                 .drawWithContent {
                                     drawContent()
-                                    if (glareIntensity > 0.01f) {
-                                        val sweepX = size.width * (0.5f + (diagonalWave - tileCoord) * 1.9f)
+                                    if (boltPower > 0.04f) {
+                                        // Soft electric surface flash
                                         drawRect(
                                             brush = Brush.linearGradient(
                                                 colors = listOf(
                                                     Color.Transparent,
-                                                    Color(0xFFFBD38D).copy(alpha = 0.34f * glareIntensity),
-                                                    Color.White.copy(alpha = 0.54f * glareIntensity),
-                                                    Color(0xFFFBD38D).copy(alpha = 0.24f * glareIntensity),
+                                                    Color(0xFF90CDF4).copy(alpha = 0.28f * boltPower),
+                                                    Color(0xFFFBD38D).copy(alpha = 0.36f * boltPower),
                                                     Color.Transparent,
                                                 ),
-                                                start = Offset(sweepX - size.width * 0.65f, 0f),
-                                                end = Offset(sweepX + size.width * 0.65f, size.height),
+                                                start = if (isLeftToRight) Offset.Zero else Offset(size.width, 0f),
+                                                end = if (isLeftToRight) Offset(size.width, size.height) else Offset(0f, size.height),
                                             )
+                                        )
+                                        // Crisp jagged electric lightning arc crackling diagonally across the tile
+                                        val w = size.width
+                                        val h = size.height
+                                        val jitter = if ((index % 2) == 0) 0.14f else -0.14f
+                                        val boltPath = Path().apply {
+                                            if (isLeftToRight) {
+                                                moveTo(w * 0.04f, h * 0.10f)
+                                                lineTo(w * 0.34f, h * (0.44f + jitter))
+                                                lineTo(w * 0.46f, h * (0.28f - jitter))
+                                                lineTo(w * 0.70f, h * (0.68f + jitter))
+                                                lineTo(w * 0.96f, h * 0.92f)
+                                            } else {
+                                                moveTo(w * 0.96f, h * 0.10f)
+                                                lineTo(w * 0.66f, h * (0.44f + jitter))
+                                                lineTo(w * 0.54f, h * (0.28f - jitter))
+                                                lineTo(w * 0.30f, h * (0.68f + jitter))
+                                                lineTo(w * 0.04f, h * 0.92f)
+                                            }
+                                        }
+                                        // Outer warm-gold / sky-blue lightning aura
+                                        drawPath(
+                                            path = boltPath,
+                                            color = Color(0xFFFBD38D).copy(alpha = 0.55f * boltPower),
+                                            style = Stroke(
+                                                width = 5.dp.toPx(),
+                                                cap = StrokeCap.Round,
+                                                join = StrokeJoin.Round,
+                                            ),
+                                        )
+                                        // Bright white electrifying core filament
+                                        drawPath(
+                                            path = boltPath,
+                                            color = Color.White.copy(alpha = 0.92f * boltPower),
+                                            style = Stroke(
+                                                width = 1.6.dp.toPx(),
+                                                cap = StrokeCap.Round,
+                                                join = StrokeJoin.Round,
+                                            ),
                                         )
                                     }
                                 }
