@@ -173,12 +173,14 @@ object BibleIQDataModel {
     }
 
     var returnToShortsOnBack by mutableStateOf(false)
+    var resumeShortIdOnReturn by mutableStateOf<String?>(null)
 
     val onHomeClick: () -> Unit = {
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         BibleIQDataModel.returnToShortsOnBack = false
+        BibleIQDataModel.resumeShortIdOnReturn = null
         BibleIQDataModel.showBiblicalShorts = false
         BibleIQDataModel.showHomePage = true
         ReadingSession.goHome()

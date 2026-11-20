@@ -1,37 +1,107 @@
 package data.shorts
 
 import data.apiBible.currentTimeMillis
+import email.kevinphillips.biblebible.cache.DriverFactory
+import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import kotlin.random.Random
 
 internal const val SWIPE_HINT_MAX_PER_WEEK = 2
 internal const val SWIPE_HINT_COOLDOWN_MS = 7L * 24L * 60L * 60L * 1000L
 
-internal object ShortsPlaybackLogic {
-    fun orderShortsForUser(
-        shorts: List<BiblicalShortDto>,
-        savedOrderIds: List<String>,
-        random: Random = Random.Default,
-    ): Pair<List<BiblicalShortDto>, List<String>> {
-        if (shorts.isEmpty()) return emptyList<BiblicalShortDto>() to emptyList()
-        if (savedOrderIds.isEmpty()) {
-            val shuffled = shorts.shuffled(random)
-            return shuffled to shuffled.map { it.id }
-        }
-        val byId = shorts.associateBy { it.id }
-        val restored = savedOrderIds.mapNotNull { byId[it] }
-        val seenIds = restored.mapTo(HashSet()) { it.id }
-        val additions = shorts.filter { it.id !in seenIds }.shuffled(random)
-        val combined = restored + additions
-        return combined to combined.map { it.id }
+interface SeenWordsStore {
+    fun getSeenIds(): Set<String>
+    fun markSeen(shortId: String, seenAtMillis: Long)
+    fun clearAll()
+}
+
+class InMemorySeenWordsStore(initialSeen: Set<String> = emptySet()) : SeenWordsStore {
+    private val seen = initialSeen.toMutableSet()
+    override fun getSeenIds(): Set<String> = seen.toSet()
+    override fun markSeen(shortId: String, seenAtMillis: Long) {
+        if (shortId.isNotBlank()) seen.add(shortId)
+    }
+    override fun clearAll() {
+        seen.clear()
+    }
+}
+
+internal class SqlDelightSeenWordsStore : SeenWordsStore {
+    private val database: BibleBibleDatabase? by lazy {
+        runCatching {
+            DriverFactory.createDriver()?.let { BibleBibleDatabase(it) }
+        }.getOrNull()
     }
 
-    fun resolveResumeIndex(
-        orderedShorts: List<BiblicalShortDto>,
-        lastShortId: String?,
-    ): Int {
-        if (orderedShorts.isEmpty() || lastShortId.isNullOrBlank()) return 0
-        val index = orderedShorts.indexOfFirst { it.id == lastShortId }
-        return if (index >= 0) index else 0
+    override fun getSeenIds(): Set<String> = runCatching {
+        database?.bibleBibleDatabaseQueries
+            ?.selectSeenBiblicalWordIds()
+            ?.executeAsList()
+            ?.toSet()
+            ?: emptySet()
+    }.getOrDefault(emptySet())
+
+    override fun markSeen(shortId: String, seenAtMillis: Long) {
+        if (shortId.isBlank()) return
+        runCatching {
+            database?.bibleBibleDatabaseQueries?.insertSeenBiblicalWord(shortId, seenAtMillis)
+        }
+    }
+
+    override fun clearAll() {
+        runCatching {
+            database?.bibleBibleDatabaseQueries?.clearSeenBiblicalWords()
+        }
+    }
+}
+
+internal data class RandomizedDeckResult(
+    val orderedShorts: List<BiblicalShortDto>,
+    val cycleResetRequired: Boolean,
+)
+
+internal object ShortsPlaybackLogic {
+    /**
+     * Builds a freshly randomized deck prioritizing unseen items first.
+     * Once every item in [shorts] has been seen, signals [RandomizedDeckResult.cycleResetRequired]
+     * and shuffles the entire catalog so clips can repeat cleanly in a fresh random order.
+     * When [resumeShortId] is provided (e.g. returning from "Read Chapter"), that item is placed first.
+     */
+    fun buildRandomizedUnseenDeck(
+        shorts: List<BiblicalShortDto>,
+        seenIds: Set<String>,
+        resumeShortId: String? = null,
+        random: Random = Random.Default,
+    ): RandomizedDeckResult {
+        if (shorts.isEmpty()) return RandomizedDeckResult(emptyList(), cycleResetRequired = false)
+
+        val catalogIds = shorts.mapTo(HashSet()) { it.id }
+        val validSeen = seenIds.filterTo(HashSet()) { it in catalogIds }
+        val unseen = shorts.filter { it.id !in validSeen }
+
+        val cycleResetRequired = unseen.isEmpty()
+        val baseDeck = if (cycleResetRequired) {
+            shorts.shuffled(random)
+        } else {
+            val shuffledUnseen = unseen.shuffled(random)
+            val shuffledSeen = shorts.filter { it.id in validSeen }.shuffled(random)
+            shuffledUnseen + shuffledSeen
+        }
+
+        val finalDeck = if (!resumeShortId.isNullOrBlank()) {
+            val target = baseDeck.find { it.id == resumeShortId }
+            if (target != null) {
+                listOf(target) + baseDeck.filter { it.id != resumeShortId }
+            } else {
+                baseDeck
+            }
+        } else {
+            baseDeck
+        }
+
+        return RandomizedDeckResult(
+            orderedShorts = finalDeck,
+            cycleResetRequired = cycleResetRequired,
+        )
     }
 
     fun shouldShowSwipeHint(
@@ -61,27 +131,39 @@ internal object ShortsPlaybackLogic {
 
 internal class ShortsProgressManager(
     private val backing: ShortsPrefsBacking = platformShortsPrefsBacking(),
+    private val seenStore: SeenWordsStore = SqlDelightSeenWordsStore(),
     private val nowProvider: () -> Long = { currentTimeMillis() },
 ) {
-    fun getOrCreateOrderedShorts(
+    fun buildFreshSessionDeck(
         shorts: List<BiblicalShortDto>,
+        resumeShortId: String? = null,
         random: Random = Random.Default,
     ): List<BiblicalShortDto> {
-        val rawSaved = backing.getString(KEY_DECK_ORDER).orEmpty()
-        val savedIds = rawSaved.split(',').filter { it.isNotBlank() }
-        val (ordered, updatedIds) = ShortsPlaybackLogic.orderShortsForUser(shorts, savedIds, random)
-        if (updatedIds != savedIds && updatedIds.isNotEmpty()) {
-            backing.putString(KEY_DECK_ORDER, updatedIds.joinToString(","))
+        val seenIds = seenStore.getSeenIds()
+        val result = ShortsPlaybackLogic.buildRandomizedUnseenDeck(
+            shorts = shorts,
+            seenIds = seenIds,
+            resumeShortId = resumeShortId,
+            random = random,
+        )
+        if (result.cycleResetRequired) {
+            seenStore.clearAll()
         }
-        return ordered
+        return result.orderedShorts
     }
 
-    fun getLastShortId(): String? = backing.getString(KEY_LAST_SHORT_ID)?.takeIf { it.isNotBlank() }
-
-    fun saveLastShortId(shortId: String) {
+    fun markShortSeen(shortId: String) {
         if (shortId.isNotBlank()) {
-            backing.putString(KEY_LAST_SHORT_ID, shortId)
+            seenStore.markSeen(shortId, nowProvider())
         }
+    }
+
+    fun getSeenIds(): Set<String> = seenStore.getSeenIds()
+
+    fun shouldShowTutorial(): Boolean = backing.getInt(KEY_TUTORIAL_SEEN, 0) == 0
+
+    fun markTutorialDismissed() {
+        backing.putInt(KEY_TUTORIAL_SEEN, 1)
     }
 
     fun shouldShowSwipeHint(pageIndex: Int): Boolean =
@@ -103,8 +185,7 @@ internal class ShortsProgressManager(
     }
 
     companion object {
-        private const val KEY_DECK_ORDER = "deck_order"
-        private const val KEY_LAST_SHORT_ID = "last_short_id"
+        private const val KEY_TUTORIAL_SEEN = "tutorial_seen_v1"
         private const val KEY_HINT_COUNT = "swipe_hint_count"
         private const val KEY_HINT_WINDOW_START = "swipe_hint_window_start_ms"
     }

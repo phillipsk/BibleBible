@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,70 +47,70 @@ internal fun ChapterTopBar(
     onHomeEmblemClick: () -> Unit = BibleIQDataModel.onHomeClick,
     showBottomSheet: () -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
     ) {
+        val bookTitle = BibleIQDataModel.selectedBook.cleanedName.toString()
+        // Show full dead-center icon + gold "BibleBible" whenever the title leaves breathing room
+        val showBrandTitle = maxWidth >= 340.dp && bookTitle.length <= 10
+
         TopBarTitle(
-            title = BibleIQDataModel.selectedBook.cleanedName.toString(),
+            title = bookTitle,
             showHomePage = showHomePage,
             onClick = onBackClick,
-            modifier = Modifier.widthIn(max = 155.dp),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .widthIn(max = if (showBrandTitle) 132.dp else 155.dp),
         )
 
-        // Centered brand emblem + gold "BibleBible" text whenever space permits (static, no disappearing marquee)
-        BoxWithConstraints(
-            contentAlignment = Alignment.Center,
+        // Dead-center BibleBible icon + gold title horizontally across the entire top bar
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 4.dp)
+                .align(Alignment.Center)
                 .clickable(onClick = onHomeEmblemClick)
                 .testTag("chapter_top_bar_emblem"),
         ) {
-            val showBrandLabel = maxWidth >= 132.dp
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
+            Surface(
+                shape = CircleShape,
+                color = Color.Transparent,
+                border = BorderStroke(1.dp, Color(0x66FBD38D)),
+                elevation = 0.dp,
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(CircleShape),
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, Color(0x66FBD38D)),
-                    elevation = 0.dp,
+                Image(
+                    painter = painterResource(Res.drawable.BibleBible_ico_iv),
+                    contentDescription = "BibleBible Home",
                     modifier = Modifier
                         .size(30.dp)
                         .clip(CircleShape),
-                ) {
-                    Image(
-                        painter = painterResource(Res.drawable.BibleBible_ico_iv),
-                        contentDescription = "BibleBible Home",
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clip(CircleShape),
-                    )
-                }
-                if (showBrandLabel) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "BibleBible",
-                        maxLines = 1,
-                        style = TextStyle(
-                            fontFamily = MaterialTheme.typography.h1.fontFamily,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.4.sp,
-                            color = Color(0xFFFBD38D),
-                        ),
-                    )
-                }
+                )
+            }
+            if (showBrandTitle) {
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "BibleBible",
+                    maxLines = 1,
+                    style = TextStyle(
+                        fontFamily = MaterialTheme.typography.h1.fontFamily,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.4.sp,
+                        color = Color(0xFFFBD38D),
+                    ),
+                )
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.align(Alignment.CenterEnd),
         ) {
             key(
                 BibleIQDataModel.selectedBook.bookId,

@@ -228,8 +228,12 @@ internal fun BibleHomeScreen(
                 }
                 if (BibleIQDataModel.showBiblicalShorts) {
                     BiblicalShortsScreen(
-                        onBack = { BibleIQDataModel.closeBiblicalShorts() },
+                        onBack = {
+                            BibleIQDataModel.resumeShortIdOnReturn = null
+                            BibleIQDataModel.closeBiblicalShorts()
+                        },
                         onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
+                        resumeShortId = BibleIQDataModel.resumeShortIdOnReturn,
                     )
                 } else if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
@@ -252,7 +256,10 @@ internal fun BibleHomeScreen(
                                         onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
                                     )
                                     BiblicalShortsEntryCard(
-                                        onOpenShorts = { BibleIQDataModel.openBiblicalShorts() },
+                                        onOpenShorts = {
+                                            BibleIQDataModel.resumeShortIdOnReturn = null
+                                            BibleIQDataModel.openBiblicalShorts()
+                                        },
                                         modifier = Modifier
                                             .weight(0.85f)
                                             .fillMaxHeight(),
@@ -268,7 +275,10 @@ internal fun BibleHomeScreen(
                                     }
                                     if (showShorts) {
                                         BiblicalShortsEntryCard(
-                                            onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
+                                            onOpenShorts = {
+                                                BibleIQDataModel.resumeShortIdOnReturn = null
+                                                BibleIQDataModel.openBiblicalShorts()
+                                            }
                                         )
                                     }
                                 }
@@ -504,6 +514,7 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
         source = "biblical_short",
     )
     BibleIQDataModel.closeBiblicalShorts()
+    BibleIQDataModel.resumeShortIdOnReturn = shortItem.id
     BibleIQDataModel.returnToShortsOnBack = true
     BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)
 }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -111,11 +112,11 @@ internal fun BibleScripturesPager(
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(52.dp)
                         .background(MaterialTheme.colors.surface),
                 ) {
                     val viewportPx = with(density) { maxWidth.toPx() }
-                    val itemWidthPx = with(density) { 40.dp.toPx() }
+                    val itemWidthPx = with(density) { 42.dp.toPx() }
                     val selectedIdx = pagerState.currentPage.coerceIn(0, chapterCount - 1)
 
                     // Re-center the active chapter on page changes AND orientation/width changes (landscape <-> portrait)
@@ -127,7 +128,7 @@ internal fun BibleScripturesPager(
                     LazyRow(
                         state = chapterListState,
                         contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxSize(),
                     ) {
@@ -136,7 +137,7 @@ internal fun BibleScripturesPager(
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(40.dp)
                                     .clip(CircleShape)
                                     .then(
                                         if (isSelected) {
@@ -159,14 +160,18 @@ internal fun BibleScripturesPager(
                             ) {
                                 Text(
                                     text = chapter.toString(),
-                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.72f),
-                                    fontSize = 14.sp,
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.78f),
+                                    fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
                         }
                     }
                 }
+                Divider(
+                    color = Color(0x33FFFFFF),
+                    thickness = 1.dp,
+                )
             }
 
             val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {

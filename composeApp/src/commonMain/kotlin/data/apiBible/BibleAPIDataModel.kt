@@ -30,18 +30,18 @@ object BibleAPIDataModel {
     private val apocalypticLiterature = setOf(66)
 
 
-    // Curated deep jewel-tone palette harmonized with the navy base
-    private val lightGreen = Color(0xFF285D5B)    // Pentateuch — Deep Seafoam Teal
-    private val lightBlue = Color(0xFF234D76)     // Historical — Deep Sapphire Blue
-    private val yellow = Color(0xFF7B6329)        // Poetry & Wisdom — Warm Antique Gold
-    private val orange = Color(0xFF7A4B2B)        // Major Prophets — Warm Copper Bronze
-    private val lightPurple = Color(0xFF4F3B73)   // Minor Prophets — Royal Plum
-    private val red = Color(0xFF7D3244)           // Gospels — Deep Crimson Rose
-    private val lightRed = Color(0xFF8C4537)      // Acts — Terracotta Ember
-    private val darkBlue = Color(0xFF2D4378)      // Pauline Epistles — Midnight Cobalt
-    private val darkGreen = Color(0xFF2E5C49)     // General Epistles — Forest Emerald
-    private val darkPurple = Color(0xFF472C63)    // Revelation — Deep Amethyst
-    private val defaultColor = Color(0xFF334E68)  // Default — Slate Blue
+    // Brightened jewel-tone palette harmonized with the navy base for crisp readability
+    private val lightGreen = Color(0xFF3E8E89)    // Pentateuch — Luminous Seafoam Teal
+    private val lightBlue = Color(0xFF3B76B0)     // Historical — Bright Sapphire Blue
+    private val yellow = Color(0xFFB59442)        // Poetry & Wisdom — Warm Sunlit Gold
+    private val orange = Color(0xFFB37044)        // Major Prophets — Bright Copper Amber
+    private val lightPurple = Color(0xFF7B5FA8)   // Minor Prophets — Vibrant Royal Plum
+    private val red = Color(0xFFB04F66)           // Gospels — Bright Crimson Rose
+    private val lightRed = Color(0xFFC46854)      // Acts — Warm Terracotta Coral
+    private val darkBlue = Color(0xFF4A6BB0)      // Pauline Epistles — Bright Cobalt
+    private val darkGreen = Color(0xFF458C6E)     // General Epistles — Vibrant Emerald
+    private val darkPurple = Color(0xFF724B99)    // Revelation — Luminous Amethyst
+    private val defaultColor = Color(0xFF4F7294)  // Default — Bright Slate Blue
 
     @Composable
     fun getBibleBookColor(ordinal: Int): Color {

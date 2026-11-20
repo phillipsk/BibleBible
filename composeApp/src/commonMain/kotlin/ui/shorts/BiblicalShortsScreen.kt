@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +44,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,16 +90,20 @@ internal fun BiblicalShortsScreen(
     selectedCategory: String = BibleIQDataModel.selectedShortsCategory,
     onCategorySelected: (String) -> Unit = { BibleIQDataModel.selectedShortsCategory = it },
     enablePlaybackTimer: Boolean = true,
+    resumeShortId: String? = null,
     progressManager: ShortsProgressManager = remember { ShortsProgressManager() },
 ) {
     val scope = rememberCoroutineScope()
     val useDeterministicOrder = initialShorts.isNotEmpty()
-    var allShorts by remember(initialShorts) {
+    var allShorts by remember(initialShorts, resumeShortId) {
         mutableStateOf(
             if (useDeterministicOrder) {
                 initialShorts
             } else {
-                progressManager.getOrCreateOrderedShorts(defaultBiblicalShortsCatalog())
+                progressManager.buildFreshSessionDeck(
+                    shorts = defaultBiblicalShortsCatalog(),
+                    resumeShortId = resumeShortId,
+                )
             }
         )
     }
@@ -106,15 +113,22 @@ internal fun BiblicalShortsScreen(
     var elapsedSeconds by remember { mutableStateOf(0) }
     var seekTargetSeconds by remember { mutableStateOf(0) }
     var seekRequestId by remember { mutableStateOf(0) }
-    var hasRestoredPosition by remember { mutableStateOf(false) }
     var showSwipeHint by remember { mutableStateOf(false) }
+    var showTutorialOverlay by remember { mutableStateOf(progressManager.shouldShowTutorial()) }
     var hintBounceOffsetPx by remember { mutableStateOf(0) }
     var soundToastLabel by remember { mutableStateOf<String?>(null) }
+    var hasLoadedRemoteCatalog by remember { mutableStateOf(false) }
 
     LaunchedEffect(initialShorts) {
-        if (initialShorts.isEmpty()) {
+        if (initialShorts.isEmpty() && !hasLoadedRemoteCatalog) {
             val fetched = biblicalShortsRepository.getShorts()
-            allShorts = progressManager.getOrCreateOrderedShorts(fetched)
+            // Preserve the currently playing item at index 0 while updating video URLs from the backend
+            val currentFirstId = allShorts.firstOrNull()?.id ?: resumeShortId
+            allShorts = progressManager.buildFreshSessionDeck(
+                shorts = fetched,
+                resumeShortId = currentFirstId,
+            )
+            hasLoadedRemoteCatalog = true
         }
     }
 
@@ -125,16 +139,9 @@ internal fun BiblicalShortsScreen(
 
     val infiniteFeedEnabled = !useDeterministicOrder && filteredShorts.size > 1
     val virtualPageCount = if (infiniteFeedEnabled) Int.MAX_VALUE else filteredShorts.size
-    val initialResumePage = remember(filteredShorts, useDeterministicOrder) {
-        if (useDeterministicOrder) {
-            0
-        } else {
-            ShortsPlaybackLogic.resolveResumeIndex(filteredShorts, progressManager.getLastShortId())
-        }
-    }
 
     val pagerState = rememberPagerState(
-        initialPage = initialResumePage.coerceIn(0, (virtualPageCount - 1).coerceAtLeast(0)),
+        initialPage = 0,
         pageCount = { virtualPageCount }
     )
     val activeShort = if (filteredShorts.isNotEmpty()) {
@@ -143,31 +150,19 @@ internal fun BiblicalShortsScreen(
         null
     }
 
-    // Restore saved position once on initial load
-    LaunchedEffect(filteredShorts.size) {
-        if (!hasRestoredPosition && !useDeterministicOrder && filteredShorts.isNotEmpty()) {
-            val target = ShortsPlaybackLogic.resolveResumeIndex(filteredShorts, progressManager.getLastShortId())
-            if (target in filteredShorts.indices && target != pagerState.currentPage) {
-                pagerState.scrollToPage(target)
-            }
-            hasRestoredPosition = true
-        }
-    }
-
     LaunchedEffect(selectedCategory) {
-        if (hasRestoredPosition || useDeterministicOrder) {
-            pagerState.scrollToPage(0)
-            elapsedSeconds = 0
-        }
+        pagerState.scrollToPage(0)
+        elapsedSeconds = 0
     }
 
+    // Immediately cache each visible Biblical Word ID in SQLDelight so it won't repeat until all others are seen
     LaunchedEffect(pagerState.currentPage, activeShort?.id) {
         elapsedSeconds = 0
         isPaused = false
         activeShort?.let { short ->
             AnalyticsTracker.trackShortViewed(short)
             if (!useDeterministicOrder) {
-                progressManager.saveLastShortId(short.id)
+                progressManager.markShortSeen(short.id)
             }
         }
         val shouldHint = progressManager.shouldShowSwipeHint(pagerState.currentPage)
@@ -656,6 +651,126 @@ internal fun BiblicalShortsScreen(
                     }
                 }
             }
+        }
+
+        // Brief first-time gesture tutorial overlay (Double-tap sound, Tap pause, Swipe up next)
+        AnimatedVisibility(
+            visible = showTutorialOverlay,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xB8060C16))
+                    .clickable {
+                        showTutorialOverlay = false
+                        progressManager.markTutorialDismissed()
+                    }
+                    .padding(horizontal = 28.dp)
+                    .testTag("shorts_tutorial_overlay"),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color(0xFF15243A),
+                    border = BorderStroke(1.dp, Color(0x66FBD38D)),
+                    elevation = 10.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
+                    ) {
+                        Text(
+                            text = "Welcome to Biblical Words",
+                            color = Color(0xFFFBD38D),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        TutorialTipRow(
+                            badge = "2×",
+                            title = "Double-tap center",
+                            subtitle = "Turn sound on or off",
+                        )
+                        TutorialTipRow(
+                            badge = "1×",
+                            title = "Tap once",
+                            subtitle = "Pause or resume playback",
+                        )
+                        TutorialTipRow(
+                            badge = "↑",
+                            title = "Swipe up",
+                            subtitle = "View the next Biblical Word",
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Button(
+                            onClick = {
+                                showTutorialOverlay = false
+                                progressManager.markTutorialDismissed()
+                                AnalyticsTracker.track("shorts_tutorial_dismissed", "biblical_shorts")
+                            },
+                            shape = RoundedCornerShape(50),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color(0xFFFBD38D),
+                                contentColor = Color(0xFF0F172A),
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("shorts_tutorial_dismiss_btn"),
+                        ) {
+                            Text(
+                                text = "Got it",
+                                color = Color(0xFF0F172A),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TutorialTipRow(
+    badge: String,
+    title: String,
+    subtitle: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(38.dp)
+                .background(Color(0x2AFBD38D), CircleShape),
+        ) {
+            Text(
+                text = badge,
+                color = Color(0xFFFBD38D),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+            )
+        }
+        Column {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = subtitle,
+                color = Color(0xFFCBD5E1),
+                fontSize = 12.sp,
+            )
         }
     }
 }

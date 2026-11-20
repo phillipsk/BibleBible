@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import data.shorts.BiblicalShortDto
+import data.shorts.InMemorySeenWordsStore
 import data.shorts.InMemoryShortsPrefsBacking
 import data.shorts.ShortsProgressManager
 import data.shorts.defaultBiblicalShortsCatalog
@@ -37,12 +38,15 @@ class BiblicalShortsUiTest {
     }
 
     @Test
-    fun shortsScreenDefaultsSoundOffIncludesScrubberShowsWeeklyHintAndTriggersReadChapter() = runComposeUiTest {
+    fun shortsScreenShowsTutorialDefaultsSoundOffIncludesScrubberAndTriggersReadChapter() = runComposeUiTest {
         val sampleShorts = defaultBiblicalShortsCatalog("")
         var selectedCategory = "All"
         var openedChapter: BiblicalShortDto? = null
         var backClicks = 0
-        val testProgressManager = ShortsProgressManager(backing = InMemoryShortsPrefsBacking())
+        val testProgressManager = ShortsProgressManager(
+            backing = InMemoryShortsPrefsBacking(),
+            seenStore = InMemorySeenWordsStore(),
+        )
 
         setContent {
             BibleBibleTheme {
@@ -57,6 +61,14 @@ class BiblicalShortsUiTest {
                 )
             }
         }
+
+        // First-time gesture tutorial renders and dismisses cleanly
+        onNodeWithText("Welcome to Biblical Words").assertIsDisplayed()
+        onNodeWithText("Double-tap center").assertIsDisplayed()
+        onNodeWithText("Tap once").assertIsDisplayed()
+        onNodeWithText("Swipe up").assertIsDisplayed()
+        onNodeWithTag("shorts_tutorial_dismiss_btn").performClick()
+        onNodeWithText("Welcome to Biblical Words").assertDoesNotExist()
 
         onNodeWithText("Biblical Words").assertIsDisplayed()
         // Sound defaults to OFF and toggles cleanly
