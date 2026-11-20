@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BibleBible — Master Architecture, Hosting &amp; Analytics Guide</title>
+  <style>
+    :root {
+      --bg: #0b1320;
+      --surface: #132136;
+      --surface-2: #192d49;
+      --border: rgba(251, 211, 141, 0.24);
+      --gold: #fbd38d;
+      --blue: #90cdf4;
+      --green: #9ae6b4;
+      --text: #eef4fb;
+      --muted: #9fb2c9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: radial-gradient(circle at top right, #183052 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 32px 20px 64px;
+    }
+    .container { max-width: 1060px; margin: 0 auto; }
+    header {
+      background: linear-gradient(135deg, #162b48 0%, #24436b 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    }
+    .pill {
+      display: inline-block;
+      background: rgba(251, 211, 141, 0.16);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.02em; }
+    h2 {
+      margin: 34px 0 14px;
+      font-size: 21px;
+      color: var(--gold);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 8px;
+    }
+    h3 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .card.highlight { border-color: var(--border); background: var(--surface-2); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      vertical-align: top;
+    }
+    th {
+      background: rgba(251, 211, 141, 0.08);
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td code, p code, li code {
+      background: rgba(0,0,0,0.35);
+      color: var(--blue);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+    }
+    pre {
+      background: #080f1a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      color: #dbeafe;
+      font-size: 13px;
+      margin: 10px 0 0;
+    }
+    a { color: var(--gold); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .btn {
+      display: inline-block;
+      background: var(--gold);
+      color: #0f172a;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .btn.secondary {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+    }
+    ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+    li { margin-bottom: 6px; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(154, 230, 180, 0.14);
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    footer {
+      margin-top: 44px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="pill">BibleBible · Release 3.1 Master Guide</div>
+      <h1>Architecture, Hosting &amp; Analytics Overview</h1>
+      <p>
+        Single-source reference covering every architectural decision, Google Cloud infrastructure location,
+        live first-party analytics dashboard, backend feature flags, and repository governance.
+      </p>
+      <div class="btn-row">
+        <a class="btn" href="https://biblebible-api-5jdy3d7zua-uc.a.run.app/analytics" target="_blank">Open Live Analytics Dashboard ↗</a>
+        <a class="btn secondary" href="https://biblebible-api-5jdy3d7zua-uc.a.run.app/v1/analytics/summary" target="_blank">Raw Analytics JSON ↗</a>
+        <a class="btn secondary" href="https://console.cloud.google.com/run/detail/us-central1/biblebible-api/metrics?project=gen-lang-client-0150678391" target="_blank">Google Cloud Run Console ↗</a>
+      </div>
+    </header>
+
+    <h2>1. Where Everything Is Hosted</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Host / Service</th>
+          <th>Identifier / Location</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Client Apps (Android, iOS, Desktop)</strong></td>
+          <td>GitHub (Public Repo)</td>
+          <td><code>phillipsk/BibleBible</code></td>
+          <td>Kotlin Multiplatform + Compose Multiplatform UI, SQLDelight offline cache, CI builds. Contains <strong>zero secrets</strong>.</td>
+        </tr>
+        <tr>
+          <td><strong>Cloud API Gateway &amp; Analytics</strong></td>
+          <td>Google Cloud Run (<code>us-central1</code>)</td>
+          <td><code>biblebible-api</code> in GCP project <code>gen-lang-client-0150678391</code><br /><a href="https://biblebible-api-5jdy3d7zua-uc.a.run.app/v1/health" target="_blank">biblebible-api-5jdy3d7zua-uc.a.run.app</a></td>
+          <td>Serves <code>/v1/config</code> (feature flags + session tokens), 6 public-domain Bible translations, Gemini AI summaries, Biblical Words catalog/streaming, user auth/sync, and Analytics collector + dashboard.</td>
+        </tr>
+        <tr>
+          <td><strong>API Keys &amp; Signing Secrets</strong></td>
+          <td>Google Cloud Secret Manager</td>
+          <td><code>BIBLEBIBLE_GEMINI_API_KEY</code><br /><code>BIBLEBIBLE_CLIENT_TOKEN_SECRET</code></td>
+          <td>Mounted server-side into Cloud Run at runtime; never bundled into mobile or desktop binaries.</td>
+        </tr>
+        <tr>
+          <td><strong>Biblical Words Video Media</strong></td>
+          <td>Google Cloud Storage + Cloud Run Range Streaming</td>
+          <td>Bucket <code>gen-lang-client-0150678391-biblebible-shorts</code> + <code>/v1/shorts/media/:file</code></td>
+          <td>H.264/AAC MP4 clips with HTTP <code>206 Partial Content</code> streaming and immutable edge caching.</td>
+        </tr>
+        <tr>
+          <td><strong>User Identity</strong></td>
+          <td>Firebase Authentication (Identity Platform)</td>
+          <td>Project <code>gen-lang-client-0150678391</code></td>
+          <td>Optional sign-in via Apple, Google, and Passwordless Email Link (accessed via REST from KMP common code).</td>
+        </tr>
+        <tr>
+          <td><strong>User Sync Data</strong></td>
+          <td>Cloud Firestore (Native Mode, <code>nam5</code>)</td>
+          <td>Collection <code>users/{uid}</code></td>
+          <td>Stores cross-device reading position, preferences, history (capped 500), and bookmarks with Last-Write-Wins merge. Only Cloud Run accesses Firestore.</td>
+        </tr>
+        <tr>
+          <td><strong>Long-Term Telemetry Logs</strong></td>
+          <td>Google Cloud Logging</td>
+          <td>Filter: <code>jsonPayload.component="biblebible-analytics"</code></td>
+          <td>Persistent structured JSON event logs retained across Cloud Run cold starts and revisions.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>2. Summary of Architectural Decisions (ADRs 0001–0005)</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="tag">ADR 0001 · Security &amp; Gateway</div>
+        <h3>First-Party Cloud Gateway &amp; Short-Lived Tokens</h3>
+        <p>
+          Eliminated all client-embedded third-party API keys (RapidAPI / Gemini). Clients bootstrap from
+          <code>GET /v1/config</code> and receive short-lived HMAC-SHA256 bearer tokens (<code>sessionToken</code>).
+          All 6 public-domain Bible translations (<code>KJV</code>, <code>BSB</code>, <code>WEB</code>, <code>BBE</code>,
+          <code>RV1909</code>, <code>SVD</code>) are served first-party with immutable edge caching; Gemini calls are
+          rate-limited and cached server-side.
+        </p>
+      </div>
+      <div class="card">
+        <div class="tag">ADR 0002 · Cross-Platform Media</div>
+        <h3>KMP Shared UI + Native Video Players</h3>
+        <p>
+          Kept 100% of navigation, controls, scrubber state, and pager logic in shared Compose Multiplatform
+          (<code>commonMain</code>) while bridging native hardware video playback via <code>expect</code>/<code>actual</code>:
+          <code>TextureView + MediaPlayer</code> on Android, <code>AVPlayer + AVPlayerLayer</code> on iOS, and storyboard playback on Desktop.
+        </p>
+      </div>
+      <div class="card">
+        <div class="tag">ADR 0003 · Cost Guardrails</div>
+        <h3>Biblical Words Pipeline &amp; &lt;$100/mo Spend Cap</h3>
+        <p>
+          Curated short-form scripture videos hosted on Google Cloud with HTTP 206 range streaming, Cloud Run
+          concurrency/instance caps (<code>--max-instances=2</code>, scale-to-zero), and GCP Cloud Billing budget
+          alerts enforcing a strict sub-$100/month operating ceiling.
+        </p>
+      </div>
+      <div class="card">
+        <div class="tag">ADR 0004 · Telemetry</div>
+        <h3>First-Party Privacy-Preserving Analytics</h3>
+        <p>
+          Built a zero-SDK, first-party telemetry pipeline instead of Firebase Analytics/Mixpanel. Ephemeral
+          per-session IDs only (no IDFA, GAID, IP storage, or PII), batched offline-safe delivery every 15 seconds,
+          and a live HTML dashboard hosted directly on Cloud Run.
+        </p>
+      </div>
+      <div class="card">
+        <div class="tag">ADR 0005 · Accounts &amp; Sync</div>
+        <h3>Optional Firebase Auth via REST + Firestore Sync</h3>
+        <p>
+          Reading stays completely free without login. Opt-in accounts support Apple, Google, and Passwordless Email
+          via Firebase Auth REST APIs (avoiding Desktop SDK blockers), exchanged for first-party <code>tier="user"</code>
+          session tokens with full App Store / Play Store compliant instant account deletion (<code>DELETE /v1/me</code>).
+        </p>
+      </div>
+      <div class="card">
+        <div class="tag">Release 3.1 · Dynamic Control</div>
+        <h3>Backend Feature Flags &amp; Edge-to-Edge Polish</h3>
+        <p>
+          Added server-driven booleans in <code>GET /v1/config</code> (<code>features.biblicalShortsEnabled</code>,
+          <code>features.verseOfTheDayEnabled</code>) so Home modules can be toggled live on Cloud Run without shipping
+          a binary update.
+        </p>
+      </div>
+    </div>
+
+    <h2>3. How First-Party Analytics Work &amp; How to View Them</h2>
+    <div class="grid">
+      <div class="card highlight">
+        <h3>Client Collection (KMP <code>AnalyticsTracker</code>)</h3>
+        <ul>
+          <li>Instrumented across Home, Bible Reader, Chapter Tabs, Translations, Search/Sort, AI Summaries, Biblical Words, and Auth lifecycle.</li>
+          <li>Queues events in memory and flushes batches to <code>POST /v1/analytics/events</code> every 15s (or immediately on app pause/background) with exponential backoff.</li>
+          <li>Privacy-first: attaches only an ephemeral session ID + platform (<code>android</code>, <code>ios</code>, <code>desktop</code>). Never transmits emails, UIDs, or device advertising IDs.</li>
+        </ul>
+      </div>
+      <div class="card highlight">
+        <h3>Live Dashboard &amp; Historical Logs</h3>
+        <ul>
+          <li><strong>Live Operational Dashboard:</strong> <a href="https://biblebible-api-5jdy3d7zua-uc.a.run.app/analytics" target="_blank">/analytics</a> — auto-refreshing KPI cards, platform split, top books, top translations, top clips, and recent event stream.</li>
+          <li><strong>Raw JSON Feed:</strong> <a href="https://biblebible-api-5jdy3d7zua-uc.a.run.app/v1/analytics/summary" target="_blank">/v1/analytics/summary</a>.</li>
+          <li><strong>Historical Queries (Cloud Logging):</strong> Open <a href="https://console.cloud.google.com/logs/query?project=gen-lang-client-0150678391" target="_blank">Cloud Logs Explorer</a> and run:<br />
+            <code>jsonPayload.component="biblebible-analytics"</code>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>4. Toggling Backend Feature Flags Live (Zero App Release)</h2>
+    <div class="card">
+      <p>Flip Biblical Words or Verse of the Day on/off instantly via Cloud Run environment variables:</p>
+      <pre>gcloud run services update biblebible-api \
+  --project gen-lang-client-0150678391 \
+  --region us-central1 \
+  --update-env-vars FEATURE_BIBLICAL_SHORTS=true,FEATURE_VERSE_OF_THE_DAY=true</pre>
+      <p style="margin-top: 10px;">To deploy new backend code (including the latest auth, sync, and feature flag endpoints):</p>
+      <pre>./backend/scripts/deploy-gcp.sh gen-lang-client-0150678391 us-central1</pre>
+    </div>
+
+    <h2>5. Should <code>backend/</code> Be Version Controlled?</h2>
+    <div class="card highlight">
+      <h3>Recommendation: Yes — in a Separate <u>Private</u> Repository</h3>
+      <p>
+        Keep <code>backend/</code> <strong>ignored in the public frontend repo</strong> (<code>phillipsk/BibleBible</code>)
+        so server rate-limit tuning, deployment scripts, and internal gateway logic stay private — while initializing a
+        dedicated <strong>private GitHub repository</strong> (e.g. <code>phillipsk/BibleBible-backend</code>) inside
+        <code>backend/</code> so you never risk losing backend code if your laptop dies and can track rollback history cleanly.
+      </p>
+      <ul>
+        <li>Frontend repo stays clean, open-source-safe, and verified by <code>tools/verify_no_client_secrets.py</code>.</li>
+        <li>Private backend repo gives full version history, PR diffs, and optional Cloud Build auto-deploy triggers on push to <code>main</code>.</li>
+      </ul>
+    </div>
+
+    <footer>
+      BibleBible Release 3.1 · Generated 2026-11-19 · GCP Project <code>gen-lang-client-0150678391</code>
+    </footer>
+  </div>
+</body>
+</html>

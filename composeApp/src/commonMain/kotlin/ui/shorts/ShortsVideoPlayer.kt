@@ -94,25 +94,14 @@ internal fun ShortsStoryboardBackdrop(
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Color(0x33FBD38D),
+                    elevation = 0.dp,
                 ) {
                     Text(
-                        text = activeScene?.heading?.uppercase() ?: "BIBLICAL SHORT",
+                        text = activeScene?.heading?.uppercase() ?: "BIBLICAL WORD",
                         color = Color(0xFFFBD38D),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color(0x33FFFFFF),
-                ) {
-                    Text(
-                        text = "${shortItem.durationSeconds}s Short",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                     )
                 }
             }

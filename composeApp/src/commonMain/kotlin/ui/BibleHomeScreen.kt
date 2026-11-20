@@ -294,17 +294,17 @@ internal fun BibleBookList(
     lazyGridState: LazyGridState = rememberLazyGridState(),
     header: (@Composable (isWideLayout: Boolean) -> Unit)? = null,
 ) {
-    // Unified diagonal "Living Word" light sheen sweeping gracefully across the book grid
+    // Unified diagonal "Living Word" luminous lightning-glare wave across all book rows
     val infiniteTransition = rememberInfiniteTransition(label = "living_word_sheen")
     val diagonalWave by infiniteTransition.animateFloat(
         initialValue = -0.35f,
         targetValue = 1.65f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
-                durationMillis = 6200
+                durationMillis = 3800
                 -0.35f at 0 using LinearEasing
-                1.65f at 2600 using LinearEasing
-                1.65f at 6200 using LinearEasing // gentle rest between sweeps
+                1.65f at 2200 using LinearEasing
+                1.65f at 3800 using LinearEasing
             },
             repeatMode = RepeatMode.Restart,
         ),
@@ -362,9 +362,9 @@ internal fun BibleBookList(
                                 Color(0x1809111E).compositeOver(solidBase),
                             )
                         )
-                        val tileCoord = (col * 0.14f) + ((row % 8) * 0.09f)
+                        val tileCoord = (col * 0.14f) + ((row % 7) * 0.11f)
                         val distance = abs(diagonalWave - tileCoord)
-                        val glareIntensity = ((1f - (distance / 0.34f)).coerceIn(0f, 1f))
+                        val glareIntensity = ((1f - (distance / 0.42f)).coerceIn(0f, 1f))
 
                         val tileShape = RoundedCornerShape(14.dp)
                         Box(
@@ -376,24 +376,29 @@ internal fun BibleBookList(
                                 .clip(tileShape)
                                 .background(tileBrush)
                                 .border(
-                                    width = 1.dp,
-                                    color = Color(0x2EFFFFFF).copy(alpha = 0.18f + (glareIntensity * 0.24f)),
+                                    width = if (glareIntensity > 0.3f) 1.5.dp else 1.dp,
+                                    color = if (glareIntensity > 0.15f) {
+                                        Color(0xFFFBD38D).copy(alpha = 0.28f + (glareIntensity * 0.52f))
+                                    } else {
+                                        Color(0x36FFFFFF)
+                                    },
                                     shape = tileShape,
                                 )
                                 .drawWithContent {
                                     drawContent()
                                     if (glareIntensity > 0.01f) {
-                                        val sweepX = size.width * (0.5f + (diagonalWave - tileCoord) * 2.2f)
+                                        val sweepX = size.width * (0.5f + (diagonalWave - tileCoord) * 1.9f)
                                         drawRect(
                                             brush = Brush.linearGradient(
                                                 colors = listOf(
                                                     Color.Transparent,
-                                                    Color(0xFFFBD38D).copy(alpha = 0.20f * glareIntensity),
-                                                    Color.White.copy(alpha = 0.26f * glareIntensity),
+                                                    Color(0xFFFBD38D).copy(alpha = 0.34f * glareIntensity),
+                                                    Color.White.copy(alpha = 0.54f * glareIntensity),
+                                                    Color(0xFFFBD38D).copy(alpha = 0.24f * glareIntensity),
                                                     Color.Transparent,
                                                 ),
-                                                start = Offset(sweepX - size.width * 0.7f, 0f),
-                                                end = Offset(sweepX + size.width * 0.7f, size.height),
+                                                start = Offset(sweepX - size.width * 0.65f, 0f),
+                                                end = Offset(sweepX + size.width * 0.65f, size.height),
                                             )
                                         )
                                     }

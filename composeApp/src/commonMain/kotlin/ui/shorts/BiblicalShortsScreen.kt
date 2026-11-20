@@ -6,12 +6,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
@@ -221,6 +224,37 @@ internal fun BiblicalShortsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF09111E))
+            .pointerInput(filteredShorts.size, infiniteFeedEnabled) {
+                var totalHorizontalDrag = 0f
+                var handled = false
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        totalHorizontalDrag = 0f
+                        handled = false
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        if (handled) return@detectHorizontalDragGestures
+                        totalHorizontalDrag += dragAmount
+                        val threshold = 72.dp.toPx()
+                        if (totalHorizontalDrag > threshold) {
+                            // Swipe left-to-right -> return to Home
+                            handled = true
+                            AnalyticsTracker.track("short_swipe_back_home", "biblical_shorts")
+                            onBack()
+                        } else if (totalHorizontalDrag < -threshold && filteredShorts.isNotEmpty()) {
+                            // Swipe right-to-left -> load next clip
+                            handled = true
+                            AnalyticsTracker.track("short_swipe_left_next", "biblical_shorts")
+                            val nextIndex = if (infiniteFeedEnabled) {
+                                pagerState.currentPage + 1
+                            } else {
+                                (pagerState.currentPage + 1) % filteredShorts.size
+                            }
+                            scope.launch { pagerState.animateScrollToPage(nextIndex) }
+                        }
+                    },
+                )
+            }
             .testTag("biblical_shorts_screen"),
     ) {
         if (filteredShorts.isNotEmpty()) {
@@ -391,42 +425,67 @@ internal fun BiblicalShortsScreen(
                                 )
                             }
 
-                            // Category filter chips at bottom (unobstructed top video title)
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("shorts_category_row"),
-                            ) {
-                                items(biblicalShortsCategories) { category ->
-                                    val isSelected = selectedCategory.equals(category, ignoreCase = true)
-                                    Surface(
-                                        onClick = {
-                                            AnalyticsTracker.track(
-                                                "short_category_filtered",
-                                                "biblical_shorts",
-                                                mapOf("category" to category),
+                            // Category filter chips at bottom with smooth left/right edge fade
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                LazyRow(
+                                    contentPadding = PaddingValues(start = 6.dp, end = 34.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("shorts_category_row"),
+                                ) {
+                                    items(biblicalShortsCategories) { category ->
+                                        val isSelected = selectedCategory.equals(category, ignoreCase = true)
+                                        Surface(
+                                            onClick = {
+                                                AnalyticsTracker.track(
+                                                    "short_category_filtered",
+                                                    "biblical_shorts",
+                                                    mapOf("category" to category),
+                                                )
+                                                onCategorySelected(category)
+                                            },
+                                            shape = RoundedCornerShape(50),
+                                            color = if (isSelected) Color(0xFFFBD38D) else Color(0xFF142033),
+                                            border = BorderStroke(
+                                                1.dp,
+                                                if (isSelected) Color(0xFFFBD38D) else Color(0x44FFFFFF)
+                                            ),
+                                            elevation = 0.dp,
+                                        ) {
+                                            Text(
+                                                text = category,
+                                                color = if (isSelected) Color(0xFF0F172A) else Color.White,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
                                             )
-                                            onCategorySelected(category)
-                                        },
-                                        shape = RoundedCornerShape(50),
-                                        color = if (isSelected) Color(0xFFFBD38D) else Color(0xFF142033),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            if (isSelected) Color(0xFFFBD38D) else Color(0x44FFFFFF)
-                                        ),
-                                        elevation = 0.dp,
-                                    ) {
-                                        Text(
-                                            text = category,
-                                            color = if (isSelected) Color(0xFF0F172A) else Color.White,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
-                                        )
+                                        }
                                     }
                                 }
+                                // Soft right-edge fade mask so overflow pills dissolve gently instead of clipping sharply
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .width(34.dp)
+                                        .height(30.dp)
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color.Transparent, Color(0xFF09111E))
+                                            )
+                                        )
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterStart)
+                                        .width(10.dp)
+                                        .height(30.dp)
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                colors = listOf(Color(0xFF09111E), Color.Transparent)
+                                            )
+                                        )
+                                )
                             }
 
                             Row(
@@ -461,6 +520,7 @@ internal fun BiblicalShortsScreen(
                                 ) {
                                     Text(
                                         text = "Read Chapter",
+                                        color = Color(0xFF0F172A),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
                                     )
@@ -506,18 +566,23 @@ internal fun BiblicalShortsScreen(
             }
         }
 
-        // Clean top overlay header (no hardcoded 1/50 counter; respects status bar)
+        // Solid-to-transparent top header band cleanly covers any baked-in top badge on existing videos
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xCC09111E), Color.Transparent)
+                        colorStops = arrayOf(
+                            0.0f to Color(0xFF09111E),
+                            0.74f to Color(0xFF09111E),
+                            0.92f to Color(0xCC09111E),
+                            1.0f to Color.Transparent,
+                        )
                     )
                 )
                 .statusBarsPadding()
-                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 14.dp),
+                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 26.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
