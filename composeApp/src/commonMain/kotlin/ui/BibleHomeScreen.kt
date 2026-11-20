@@ -1,40 +1,58 @@
 package ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetScaffoldState
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,12 +62,16 @@ import data.apiBible.BibleAPIDataModel
 import data.apiBible.BookData
 import data.apiBible.Chapter
 import data.bibleIQ.BibleIQDataModel
+import data.bibleIQ.DailyVerse
+import data.bibleIQ.bibleBooksFull
 import data.config.CloudSessionManager
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
+import email.kevinphillips.biblebible.getPlatformName
+import io.github.aakira.napier.Napier
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
@@ -106,7 +128,7 @@ internal fun BibleHomeScreen(
         BibleIQDataModel.showBiblicalShorts ||
         !BibleIQDataModel.showHomePage
 
-    PlatformBackHandler(enabled = canNavigateBack) {
+    val handleBackNavigation: () -> Unit = {
         when {
             isBottomSheetExpanded -> scope.launch {
                 localScaffoldState.bottomSheetState.collapse()
@@ -115,9 +137,37 @@ internal fun BibleHomeScreen(
                 BibleIQDataModel.closeBiblicalShorts()
             }
             !BibleIQDataModel.showHomePage -> {
-                BibleIQDataModel.onHomeClick()
+                BibleIQDataModel.navigateBackFromReader()
             }
         }
+    }
+
+    PlatformBackHandler(enabled = canNavigateBack, onBack = handleBackNavigation)
+
+    // iOS native-style left-edge swipe-right back gesture
+    val iosEdgeBackModifier = if (getPlatformName() == "ios" && canNavigateBack) {
+        Modifier.pointerInput(canNavigateBack) {
+            var startedAtLeftEdge = false
+            var accumulatedDrag = 0f
+            detectHorizontalDragGestures(
+                onDragStart = { startOffset ->
+                    startedAtLeftEdge = startOffset.x <= 32.dp.toPx()
+                    accumulatedDrag = 0f
+                },
+                onHorizontalDrag = { _, dragAmount ->
+                    if (startedAtLeftEdge) {
+                        accumulatedDrag += dragAmount
+                        if (accumulatedDrag > 64.dp.toPx()) {
+                            startedAtLeftEdge = false
+                            accumulatedDrag = 0f
+                            handleBackNavigation()
+                        }
+                    }
+                },
+            )
+        }
+    } else {
+        Modifier
     }
 
     BottomSheetScaffold(
@@ -136,12 +186,14 @@ internal fun BibleHomeScreen(
         },
         content = ({
             Column(
-                modifier = modifier.fillMaxSize(),
+                modifier = modifier
+                    .fillMaxSize()
+                    .then(iosEdgeBackModifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (!BibleIQDataModel.showBiblicalShorts) {
                     BibleBibleTopBar(
-                        onClick = BibleIQDataModel.onHomeClick,
+                        onClick = { BibleIQDataModel.navigateBackFromReader() },
                         showBottomSheet = {
                             scope.launch {
                                 if (localScaffoldState.bottomSheetState.isExpanded) {
@@ -175,7 +227,10 @@ internal fun BibleHomeScreen(
                         header = {
                             Column {
                                 if (CloudSessionManager.verseOfTheDayEnabled) {
-                                    VerseOfTheDay(BibleIQDataModel.selectedVersion)
+                                    VerseOfTheDay(
+                                        version = BibleIQDataModel.selectedVersion,
+                                        onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
+                                    )
                                 }
                                 if (CloudSessionManager.biblicalShortsEnabled) {
                                     BiblicalShortsEntryCard(
@@ -208,17 +263,40 @@ internal fun BibleBookList(
     lazyGridState: LazyGridState = rememberLazyGridState(),
     header: (@Composable () -> Unit)? = null,
 ) {
+    // Unified diagonal "Living Word" light sheen sweeping gracefully across the book grid
+    val infiniteTransition = rememberInfiniteTransition(label = "living_word_sheen")
+    val diagonalWave by infiniteTransition.animateFloat(
+        initialValue = -0.35f,
+        targetValue = 1.65f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 6200
+                -0.35f at 0 using LinearEasing
+                1.65f at 2600 using LinearEasing
+                1.65f at 6200 using LinearEasing // gentle rest between sweeps
+            },
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "diagonal_wave",
+    )
+    val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     AnimatedVisibility(
         visible = BibleIQDataModel.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         bookData?.let { bookDataList ->
-            Column(modifier = Modifier.padding(4.dp)) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                     state = lazyGridState,
                     columns = GridCells.Fixed(3),
-                    contentPadding = PaddingValues(10.dp),
+                    contentPadding = PaddingValues(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 12.dp,
+                        bottom = 20.dp + navBarBottomPadding,
+                    ),
                     userScrollEnabled = true,
                 ) {
                     if (header != null) {
@@ -237,53 +315,83 @@ internal fun BibleBookList(
                             )
                         }
                     }
-                    items(items = bookDataList) {
-                        it.let {
-                            Button(
-                                onClick = {
+                    itemsIndexed(items = bookDataList) { index, book ->
+                        val row = index / 3
+                        val col = index % 3
+                        // Composite the book tint solidly over the deep background so there is NEVER any translucent shadow box artifact
+                        val rawColor = BibleAPIDataModel.getBibleBookColor(
+                            BibleIQDataModel.getAPIBibleOrdinal(book.bookId)
+                        )
+                        val solidBase = rawColor.compositeOver(Color(0xFF1A2838))
+                        val tileBrush = Brush.verticalGradient(
+                            colors = listOf(
+                                solidBase.copy(alpha = 1f),
+                                Color(0x1809111E).compositeOver(solidBase),
+                            )
+                        )
+                        val tileCoord = (col * 0.14f) + ((row % 8) * 0.09f)
+                        val distance = abs(diagonalWave - tileCoord)
+                        val glareIntensity = ((1f - (distance / 0.34f)).coerceIn(0f, 1f))
+
+                        val tileShape = RoundedCornerShape(14.dp)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .fillMaxWidth()
+                                .defaultMinSize(minWidth = 100.dp, minHeight = 46.dp)
+                                .clip(tileShape)
+                                .background(tileBrush)
+                                .border(
+                                    width = 1.dp,
+                                    color = Color(0x2EFFFFFF).copy(alpha = 0.18f + (glareIntensity * 0.24f)),
+                                    shape = tileShape,
+                                )
+                                .drawWithContent {
+                                    drawContent()
+                                    if (glareIntensity > 0.01f) {
+                                        val sweepX = size.width * (0.5f + (diagonalWave - tileCoord) * 2.2f)
+                                        drawRect(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    Color.Transparent,
+                                                    Color(0xFFFBD38D).copy(alpha = 0.20f * glareIntensity),
+                                                    Color.White.copy(alpha = 0.26f * glareIntensity),
+                                                    Color.Transparent,
+                                                ),
+                                                start = Offset(sweepX - size.width * 0.7f, 0f),
+                                                end = Offset(sweepX + size.width * 0.7f, size.height),
+                                            )
+                                        )
+                                    }
+                                }
+                                .clickable {
                                     AnalyticsTracker.trackBookSelected(
-                                        bookId = it.bookId,
-                                        bookName = it.name ?: it.cleanedName ?: it.bookId,
+                                        bookId = book.bookId,
+                                        bookName = book.name ?: book.cleanedName ?: book.bookId,
                                         source = "home_grid",
                                     )
+                                    BibleIQDataModel.returnToShortsOnBack = false
                                     BibleAPIDataModel.run {
-                                        updateBookData(it)
-                                        updateSelectedChapter(it.remoteKey)
+                                        updateBookData(book)
+                                        updateSelectedChapter(book.remoteKey)
                                     }
-                                    BibleIQDataModel.updateSelectedBook(it)
+                                    BibleIQDataModel.updateSelectedBook(book)
                                     BibleIQDataModel.showHomePage = false
-                                },
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, Color(0x38FFFFFF)),
-                                elevation = ButtonDefaults.elevation(
-                                    defaultElevation = 3.dp,
-                                    pressedElevation = 1.dp,
-                                ),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = BibleAPIDataModel.getBibleBookColor(
-                                        BibleIQDataModel.getAPIBibleOrdinal(it.bookId)
-                                    )
-                                ),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .height(IntrinsicSize.Min)
-                                    .defaultMinSize(
-                                        minWidth = 100.dp,
-                                        minHeight = 44.dp
-                                    )
-                            ) {
-                                it.cleanedName?.let { name ->
-                                    Text(
-                                        fontFamily = MaterialTheme.typography.h3.fontFamily,
-                                        fontWeight = FontWeight.SemiBold,
-                                        text = name,
-                                        fontSize = 13.5.sp,
-                                        color = MaterialTheme.colors.onPrimary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
                                 }
+                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                        ) {
+                            book.cleanedName?.let { name ->
+                                Text(
+                                    fontFamily = MaterialTheme.typography.h3.fontFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    text = name,
+                                    fontSize = 13.5.sp,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -314,5 +422,33 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
         source = "biblical_short",
     )
     BibleIQDataModel.closeBiblicalShorts()
+    BibleIQDataModel.returnToShortsOnBack = true
     BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)
+}
+
+private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
+    val data = dailyVerse.data
+    val targetUsfm = data.bookUsfm.orEmpty()
+    val targetBook = BibleAPIDataModel.bibleBooks.data?.let { books ->
+        books.find { targetUsfm.isNotBlank() && it.bookId.equals(targetUsfm, ignoreCase = true) }
+            ?: books.getOrNull((data.bookNumber - 1).coerceAtLeast(0))
+    } ?: BookData(
+        name = bibleBooksFull.getOrNull(data.bookNumber - 1) ?: targetUsfm,
+        chapters = listOf(Chapter(bookId = "$targetUsfm.intro")) +
+            (1..data.chapter.coerceAtLeast(1)).map { ch ->
+                Chapter(
+                    name = "$targetUsfm.$ch",
+                    bookId = targetUsfm,
+                    number = ch.toString(),
+                    position = ch,
+                )
+            },
+    )
+    AnalyticsTracker.trackBookSelected(
+        bookId = targetBook.bookId,
+        bookName = targetBook.name ?: targetBook.bookId,
+        source = "verse_of_the_day",
+    )
+    BibleIQDataModel.returnToShortsOnBack = false
+    BibleIQDataModel.restoreReadingLocation(targetBook, data.chapter.coerceAtLeast(1))
 }

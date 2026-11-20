@@ -32,9 +32,12 @@
 - **Randomized Order + Resume Position**:
   - `ShortsProgressManager` shuffles the 50-lesson catalog once per user, persists the deck order, and saves `lastShortId` so returning users resume right where they left off.
 
-### Tier 4 — Home Screen & Button Visual Uplift
-- **Verse of the Day Card**: Restyled with deep navy-slate gradient, subtle warm gold border (`#FBD38D`), warm gold eyebrow pill, and crisp typography matching `BiblicalShortsEntryCard`.
-- **Book Grid Buttons**: Restyled with `RoundedCornerShape(14.dp)`, subtle translucent border (`Color(0x38FFFFFF)`), refined elevation, and balanced spacing.
+### Tier 4 — Home Screen, Chapter Bar, Biblical Words & Polish Uplift
+- **Shimmer Chapter Placeholder**: Replaced text-based chapter loading with `ScriptureShimmerLoading()` (translucent glare bars matching scripture text layout); kept the warm-gold spinner + `"Generating AI summary…"` for AI summary generation.
+- **Book Grid Tiles & Living Word Sheen**: Replaced translucent Material `Button` (which caused elevation shadow bleed/inner rectangle artifact) with crisp opaque composited rounded tiles (`RoundedCornerShape(14.dp)`) plus a unified diagonal "Living Word" golden-white light wave across the grid.
+- **Home Header Controls & Edge-to-Edge**: Upgraded `OT-NT` / `A-Z` toggle into an animated segmented pill, enabled `enableEdgeToEdge()` with transparent system bars on Android, and made `VerseOfTheDayCard` tappable to jump directly to that exact book & chapter.
+- **Chapter Top Bar & iOS Back Gesture**: Centered the `BibleBible` emblem between the aligned book title + back arrow on the left and AI/Settings on the right; added left-edge swipe-right back navigation on iOS; wired Reader → Back to return to **Biblical Words** when opened from a clip's **Read Chapter** button.
+- **Biblical Words Rebrand & Scrubber**: Standardized naming to **Biblical Words** (removed `"50"` counts, `"Reels"`, and `"Swipe or tap to watch"`), enabled infinite looping feed, added double-tap center to toggle sound with visual toast feedback, added an interactive seekable progress slider to rewind/scrub live playback on Android/iOS, and masked/removed the `"BibleBible Shorts (25s)"` video footer.
 
 ## Deployment Note for Backend Feature Flags
 `backend/` is intentionally untracked in Git. Deploy backend updates to Cloud Run via:

@@ -173,7 +173,6 @@ internal fun BibleScripturesPager(
                 userScrollEnabled = !isDesktopPlatform()
             ) { page ->
                 val targetChapter = page + 1
-                val bookDisplayName = selectedBook.name ?: selectedBook.cleanedName ?: canonicalBookKey(selectedBook)
                 val pageMode = when {
                     !sameBook || chapters.chapterId != targetChapter || chapters.text == null -> "loading"
                     isAISummaryLoading && showAISummary -> "summary_loading"
@@ -182,11 +181,11 @@ internal fun BibleScripturesPager(
                 }
                 Crossfade(
                     targetState = pageMode,
-                    animationSpec = tween(durationMillis = 220),
+                    animationSpec = tween(durationMillis = 180),
                     label = "chapter_page_crossfade",
                 ) { mode ->
                     when (mode) {
-                        "loading" -> LoadingScreen(message = "Loading $bookDisplayName $targetChapter…")
+                        "loading" -> ScriptureShimmerLoading()
                         "summary_loading" -> LoadingScreen(message = "Generating AI summary…")
                         "summary" -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
                         else -> BibleScriptures(

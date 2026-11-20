@@ -6,7 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +15,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
@@ -29,12 +31,13 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.OutlinedButton
+import androidx.compose.material.Slider
+import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
@@ -46,9 +49,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -94,13 +97,16 @@ internal fun BiblicalShortsScreen(
             }
         )
     }
-    // Default sound OFF so shorts start quietly until the user opts in
+    // Default sound OFF so playback starts quietly until the user double-taps or toggles sound
     var isMuted by remember { mutableStateOf(true) }
     var isPaused by remember { mutableStateOf(false) }
     var elapsedSeconds by remember { mutableStateOf(0) }
+    var seekTargetSeconds by remember { mutableStateOf(0) }
+    var seekRequestId by remember { mutableStateOf(0) }
     var hasRestoredPosition by remember { mutableStateOf(false) }
     var showSwipeHint by remember { mutableStateOf(false) }
     var hintBounceOffsetPx by remember { mutableStateOf(0) }
+    var soundToastLabel by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(initialShorts) {
         if (initialShorts.isEmpty()) {
@@ -114,6 +120,8 @@ internal fun BiblicalShortsScreen(
             .ifEmpty { allShorts }
     }
 
+    val infiniteFeedEnabled = !useDeterministicOrder && filteredShorts.size > 1
+    val virtualPageCount = if (infiniteFeedEnabled) Int.MAX_VALUE else filteredShorts.size
     val initialResumePage = remember(filteredShorts, useDeterministicOrder) {
         if (useDeterministicOrder) {
             0
@@ -123,12 +131,16 @@ internal fun BiblicalShortsScreen(
     }
 
     val pagerState = rememberPagerState(
-        initialPage = initialResumePage.coerceIn(0, (filteredShorts.size - 1).coerceAtLeast(0)),
-        pageCount = { filteredShorts.size }
+        initialPage = initialResumePage.coerceIn(0, (virtualPageCount - 1).coerceAtLeast(0)),
+        pageCount = { virtualPageCount }
     )
-    val activeShort = filteredShorts.getOrNull(pagerState.currentPage)
+    val activeShort = if (filteredShorts.isNotEmpty()) {
+        filteredShorts[pagerState.currentPage % filteredShorts.size]
+    } else {
+        null
+    }
 
-    // Restore saved position once when switching back into "All" on first load
+    // Restore saved position once on initial load
     LaunchedEffect(filteredShorts.size) {
         if (!hasRestoredPosition && !useDeterministicOrder && filteredShorts.isNotEmpty()) {
             val target = ShortsPlaybackLogic.resolveResumeIndex(filteredShorts, progressManager.getLastShortId())
@@ -159,6 +171,13 @@ internal fun BiblicalShortsScreen(
         showSwipeHint = shouldHint
         if (shouldHint) {
             progressManager.markSwipeHintShown()
+        }
+    }
+
+    LaunchedEffect(soundToastLabel) {
+        if (soundToastLabel != null) {
+            delay(1100L)
+            soundToastLabel = null
         }
     }
 
@@ -211,18 +230,33 @@ internal fun BiblicalShortsScreen(
                     .fillMaxSize()
                     .testTag("biblical_shorts_pager"),
             ) { page ->
-                val shortItem = filteredShorts[page]
+                val shortItem = filteredShorts[page % filteredShorts.size]
                 val isCurrentPage = page == pagerState.currentPage
-                val pageElapsed = if (isCurrentPage) elapsedSeconds else 0
-                val progressFraction = ((pageElapsed + 1).toFloat() / shortItem.durationSeconds.coerceAtLeast(1)).coerceIn(0f, 1f)
+                val maxDuration = shortItem.durationSeconds.coerceAtLeast(1)
+                val pageElapsed = if (isCurrentPage) elapsedSeconds.coerceIn(0, maxDuration) else 0
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clickable {
-                            if (isCurrentPage) {
-                                isPaused = !isPaused
-                            }
+                        .pointerInput(isCurrentPage) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (isCurrentPage) {
+                                        isPaused = !isPaused
+                                    }
+                                },
+                                onDoubleTap = {
+                                    if (isCurrentPage) {
+                                        isMuted = !isMuted
+                                        soundToastLabel = if (isMuted) "Sound Off" else "Sound On"
+                                        AnalyticsTracker.track(
+                                            "short_double_tap_sound_toggled",
+                                            "biblical_shorts",
+                                            mapOf("muted" to isMuted.toString()),
+                                        )
+                                    }
+                                },
+                            )
                         },
                 ) {
                     ShortsVideoPlayer(
@@ -231,27 +265,54 @@ internal fun BiblicalShortsScreen(
                         isMuted = isMuted,
                         isPaused = isPaused,
                         elapsedSeconds = pageElapsed,
+                        seekTargetSeconds = seekTargetSeconds,
+                        seekRequestId = seekRequestId,
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    // Compact bottom overlay: optional weekly swipe hint + progress bar + categories + actions
+                    // Center double-tap sound feedback pill
+                    AnimatedVisibility(
+                        visible = isCurrentPage && soundToastLabel != null,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier.align(Alignment.Center),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = Color(0xCC09111E),
+                            border = BorderStroke(1.dp, Color(0x88FBD38D)),
+                            elevation = 0.dp,
+                        ) {
+                            Text(
+                                text = soundToastLabel.orEmpty(),
+                                color = Color(0xFFFBD38D),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                            )
+                        }
+                    }
+
+                    // Bottom overlay with solid lower scrim (masks any baked-in video footer cleanly)
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
                             .background(
                                 Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color(0xB809111E),
-                                        Color(0xF209111E),
+                                    colorStops = arrayOf(
+                                        0.0f to Color.Transparent,
+                                        0.28f to Color(0xEE09111E),
+                                        0.52f to Color(0xFF09111E),
+                                        1.0f to Color(0xFF09111E),
                                     )
                                 )
                             )
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                            .navigationBarsPadding()
+                            .padding(start = 16.dp, end = 16.dp, top = 26.dp, bottom = 14.dp),
                     ) {
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             AnimatedVisibility(
@@ -262,8 +323,9 @@ internal fun BiblicalShortsScreen(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(50),
-                                    color = Color(0x990F172A),
+                                    color = Color(0xB30F172A),
                                     border = BorderStroke(1.dp, Color(0x66FBD38D)),
+                                    elevation = 0.dp,
                                     modifier = Modifier
                                         .offset { IntOffset(0, hintBounceOffsetPx) }
                                         .testTag("shorts_swipe_hint"),
@@ -274,7 +336,7 @@ internal fun BiblicalShortsScreen(
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                     ) {
                                         Text(
-                                            text = "Swipe for next short",
+                                            text = "Swipe for next clip",
                                             color = Color(0xFFFBD38D),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.SemiBold,
@@ -289,17 +351,47 @@ internal fun BiblicalShortsScreen(
                                 }
                             }
 
-                            LinearProgressIndicator(
-                                progress = progressFraction,
-                                color = Color(0xFFFBD38D),
-                                backgroundColor = Color(0x33FFFFFF),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(3.dp)
-                                    .clip(RoundedCornerShape(50)),
-                            )
+                            // Interactive scrubber progress bar so users can rewind/seek after enabling sound
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = formatShortTime(pageElapsed),
+                                    color = Color(0xFFCBD5E1),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Slider(
+                                    value = pageElapsed.toFloat(),
+                                    onValueChange = { newSec ->
+                                        if (isCurrentPage) {
+                                            val clamped = newSec.roundToInt().coerceIn(0, maxDuration)
+                                            elapsedSeconds = clamped
+                                            seekTargetSeconds = clamped
+                                            seekRequestId++
+                                        }
+                                    },
+                                    valueRange = 0f..maxDuration.toFloat(),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color(0xFFFBD38D),
+                                        activeTrackColor = Color(0xFFFBD38D),
+                                        inactiveTrackColor = Color(0x44FFFFFF),
+                                    ),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(26.dp)
+                                        .testTag("shorts_progress_scrubber"),
+                                )
+                                Text(
+                                    text = formatShortTime(maxDuration),
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 11.sp,
+                                )
+                            }
 
-                            // Categories moved to bottom bar so top video title & scripture stay unobstructed
+                            // Category filter chips at bottom (unobstructed top video title)
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 2.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -319,11 +411,12 @@ internal fun BiblicalShortsScreen(
                                             onCategorySelected(category)
                                         },
                                         shape = RoundedCornerShape(50),
-                                        color = if (isSelected) Color(0xFFFBD38D) else Color(0x770F172A),
+                                        color = if (isSelected) Color(0xFFFBD38D) else Color(0xFF142033),
                                         border = BorderStroke(
                                             1.dp,
                                             if (isSelected) Color(0xFFFBD38D) else Color(0x44FFFFFF)
                                         ),
+                                        elevation = 0.dp,
                                     ) {
                                         Text(
                                             text = category,
@@ -337,7 +430,9 @@ internal fun BiblicalShortsScreen(
                             }
 
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 2.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -378,19 +473,23 @@ internal fun BiblicalShortsScreen(
                                             "biblical_shorts",
                                             mapOf("fromShortId" to shortItem.id),
                                         )
-                                        val nextIndex = (page + 1) % filteredShorts.size
+                                        val nextIndex = if (infiniteFeedEnabled) {
+                                            page + 1
+                                        } else {
+                                            (page + 1) % filteredShorts.size
+                                        }
                                         scope.launch { pagerState.animateScrollToPage(nextIndex) }
                                     },
                                     shape = RoundedCornerShape(50),
                                     border = BorderStroke(1.dp, Color(0x66FFFFFF)),
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        backgroundColor = Color(0x33000000),
+                                        backgroundColor = Color(0xFF142033),
                                         contentColor = Color.White,
                                     ),
                                     modifier = Modifier.testTag("next_short_btn_${shortItem.id}"),
                                 ) {
                                     Text(
-                                        text = "Next Short",
+                                        text = "Next",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 13.sp,
                                     )
@@ -407,7 +506,7 @@ internal fun BiblicalShortsScreen(
             }
         }
 
-        // Clean top overlay header only (category chips moved to bottom)
+        // Clean top overlay header (no hardcoded 1/50 counter; respects status bar)
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -417,27 +516,28 @@ internal fun BiblicalShortsScreen(
                         colors = listOf(Color(0xCC09111E), Color.Transparent)
                     )
                 )
-                .padding(start = 8.dp, end = 12.dp, top = 10.dp, bottom = 14.dp),
+                .statusBarsPadding()
+                .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back to Home",
                         tint = Color.White,
                     )
                 }
                 Column {
                     Text(
-                        text = "Biblical Shorts",
+                        text = "Biblical Words",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                     )
                     Text(
-                        text = "${(pagerState.currentPage + 1).coerceAtMost(filteredShorts.size)} / ${filteredShorts.size} · Under 30s",
+                        text = activeShort?.category ?: "Daily Scripture Moments",
                         color = Color(0xFFCBD5E1),
                         fontSize = 11.sp,
                     )
@@ -457,6 +557,7 @@ internal fun BiblicalShortsScreen(
                     shape = CircleShape,
                     color = Color(0x66000000),
                     border = BorderStroke(1.dp, Color(0x44FFFFFF)),
+                    elevation = 0.dp,
                     modifier = Modifier.testTag("shorts_mute_toggle"),
                 ) {
                     Text(
@@ -479,6 +580,7 @@ internal fun BiblicalShortsScreen(
                     shape = CircleShape,
                     color = Color(0x66000000),
                     border = BorderStroke(1.dp, Color(0x44FFFFFF)),
+                    elevation = 0.dp,
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -500,4 +602,12 @@ internal fun BiblicalShortsScreen(
             }
         }
     }
+}
+
+private fun formatShortTime(seconds: Int): String {
+    val safe = seconds.coerceAtLeast(0)
+    val mins = safe / 60
+    val secs = safe % 60
+    val secStr = if (secs < 10) "0$secs" else "$secs"
+    return "$mins:$secStr"
 }

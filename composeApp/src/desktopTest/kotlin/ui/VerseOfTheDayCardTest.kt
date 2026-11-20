@@ -45,4 +45,25 @@ class VerseOfTheDayCardTest {
         onNodeWithText("Loading today’s verse…").assertIsDisplayed()
         onNodeWithText("Try again").assertDoesNotExist()
     }
+
+    @Test
+    fun readyCardTappingNavigatesToVerseChapter() = runComposeUiTest {
+        var clicked: DailyVerse? = null
+        val verse = DailyVerse("BSB", "2026-11-19", DailyVerseData(43, 3, 16, "For God so loved the world", "JHN"))
+        setContent {
+            BibleBibleTheme {
+                VerseOfTheDayCard(
+                    state = DailyVerseState.Ready(verse),
+                    version = "BSB",
+                    onRetry = {},
+                    onVerseClick = { clicked = it },
+                )
+            }
+        }
+        onNodeWithText("For God so loved the world").performClick()
+        runOnIdle {
+            assertEquals(43, clicked?.data?.bookNumber)
+            assertEquals(3, clicked?.data?.chapter)
+        }
+    }
 }

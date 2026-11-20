@@ -29,14 +29,15 @@ class BiblicalShortsUiTest {
                 )
             }
         }
-        onNodeWithText("Biblical Shorts · 50 Life Lessons").assertIsDisplayed()
-        onNodeWithText("50 Reels").assertIsDisplayed()
+        onNodeWithText("Biblical Words").assertIsDisplayed()
+        onNodeWithText("Watch").assertIsDisplayed()
+        onNodeWithText("50 Reels").assertDoesNotExist()
         onNodeWithTag("biblical_shorts_entry_arrow").performClick()
         runOnIdle { assertEquals(1, opened) }
     }
 
     @Test
-    fun shortsScreenDefaultsSoundOffDecluttersBottomShowsWeeklyHintAndTriggersReadChapter() = runComposeUiTest {
+    fun shortsScreenDefaultsSoundOffIncludesScrubberShowsWeeklyHintAndTriggersReadChapter() = runComposeUiTest {
         val sampleShorts = defaultBiblicalShortsCatalog("")
         var selectedCategory = "All"
         var openedChapter: BiblicalShortDto? = null
@@ -57,19 +58,20 @@ class BiblicalShortsUiTest {
             }
         }
 
-        onNodeWithText("Biblical Shorts").assertIsDisplayed()
+        onNodeWithText("Biblical Words").assertIsDisplayed()
         // Sound defaults to OFF and toggles cleanly
         onNodeWithText("Sound Off").assertIsDisplayed()
         onNodeWithTag("shorts_mute_toggle").performClick()
         onNodeWithText("Sound On").assertIsDisplayed()
 
-        // Decluttered bottom: Key Lesson box removed, bottom categories + weekly swipe hint present
+        // Decluttered bottom: Key Lesson removed, scrubber + bottom categories + weekly hint present
         onNodeWithText("Key Lesson:", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
 
         // Advance to second short and tap Read Chapter
-        onNodeWithText("Next Short").performClick()
+        onNodeWithText("Next").performClick()
         onNodeWithTag("read_chapter_btn_short-02-noah-perseverance").performClick()
         runOnIdle {
             assertEquals("short-02-noah-perseverance", openedChapter?.id)

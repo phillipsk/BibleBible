@@ -35,6 +35,8 @@ internal expect fun ShortsVideoPlayer(
     isMuted: Boolean,
     isPaused: Boolean,
     elapsedSeconds: Int,
+    seekTargetSeconds: Int = 0,
+    seekRequestId: Int = 0,
     modifier: Modifier = Modifier,
 )
 
