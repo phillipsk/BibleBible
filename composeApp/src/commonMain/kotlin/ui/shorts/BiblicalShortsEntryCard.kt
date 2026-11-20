@@ -95,7 +95,7 @@ internal fun BiblicalShortsEntryCard(
         },
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 18.dp)
+            .padding(bottom = 16.dp)
             .testTag("biblical_shorts_entry_card")
             .pointerInput(onOpenShorts) {
                 detectHorizontalDragGestures(
@@ -121,6 +121,7 @@ internal fun BiblicalShortsEntryCard(
     ) {
         Row(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(cardBrush)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,

@@ -55,6 +55,7 @@ internal sealed interface DailyVerseState {
 @Composable
 internal fun VerseOfTheDay(
     version: String,
+    modifier: Modifier = Modifier,
     onVerseClick: (DailyVerse) -> Unit = {},
 ) {
     var retry by remember { mutableStateOf(0) }
@@ -102,6 +103,7 @@ internal fun VerseOfTheDay(
             retry++
         },
         onVerseClick = onVerseClick,
+        modifier = modifier,
     )
 }
 
@@ -111,6 +113,7 @@ internal fun VerseOfTheDayCard(
     version: String,
     onRetry: () -> Unit,
     onVerseClick: (DailyVerse) -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val cardBrush = Brush.horizontalGradient(
         colors = listOf(
@@ -121,7 +124,7 @@ internal fun VerseOfTheDayCard(
     )
     val readyVerse = (state as? DailyVerseState.Ready)?.verse
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 16.dp)
             .testTag("verse_of_the_day_card")
@@ -150,6 +153,7 @@ internal fun VerseOfTheDayCard(
     ) {
         Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .background(cardBrush)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

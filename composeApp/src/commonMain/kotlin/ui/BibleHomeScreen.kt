@@ -14,14 +14,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -224,18 +230,43 @@ internal fun BibleHomeScreen(
                 } else if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
-                        header = {
-                            Column {
-                                if (CloudSessionManager.verseOfTheDayEnabled) {
+                        header = { isWideLayout ->
+                            val showVotd = CloudSessionManager.verseOfTheDayEnabled
+                            val showShorts = CloudSessionManager.biblicalShortsEnabled
+                            if (isWideLayout && showVotd && showShorts) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
                                     VerseOfTheDay(
                                         version = BibleIQDataModel.selectedVersion,
+                                        modifier = Modifier
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
                                         onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
                                     )
-                                }
-                                if (CloudSessionManager.biblicalShortsEnabled) {
                                     BiblicalShortsEntryCard(
-                                        onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
+                                        onOpenShorts = { BibleIQDataModel.openBiblicalShorts() },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
                                     )
+                                }
+                            } else {
+                                Column {
+                                    if (showVotd) {
+                                        VerseOfTheDay(
+                                            version = BibleIQDataModel.selectedVersion,
+                                            onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
+                                        )
+                                    }
+                                    if (showShorts) {
+                                        BiblicalShortsEntryCard(
+                                            onOpenShorts = { BibleIQDataModel.openBiblicalShorts() }
+                                        )
+                                    }
                                 }
                             }
                         },
@@ -261,7 +292,7 @@ internal fun BibleHomeScreen(
 internal fun BibleBookList(
     bookData: List<BookData>?,
     lazyGridState: LazyGridState = rememberLazyGridState(),
-    header: (@Composable () -> Unit)? = null,
+    header: (@Composable (isWideLayout: Boolean) -> Unit)? = null,
 ) {
     // Unified diagonal "Living Word" light sheen sweeping gracefully across the book grid
     val infiniteTransition = rememberInfiniteTransition(label = "living_word_sheen")
@@ -287,10 +318,12 @@ internal fun BibleBookList(
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         bookData?.let { bookDataList ->
-            Column(modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val isWideLayout = maxWidth >= 560.dp
+                val columnsCount = if (isWideLayout) 5 else 3
                 LazyVerticalGrid(
                     state = lazyGridState,
-                    columns = GridCells.Fixed(3),
+                    columns = GridCells.Fixed(columnsCount),
                     contentPadding = PaddingValues(
                         start = 12.dp,
                         end = 12.dp,
@@ -300,7 +333,7 @@ internal fun BibleBookList(
                     userScrollEnabled = true,
                 ) {
                     if (header != null) {
-                        item(span = { GridItemSpan(maxLineSpan) }) { header() }
+                        item(span = { GridItemSpan(maxLineSpan) }) { header(isWideLayout) }
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 text = "Study the Word",
@@ -316,8 +349,8 @@ internal fun BibleBookList(
                         }
                     }
                     itemsIndexed(items = bookDataList) { index, book ->
-                        val row = index / 3
-                        val col = index % 3
+                        val row = index / columnsCount
+                        val col = index % columnsCount
                         // Composite the book tint solidly over the deep background so there is NEVER any translucent shadow box artifact
                         val rawColor = BibleAPIDataModel.getBibleBookColor(
                             BibleIQDataModel.getAPIBibleOrdinal(book.bookId)
