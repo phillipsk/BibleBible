@@ -31,6 +31,7 @@ import kotlin.native.concurrent.ThreadLocal
 data class CloudFeatureFlagsDto(
     val biblicalShortsEnabled: Boolean = true,
     val verseOfTheDayEnabled: Boolean = true,
+    val inHouseWordsEnabled: Boolean = true,
 )
 
 @Serializable
@@ -90,6 +91,9 @@ object CloudSessionManager {
 
     val verseOfTheDayEnabled: Boolean
         get() = featureFlags.verseOfTheDayEnabled
+
+    val inHouseWordsEnabled: Boolean
+        get() = featureFlags.inHouseWordsEnabled
 
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url

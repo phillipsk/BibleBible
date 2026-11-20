@@ -47,12 +47,16 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -110,6 +114,7 @@ internal fun BiblicalShortsScreen(
     // Default sound OFF so playback starts quietly until the user double-taps or toggles sound
     var isMuted by remember { mutableStateOf(true) }
     var isPaused by remember { mutableStateOf(false) }
+    var isAppInForeground by remember { mutableStateOf(true) }
     var elapsedSeconds by remember { mutableStateOf(0) }
     var seekTargetSeconds by remember { mutableStateOf(0) }
     var seekRequestId by remember { mutableStateOf(0) }
@@ -118,6 +123,26 @@ internal fun BiblicalShortsScreen(
     var hintBounceOffsetPx by remember { mutableStateOf(0) }
     var soundToastLabel by remember { mutableStateOf<String?>(null) }
     var hasLoadedRemoteCatalog by remember { mutableStateOf(false) }
+
+    // Pause audio & video immediately when backgrounded; resume automatically on foreground
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> {
+                    isAppInForeground = false
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    isAppInForeground = true
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(initialShorts) {
         if (initialShorts.isEmpty() && !hasLoadedRemoteCatalog) {
@@ -194,8 +219,8 @@ internal fun BiblicalShortsScreen(
         }
     }
 
-    LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused) {
-        if (!enablePlaybackTimer || activeShort == null || isPaused) return@LaunchedEffect
+    LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused, isAppInForeground) {
+        if (!enablePlaybackTimer || activeShort == null || isPaused || !isAppInForeground) return@LaunchedEffect
         val maxDuration = activeShort.durationSeconds.coerceAtLeast(1)
         while (isActive) {
             withContext(Dispatchers.Default) {
@@ -290,7 +315,7 @@ internal fun BiblicalShortsScreen(
                 ) {
                     ShortsVideoPlayer(
                         shortItem = shortItem,
-                        isActive = isCurrentPage,
+                        isActive = isCurrentPage && isAppInForeground,
                         isMuted = isMuted,
                         isPaused = isPaused,
                         elapsedSeconds = pageElapsed,

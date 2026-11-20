@@ -41,6 +41,21 @@ internal actual fun ShortsVideoPlayer(
         }
     }
 
+    LaunchedEffect(isActive, isPaused, isMuted, videoReady) {
+        val player = mediaPlayerRef ?: return@LaunchedEffect
+        val volume = if (isMuted) 0f else 1f
+        runCatching {
+            player.setVolume(volume, volume)
+            if (videoReady) {
+                if (isActive && !isPaused && !player.isPlaying) {
+                    player.start()
+                } else if ((!isActive || isPaused) && player.isPlaying) {
+                    player.pause()
+                }
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         ShortsStoryboardBackdrop(
             shortItem = shortItem,
