@@ -1,10 +1,10 @@
 package data.config
 
-import JSON_VERSIONS
 import data.AppHttpClientConfig
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersion
-import data.bibleIQ.BibleIQVersions
+import data.bible.BibleState
+import data.bible.BibleVersion
+import data.bible.BibleVersions
+import data.bible.json.BUNDLED_BIBLE_VERSIONS_JSON
 import data.createHttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -27,12 +27,12 @@ class CloudConfigRepositoryTest {
     @AfterTest
     fun resetState() {
         CloudSessionManager.resetForTesting()
-        BibleIQDataModel.updateBibleVersions(BibleIQVersions())
+        BibleState.updateBibleVersions(BibleVersions())
     }
 
     @Test
     fun bundledLeanVersionsMatchSelectedSixTranslations() {
-        val versions = Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
+        val versions = Json.decodeFromString<List<BibleVersion>>(BUNDLED_BIBLE_VERSIONS_JSON)
         assertEquals(
             listOf("KJV", "BSB", "WEB", "BBE", "RV1909", "SVD"),
             versions.map { it.abbreviation }
@@ -47,7 +47,7 @@ class CloudConfigRepositoryTest {
     @Test
     fun initializeStartupConfigLoadsSessionTokenAndDynamicSettings() = runTest {
         CloudSessionManager.overrideGatewayUrlForTesting("https://biblebible-api.example.run.app")
-        val expectedVersions = Json.decodeFromString<List<BibleIQVersion>>(JSON_VERSIONS)
+        val expectedVersions = Json.decodeFromString<List<BibleVersion>>(BUNDLED_BIBLE_VERSIONS_JSON)
         val payload = CloudRuntimeConfigDto(
             schemaVersion = 1,
             aiSummariesEnabled = true,
@@ -76,7 +76,7 @@ class CloudConfigRepositoryTest {
             assertEquals("short-lived-jwt-token-123", CloudSessionManager.sessionToken)
             assertEquals("gemini-3.5-flash", CloudSessionManager.geminiModel)
             assertTrue(CloudSessionManager.aiSummariesEnabled)
-            assertEquals(6, BibleIQDataModel.bibleVersions.data.size)
+            assertEquals(6, BibleState.bibleVersions.data.size)
             assertFalse(loaded.toString().contains("short-lived-jwt-token-123"))
         } finally {
             client.close()

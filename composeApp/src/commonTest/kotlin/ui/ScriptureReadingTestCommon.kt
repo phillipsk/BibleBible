@@ -21,7 +21,7 @@ import androidx.compose.ui.test.pinch
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import data.bibleIQ.BibleChapterUIState
+import data.bible.BibleChapterUIState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs

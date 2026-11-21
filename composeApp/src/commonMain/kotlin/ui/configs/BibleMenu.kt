@@ -21,21 +21,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPrefsBibleVersion
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersions
+import data.bible.BibleState
+import data.bible.BibleVersions
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleMenu(
-    bibleVersionsList: BibleIQVersions,
+    bibleVersionsList: BibleVersions,
     selectedVersion: String,
     bottomSheetState: BottomSheetState,
+    onInteraction: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope { Dispatchers.IO }
     Row(
@@ -44,15 +44,12 @@ internal fun BibleMenu(
     ) {
         bibleVersionsList.data.forEach { version ->
             if (version.abbreviation != null) {
-//                Napier.v("version.abbreviation ${version.abbreviation} " +
-//                        " equals :: selectedVersion :: $selectedVersion", tag = "AP8243")
                 val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
                 FilterChip(
                     onClick = {
-                        val previousVersion = BibleIQDataModel.selectedVersion
-                        BibleIQDataModel.run {
-                            updateSelectedVersion(version.abbreviation)
-                        }
+                        onInteraction()
+                        val previousVersion = BibleState.selectedVersion
+                        BibleState.updateSelectedVersion(version.abbreviation)
                         AnalyticsTracker.trackTranslationChanged(previousVersion, version.abbreviation)
                         scope.launch {
                             Napier.v(

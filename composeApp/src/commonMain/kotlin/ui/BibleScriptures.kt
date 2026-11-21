@@ -33,8 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
-import data.bibleIQ.BibleChapterUIState
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleChapterUIState
+import data.bible.BibleState
+import data.notifications.findVerseCharacterOffset
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -91,12 +92,46 @@ internal fun BibleScriptures(
         }
     }
 
+    LaunchedEffect(
+        textLayout,
+        chapters.text,
+        BibleState.pendingTargetVerse,
+        BibleState.pendingTargetBookId,
+        BibleState.pendingTargetChapter,
+    ) {
+        val targetVerse = BibleState.pendingTargetVerse ?: return@LaunchedEffect
+        val targetBookId = BibleState.pendingTargetBookId ?: return@LaunchedEffect
+        val targetChapter = BibleState.pendingTargetChapter ?: return@LaunchedEffect
+        val layout = textLayout ?: return@LaunchedEffect
+        val chapterText = chapters.text ?: return@LaunchedEffect
+        if (chapterText.isBlank()) return@LaunchedEffect
+        if (!BibleState.selectedBook.bookId.equals(targetBookId, ignoreCase = true) ||
+            chapters.chapterId != targetChapter
+        ) {
+            return@LaunchedEffect
+        }
+
+        val charOffset = findVerseCharacterOffset(
+            chapterText = chapterText,
+            verseNumber = targetVerse,
+            version = chapters.version ?: BibleState.selectedVersion,
+        )
+        if (charOffset != null) {
+            readingState.jumpToOffset(charOffset)
+            withFrameNanos { }
+            scrollState.scrollTo(readingState.scrollOffset(layout))
+            readingState.restoredScrollOffset = scrollState.value
+            readingState.restoring = false
+        }
+        BibleState.clearPendingTargetVerse()
+    }
+
     LaunchedEffect(Unit) {
         snapshotFlow { currentFontSize }
             .distinctUntilChanged()
             .drop(1)
             .debounce(300)
-            .collect { updateUserPreferences(it, BibleIQDataModel.selectedVersion) }
+            .collect { updateUserPreferences(it, BibleState.selectedVersion) }
     }
 
     BoxWithConstraints(
@@ -117,7 +152,7 @@ internal fun BibleScriptures(
                 }
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
-                .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 18.dp)
+                .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 120.dp)
                 .pointerInput(Unit) {
                     try {
                         awaitPointerEventScope {

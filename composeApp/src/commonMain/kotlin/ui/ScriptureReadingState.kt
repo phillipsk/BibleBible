@@ -48,6 +48,14 @@ internal class ScriptureReadingState(initialAnchor: ScriptureAnchor = ScriptureA
         }
     }
 
+    internal fun jumpToOffset(characterOffset: Int) {
+        restoring = true
+        zooming = false
+        awaitingZoomRestore = false
+        restoredScrollOffset = null
+        anchor = ScriptureAnchor(character = characterOffset.coerceAtLeast(0), lineFraction = 0f)
+    }
+
     fun capture(scrollOffset: Int) {
         val textLayout = layout ?: return
         if (restoring || zooming || awaitingZoomRestore || restoredScrollOffset != null || textLayout.lineCount == 0) return

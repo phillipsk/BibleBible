@@ -36,7 +36,7 @@ import biblebible.composeapp.generated.resources.BibleBible_ico_iv
 import biblebible.composeapp.generated.resources.Res
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
@@ -44,7 +44,7 @@ import org.jetbrains.compose.resources.painterResource
 internal fun ChapterTopBar(
     showHomePage: Boolean,
     onBackClick: () -> Unit,
-    onHomeEmblemClick: () -> Unit = BibleIQDataModel.onHomeClick,
+    onHomeEmblemClick: () -> Unit = BibleState.onHomeClick,
     showBottomSheet: () -> Unit,
 ) {
     BoxWithConstraints(
@@ -52,7 +52,7 @@ internal fun ChapterTopBar(
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
     ) {
-        val bookTitle = BibleIQDataModel.selectedBook.cleanedName.toString()
+        val bookTitle = BibleState.selectedBook.cleanedName.toString()
         // Show full dead-center icon + gold "BibleBible" whenever the title leaves breathing room
         val showBrandTitle = maxWidth >= 340.dp && bookTitle.length <= 10
 
@@ -113,9 +113,9 @@ internal fun ChapterTopBar(
             modifier = Modifier.align(Alignment.CenterEnd),
         ) {
             key(
-                BibleIQDataModel.selectedBook.bookId,
-                BibleIQDataModel.bibleChapter?.chapterId,
-                BibleIQDataModel.selectedVersion,
+                BibleState.selectedBook.bookId,
+                BibleState.bibleChapter?.chapterId,
+                BibleState.selectedVersion,
             ) {
                 AISummaryTopBar()
             }
@@ -146,8 +146,8 @@ private fun AISummaryTopBar() {
                     "ai_summary_toggled",
                     mapOf(
                         "visible" to "true",
-                        "bookName" to (BibleIQDataModel.selectedBook.cleanedName ?: ""),
-                        "chapter" to (BibleIQDataModel.bibleChapter?.chapterId?.toString() ?: ""),
+                        "bookName" to (BibleState.selectedBook.cleanedName ?: ""),
+                        "chapter" to (BibleState.bibleChapter?.chapterId?.toString() ?: ""),
                     ),
                 )
                 scope.launch {

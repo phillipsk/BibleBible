@@ -1,6 +1,6 @@
-package data.apiBible.json
+package data.bible.json
 
-val JSON_BOOKS_API_BIBLE = """
+internal val BUNDLED_BIBLE_BOOKS_JSON = """
     {
       "data": [
         {

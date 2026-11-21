@@ -5,8 +5,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
-import data.bibleIQ.DailyVerse
-import data.bibleIQ.DailyVerseData
+import data.bible.DailyVerse
+import data.bible.DailyVerseData
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

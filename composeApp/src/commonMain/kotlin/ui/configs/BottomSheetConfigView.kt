@@ -13,39 +13,62 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.getReadingHistory
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersions
+import data.bible.BibleState
+import data.bible.BibleVersions
+import data.bible.fetchReadingHistory
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.delay
+
+internal const val DRAWER_AUTO_DISMISS_MS = 10_000L
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BottomSheetConfigView(
-    bibleVersionsList: BibleIQVersions,
+    bibleVersionsList: BibleVersions,
     showAISummary: Boolean,
     bottomSheetState: BottomSheetState,
+    autoDismissDelayMs: Long = DRAWER_AUTO_DISMISS_MS,
 ) {
+    var interactionNonce by remember { mutableIntStateOf(0) }
+
     LaunchedEffect(true) {
-        getReadingHistory()
+        fetchReadingHistory()
     }
-    val readingHistory = BibleAPIDataModel.readingHistory
+
+    LaunchedEffect(bottomSheetState.isExpanded, interactionNonce, autoDismissDelayMs) {
+        if (bottomSheetState.isExpanded && autoDismissDelayMs > 0L) {
+            delay(autoDismissDelayMs)
+            if (bottomSheetState.isExpanded) {
+                bottomSheetState.collapse()
+            }
+        }
+    }
+
+    val readingHistory = BibleState.readingHistory
     Napier.v("LaunchedEffect :: count :: ${readingHistory?.size}", tag = "RH1283")
     val bottomSheetHeight = if (isDesktopPlatform()) 150.dp else 550.dp
     Column(modifier = Modifier.padding(4.dp).height(bottomSheetHeight)) {
         if (!showAISummary) {
             BibleMenu(
                 bibleVersionsList = bibleVersionsList,
-                selectedVersion = BibleIQDataModel.selectedVersion,
-                bottomSheetState = bottomSheetState
+                selectedVersion = BibleState.selectedVersion,
+                bottomSheetState = bottomSheetState,
+                onInteraction = { interactionNonce++ },
             )
         }
-        FontSizeSlider(bottomSheetState)
+        FontSizeSlider(
+            bottomSheetState = bottomSheetState,
+            onInteraction = { interactionNonce++ },
+        )
         if (!readingHistory.isNullOrEmpty()) {
             Text(text = "Reading History",
                 fontFamily = MaterialTheme.typography.h1.fontFamily,

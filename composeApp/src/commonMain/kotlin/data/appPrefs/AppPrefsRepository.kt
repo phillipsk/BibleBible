@@ -1,6 +1,6 @@
 package data.appPrefs
 
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
@@ -57,11 +57,11 @@ internal suspend fun getUserPreferences() {
                     Napier.v("init app load user prefs :: INSERT init load", tag = "AP8243")
                 } else {
                     withContext(Dispatchers.Main) {
-                        BibleIQDataModel.selectedFontSize = data[0].fontSize.toFloat()
-                        BibleIQDataModel.updateSelectedVersion(data[0].bibleVersion)
+                        BibleState.selectedFontSize = data[0].fontSize.toFloat()
+                        BibleState.updateSelectedVersion(data[0].bibleVersion)
                         Napier.v(
-                            "getUserPreferences :: fontSize ${BibleIQDataModel.selectedFontSize} " +
-                                    " bibleVersion :: ${BibleIQDataModel.selectedVersion}",
+                            "getUserPreferences :: fontSize ${BibleState.selectedFontSize} " +
+                                    " bibleVersion :: ${BibleState.selectedVersion}",
                             tag = "AP8243"
                         )
                     }

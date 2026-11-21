@@ -1,23 +1,20 @@
-package data.bibleIQ
+package data.bible
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-val longBookNamesSet = setOf(13, 14, 46, 47, 52, 53)
-
-
 @Serializable
-data class BibleIQVersions(
-    val data: List<BibleIQVersion> = listOf(),
+data class BibleVersions(
+    val data: List<BibleVersion> = listOf(),
 )
 
 @Serializable
-data class BibleIQVersion(
+data class BibleVersion(
     val table: String? = null,
     @SerialName("version_id") val versionId: String? = null,
     val abbreviation: String? = null,
     val version: String? = null,
-    val language: String? = null
+    val language: String? = null,
 ) {
     val uiAbbreviation = when (abbreviation) {
         "KJV" -> "KJV"
@@ -31,16 +28,39 @@ data class BibleIQVersion(
 }
 
 @Serializable
-data class BibleIQBooks(
-    val data: List<BibleIQBook> = listOf(),
+data class BibleBooksResponse(
+    val data: List<BookData>? = null,
 )
 
 @Serializable
-data class BibleIQBook(private val b: String? = null, private val n: String? = null) {
-    val bookId = b?.toInt() ?: 1
-    private val isLongName = bookId in longBookNamesSet
-    val name = (if (isLongName) n?.take(7) else n) ?: "Genesis"
+data class BookData(
+    private val id: String? = null,
+    val bibleId: String? = null,
+    val abbreviation: String? = null,
+    val name: String? = null,
+    val nameLong: String? = null,
+    private val chapters: List<Chapter>? = emptyList(),
+) {
+    val bookId = chapters?.getOrNull(1)?.bookId ?: id ?: "GEN.1"
+    val remoteKey = "$bookId.1"
+    val cleanedName = if ((name?.length ?: 0) >= 12 &&
+        name?.getOrNull(0)?.isDigit() == true
+    ) {
+        name.take(7)
+    } else {
+        name
+    }
+    val chapterListBookData = chapters?.drop(1) // drop the first intro chapter
 }
+
+@Serializable
+data class Chapter(
+    @SerialName("id") private val name: String? = null,
+    val bibleId: String? = null,
+    val bookId: String? = null,
+    val number: String? = null,
+    val position: Int? = null,
+)
 
 @Serializable
 data class BibleChapter(
@@ -48,7 +68,7 @@ data class BibleChapter(
     val b: String? = null,
     val c: String? = null,
     val v: String? = null,
-    val t: String? = null
+    val t: String? = null,
 )
 
 @Serializable
@@ -63,17 +83,15 @@ data class BibleChapterUIState(
     val version: String? = null,
 )
 
-val bibleBooks = listOf(
-    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
-    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chron", "2 Chron", "Ezra",
-    "Nehemiah", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon",
-    "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
-    "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah",
-    "Malachi", "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corin",
-    "2 Corin", "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thess",
-    "2 Thess", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
-    "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
-)
+data class ReadingHistoryUIState(
+    val bookName: String? = null,
+    val chapterId: Int? = null,
+    val date: String? = null,
+) {
+    override fun toString(): String {
+        return "$date   $bookName, Chapter: $chapterId"
+    }
+}
 
 val bibleBooksFull = listOf(
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
@@ -84,6 +102,5 @@ val bibleBooksFull = listOf(
     "Malachi", "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians",
     "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thessalonians",
     "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James",
-    "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"
+    "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation",
 )
-

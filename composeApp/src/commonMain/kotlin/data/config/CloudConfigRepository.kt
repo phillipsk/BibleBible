@@ -4,9 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import data.analytics.AnalyticsTracker
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersion
-import data.bibleIQ.BibleIQVersions
+import data.bible.BibleState
+import data.bible.BibleVersion
+import data.bible.BibleVersions
 import data.gemini.GEMINI_MODEL
 import data.httpClientCloudGateway
 import email.kevinphillips.biblebible.BuildKonfig
@@ -40,7 +40,7 @@ data class CloudRuntimeConfigDto(
     val aiSummariesEnabled: Boolean = true,
     val geminiModel: String = GEMINI_MODEL,
     val defaultVersion: String = "KJV",
-    val supportedVersions: List<BibleIQVersion> = emptyList(),
+    val supportedVersions: List<BibleVersion> = emptyList(),
     val sessionToken: String = "",
     val tokenExpiresInSeconds: Long = 3600L,
     val features: CloudFeatureFlagsDto = CloudFeatureFlagsDto(),
@@ -198,7 +198,7 @@ object CloudSessionManager {
             geminiModel = config.geminiModel
         }
         if (config.supportedVersions.isNotEmpty()) {
-            BibleIQDataModel.updateBibleVersions(BibleIQVersions(config.supportedVersions))
+            BibleState.updateBibleVersions(BibleVersions(config.supportedVersions))
         }
     }
 }

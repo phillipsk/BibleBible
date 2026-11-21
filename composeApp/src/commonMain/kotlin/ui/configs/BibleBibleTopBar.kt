@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import ui.configs.home.HomeTopBar
 
 @Composable
@@ -27,13 +27,13 @@ internal fun BibleBibleTopBar(onClick: () -> Unit, showBottomSheet: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (BibleIQDataModel.showHomePage) {
+            if (BibleState.showHomePage) {
                 BibleBookTopBar()
             } else {
                 ChapterTopBar(
-                    showHomePage = BibleIQDataModel.showHomePage,
+                    showHomePage = BibleState.showHomePage,
                     onBackClick = onClick,
-                    onHomeEmblemClick = BibleIQDataModel.onHomeClick,
+                    onHomeEmblemClick = BibleState.onHomeClick,
                     showBottomSheet = showBottomSheet,
                 )
             }

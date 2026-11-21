@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,8 +67,8 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
             AnalyticsTracker.trackAiSummary(
                 "ai_summary_pull_refresh",
                 mapOf(
-                    "bookName" to (BibleIQDataModel.selectedBook.cleanedName ?: ""),
-                    "chapter" to (BibleIQDataModel.bibleChapter?.chapterId?.toString() ?: ""),
+                    "bookName" to (BibleState.selectedBook.cleanedName ?: ""),
+                    "chapter" to (BibleState.bibleChapter?.chapterId?.toString() ?: ""),
                 ),
             )
             GeminiModel.generateAISummary(pullToRefresh = true)
@@ -76,13 +76,13 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
         withContext(Dispatchers.Main) {
             if (GeminiModel.geminiDataText?.isEmpty() == false) {
                 content = GeminiModel.geminiDataText
+                scrollState.scrollTo(0)
             } else {
-                BibleIQDataModel.updateErrorSnackBar(
+                BibleState.updateErrorSnackBar(
                     GeminiModel.errorMessage ?: "Gemini returned no summary. Please try again."
                 )
                 GeminiModel.showSummary = false
             }
-            scrollState.scrollTo(0)
             refreshing = false
         }
     }
@@ -157,8 +157,8 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 )
                             }
-                            val chapterNum = BibleIQDataModel.bibleChapter?.chapterId
-                            val bookName = BibleIQDataModel.selectedBook.cleanedName.orEmpty()
+                            val chapterNum = BibleState.bibleChapter?.chapterId
+                            val bookName = BibleState.selectedBook.cleanedName.orEmpty()
                             if (bookName.isNotBlank() && chapterNum != null) {
                                 Text(
                                     text = "$bookName $chapterNum",

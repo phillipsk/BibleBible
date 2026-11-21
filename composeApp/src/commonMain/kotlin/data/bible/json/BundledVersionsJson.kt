@@ -1,4 +1,6 @@
-const val JSON_VERSIONS =
+package data.bible.json
+
+internal const val BUNDLED_BIBLE_VERSIONS_JSON =
     """
 [
   {

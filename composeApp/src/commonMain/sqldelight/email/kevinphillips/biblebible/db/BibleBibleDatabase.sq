@@ -46,7 +46,7 @@ SELECT COUNT(*) FROM BibleVerses;
 
 removeExcessVerses:
 DELETE FROM BibleVerses WHERE uuid IN (
-    SELECT uuid FROM BibleVerses ORDER BY created_at ASC LIMIT (
+    SELECT uuid FROM BibleVerses ORDER BY updated_at ASC LIMIT (
         SELECT COUNT(*) - ? FROM BibleVerses
     )
 );

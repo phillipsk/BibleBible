@@ -1,6 +1,6 @@
 package data.shorts
 
-import data.apiBible.currentTimeMillis
+import data.bible.currentTimeMillis
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import kotlin.random.Random

@@ -1,4 +1,4 @@
-package data.apiBible
+package data.bible
 
 import email.kevinphillips.biblebible.cache.getUserTimeZone
 import kotlin.time.Clock

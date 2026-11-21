@@ -1,10 +1,10 @@
 package data.appPrefs
 
-import data.bibleIQ.BibleIQDataModel
-import data.apiBible.BookData
-import data.apiBible.Chapter
-import data.bibleIQ.BibleChapter
-import data.bibleIQ.ChapterCount
+import data.bible.BibleChapter
+import data.bible.BibleState
+import data.bible.BookData
+import data.bible.Chapter
+import data.bible.ChapterCount
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,23 +21,23 @@ class ReadingSessionLifecycleTest {
             chapters = listOf(Chapter(bookId = "GEN", number = "intro")) +
                 (1..3).map { Chapter(bookId = "GEN", number = it.toString()) },
         )
-        BibleIQDataModel.updateSelectedVersion("KJV")
-        val bookId = BibleIQDataModel.getAPIBibleOrdinal(book.remoteKey)
-        BibleIQDataModel.updateBibleChapter(
+        BibleState.updateSelectedVersion("KJV")
+        val bookId = BibleState.getBookOrdinal(book.remoteKey)
+        BibleState.updateBibleChapter(
             listOf(BibleChapter(id = "test", b = bookId.toString(), c = "3", v = "1", t = "Already loaded")),
             ChapterCount(3), "KJV"
         )
         try {
-            val loaded = BibleIQDataModel.bibleChapter
-            BibleIQDataModel.restoreReadingLocation(book, 3)
-            assertSame(loaded, BibleIQDataModel.bibleChapter)
-            assertFalse(BibleIQDataModel.showHomePage)
+            val loaded = BibleState.bibleChapter
+            BibleState.restoreReadingLocation(book, 3)
+            assertSame(loaded, BibleState.bibleChapter)
+            assertFalse(BibleState.showHomePage)
 
-            BibleIQDataModel.restoreReadingLocation(book, 2)
-            assertEquals(2, BibleIQDataModel.bibleChapter?.chapterId)
-            assertNull(BibleIQDataModel.bibleChapter?.text)
+            BibleState.restoreReadingLocation(book, 2)
+            assertEquals(2, BibleState.bibleChapter?.chapterId)
+            assertNull(BibleState.bibleChapter?.text)
         } finally {
-            BibleIQDataModel.discardReadingLocation()
+            BibleState.discardReadingLocation()
         }
     }
 
@@ -62,8 +62,8 @@ class ReadingSessionLifecycleTest {
             assertEquals(background, ReadingSession.current)
             ReadingSession.onForeground(backgroundTime + READING_SESSION_LIFETIME_MILLIS)
             assertNull(ReadingSession.current)
-            assertTrue(BibleIQDataModel.showHomePage)
-            assertNull(BibleIQDataModel.bibleChapter?.bookId)
+            assertTrue(BibleState.showHomePage)
+            assertNull(BibleState.bibleChapter?.bookId)
         } finally {
             unregister()
         }

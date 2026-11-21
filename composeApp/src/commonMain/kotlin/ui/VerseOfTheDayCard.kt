@@ -38,11 +38,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
-import data.apiBible.BibleAPIDataModel
-import data.bibleIQ.DailyVerse
-import data.bibleIQ.bibleBooksFull
-import data.bibleIQ.dailyVerseRepository
-import data.bibleIQ.utcToday
+import data.bible.BibleState
+import data.bible.DailyVerse
+import data.bible.bibleBooksFull
+import data.bible.dailyVerseRepository
+import data.bible.utcToday
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
@@ -212,7 +212,7 @@ internal fun VerseOfTheDayCard(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    val book = BibleAPIDataModel.bibleBooks.data?.find { it.bookId == verse.bookUsfm }?.name
+                    val book = BibleState.bibleBooks.data?.find { it.bookId == verse.bookUsfm }?.name
                         ?: bibleBooksFull.getOrNull(verse.bookNumber - 1)
                         ?: verse.bookUsfm.orEmpty()
                     Row(
