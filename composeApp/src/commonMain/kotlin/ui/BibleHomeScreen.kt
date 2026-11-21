@@ -238,12 +238,14 @@ internal fun BibleHomeScreen(
                 } else if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
-                        header = { isWideLayout ->
+                        header = { windowMetrics ->
                             val showVotd = CloudSessionManager.verseOfTheDayEnabled
                             val showShorts = CloudSessionManager.biblicalShortsEnabled
-                            if (isWideLayout && showVotd && showShorts) {
+                            if (windowMetrics.isWideHome && showVotd && showShorts) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(
+                                        windowMetrics.hingeSafeGap.coerceAtLeast(12.dp)
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(IntrinsicSize.Min),
@@ -306,7 +308,7 @@ internal fun BibleHomeScreen(
 internal fun BibleBookList(
     bookData: List<BookData>?,
     lazyGridState: LazyGridState = rememberLazyGridState(),
-    header: (@Composable (isWideLayout: Boolean) -> Unit)? = null,
+    header: (@Composable (windowMetrics: AdaptiveWindowMetrics) -> Unit)? = null,
 ) {
     // Unified 2-phase electrifying diagonal lightning cycle:
     // Phase 0..1: crackles diagonally down-right starting from Genesis (top-left)
@@ -330,8 +332,8 @@ internal fun BibleBookList(
     ) {
         bookData?.let { bookDataList ->
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                val isWideLayout = maxWidth >= 560.dp
-                val columnsCount = if (isWideLayout) 5 else 3
+                val windowMetrics = computeAdaptiveWindowMetrics(maxWidth, maxHeight)
+                val columnsCount = windowMetrics.bookGridColumns
                 LazyVerticalGrid(
                     state = lazyGridState,
                     columns = GridCells.Fixed(columnsCount),
@@ -344,7 +346,7 @@ internal fun BibleBookList(
                     userScrollEnabled = true,
                 ) {
                     if (header != null) {
-                        item(span = { GridItemSpan(maxLineSpan) }) { header(isWideLayout) }
+                        item(span = { GridItemSpan(maxLineSpan) }) { header(windowMetrics) }
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 text = "Study the Word",

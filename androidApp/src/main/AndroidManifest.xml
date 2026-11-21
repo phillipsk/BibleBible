@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- The shared Android library supplies the activity, icons, and permissions. -->
-    <application />
+    <application>
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_RESIZEABLE_ACTIVITY_OVERRIDES"
+            android:value="false" />
+        <activity
+            android:name="email.kevinphillips.biblebible.MainActivity"
+            android:resizeableActivity="true"
+            tools:node="merge" />
+    </application>
 </manifest>
