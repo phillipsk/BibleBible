@@ -30,12 +30,9 @@ object BibleIQDataModel {
     var showHomePage by mutableStateOf(true)
     var showBiblicalShorts by mutableStateOf(false)
     var selectedShortsCategory by mutableStateOf("All")
-    var showInHouseWords by mutableStateOf(false)
-    var selectedInHouseCategory by mutableStateOf("All")
     var autoDemoTourEnabled by mutableStateOf(false)
 
     fun openBiblicalShorts(category: String = "All") {
-        showInHouseWords = false
         selectedShortsCategory = category
         showBiblicalShorts = true
         AnalyticsTracker.track(
@@ -54,28 +51,6 @@ object BibleIQDataModel {
             )
         }
         showBiblicalShorts = false
-    }
-
-    fun openInHouseWords(category: String = "All") {
-        showBiblicalShorts = false
-        selectedInHouseCategory = category
-        showInHouseWords = true
-        AnalyticsTracker.track(
-            "inhouse_words_opened",
-            "in_house_words",
-            mapOf("category" to category),
-        )
-    }
-
-    fun closeInHouseWords() {
-        if (showInHouseWords) {
-            AnalyticsTracker.track(
-                "inhouse_words_closed",
-                "in_house_words",
-                mapOf("category" to selectedInHouseCategory),
-            )
-        }
-        showInHouseWords = false
     }
 
     val snackBarChannel = Channel<String>(capacity = 1)
@@ -198,7 +173,6 @@ object BibleIQDataModel {
     }
 
     var returnToShortsOnBack by mutableStateOf(false)
-    var returnToInHouseOnBack by mutableStateOf(false)
     var resumeShortIdOnReturn by mutableStateOf<String?>(null)
 
     val onHomeClick: () -> Unit = {
@@ -206,10 +180,8 @@ object BibleIQDataModel {
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         BibleIQDataModel.returnToShortsOnBack = false
-        BibleIQDataModel.returnToInHouseOnBack = false
         BibleIQDataModel.resumeShortIdOnReturn = null
         BibleIQDataModel.showBiblicalShorts = false
-        BibleIQDataModel.showInHouseWords = false
         BibleIQDataModel.showHomePage = true
         ReadingSession.goHome()
     }
@@ -220,10 +192,6 @@ object BibleIQDataModel {
             returnToShortsOnBack = false
             AnalyticsTracker.track("reader_back_to_shorts", "navigation")
             openBiblicalShorts()
-        } else if (returnToInHouseOnBack) {
-            returnToInHouseOnBack = false
-            AnalyticsTracker.track("reader_back_to_inhouse", "navigation")
-            openInHouseWords(selectedInHouseCategory)
         } else {
             onHomeClick()
         }

@@ -79,7 +79,7 @@ class AnalyticsTrackerTest {
             val decoded = Json.decodeFromString<AnalyticsBatchRequestDto>(capturedPayload)
             assertEquals(8, decoded.events.size)
             assertEquals("Genesis", decoded.events[2].properties["bookName"])
-            assertEquals("short-01-creation-light", decoded.events[4].properties["shortId"])
+            assertEquals(sampleShort.id, decoded.events[4].properties["shortId"])
             // Queue should now be empty on second flush
             assertEquals(0, AnalyticsTracker.flushNow(mockClient))
         } finally {

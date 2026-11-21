@@ -24,11 +24,12 @@ class BiblicalShortsRepositoryTest {
     }
 
     @Test
-    fun defaultCatalogContainsFiftyValidSubThirtySecondShorts() {
+    fun defaultCatalogContainsCuratedSubThirtySecondShortsWithValidCategories() {
         val catalog = defaultBiblicalShortsCatalog("https://biblebible.example.run.app")
-        assertEquals(50, catalog.size)
-        assertEquals(50, catalog.map { it.id }.toSet().size)
+        assertEquals(10, catalog.size)
+        assertEquals(10, catalog.map { it.id }.toSet().size)
 
+        val validCategories = biblicalShortsCategories.filter { it != "All" }.toSet()
         catalog.forEachIndexed { idx, item ->
             assertEquals(idx + 1, item.order)
             assertTrue(item.durationSeconds in 15..29, "Duration out of range for ${item.id}")
@@ -37,10 +38,20 @@ class BiblicalShortsRepositoryTest {
             assertTrue(item.lesson.isNotBlank())
             assertTrue(item.narrative.isNotBlank())
             assertTrue(item.scriptureReference.isNotBlank())
+            assertTrue(item.category in validCategories, "Category ${item.category} missing for ${item.id}")
             assertEquals(3, item.scenes.size)
             assertEquals(
                 "https://biblebible.example.run.app/v1/shorts/media/${item.id}.mp4",
                 item.videoUrl,
+            )
+        }
+
+        // Every displayed category chip has at least one matching Bible clip
+        val repo = BiblicalShortsRepository()
+        validCategories.forEach { category ->
+            assertTrue(
+                repo.filterByCategory(catalog, category).isNotEmpty(),
+                "Category $category must map to at least one clip",
             )
         }
     }
@@ -48,7 +59,7 @@ class BiblicalShortsRepositoryTest {
     @Test
     fun repositoryFetchesFromGatewayCachesAndFiltersByCategory() = runTest {
         CloudSessionManager.overrideGatewayUrlForTesting("https://biblebible.example.run.app")
-        val sampleShorts = defaultBiblicalShortsCatalog("https://biblebible.example.run.app").take(4)
+        val sampleShorts = defaultBiblicalShortsCatalog("https://biblebible.example.run.app")
         var networkCalls = 0
         val client = createHttpClient(
             AppHttpClientConfig(baseUrl = CloudSessionManager.gatewayHost),
@@ -77,14 +88,14 @@ class BiblicalShortsRepositoryTest {
             )
             val first = repo.getShorts()
             val second = repo.getShorts()
-            assertEquals(4, first.size)
-            assertEquals(4, second.size)
+            assertEquals(10, first.size)
+            assertEquals(10, second.size)
             assertEquals(1, networkCalls)
 
             val faithOnly = repo.filterByCategory(first, "Faith & Courage")
             assertEquals(2, faithOnly.size)
             assertTrue(faithOnly.all { it.category == "Faith & Courage" })
-            assertEquals(4, repo.filterByCategory(first, "All").size)
+            assertEquals(10, repo.filterByCategory(first, "All").size)
         } finally {
             client.close()
         }
@@ -97,7 +108,7 @@ class BiblicalShortsRepositoryTest {
             fallbackProvider = { defaultBiblicalShortsCatalog("") },
         )
         val shorts = repo.getShorts()
-        assertEquals(50, shorts.size)
-        assertEquals("short-01-creation-light", shorts.first().id)
+        assertEquals(10, shorts.size)
+        assertEquals("01-1a-inhouse-moving-in-obedience", shorts.first().id)
     }
 }

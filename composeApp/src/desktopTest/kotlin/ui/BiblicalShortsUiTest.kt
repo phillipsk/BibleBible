@@ -84,11 +84,11 @@ class BiblicalShortsUiTest {
 
         // Advance to second short and tap Read Chapter
         onNodeWithText("Next").performClick()
-        onNodeWithTag("read_chapter_btn_short-02-noah-perseverance").performClick()
+        onNodeWithTag("read_chapter_btn_02-1a-inhouse-covenant-provision").performClick()
         runOnIdle {
-            assertEquals("short-02-noah-perseverance", openedChapter?.id)
-            assertEquals(1, openedChapter?.bookId)
-            assertEquals(6, openedChapter?.chapter)
+            assertEquals("02-1a-inhouse-covenant-provision", openedChapter?.id)
+            assertEquals(19, openedChapter?.bookId)
+            assertEquals(37, openedChapter?.chapter)
         }
     }
 }

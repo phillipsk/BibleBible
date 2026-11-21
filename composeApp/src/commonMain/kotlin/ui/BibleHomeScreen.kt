@@ -75,7 +75,6 @@ import data.bibleIQ.BibleIQDataModel
 import data.bibleIQ.DailyVerse
 import data.bibleIQ.bibleBooksFull
 import data.config.CloudSessionManager
-import data.inhouse.InHouseWordDto
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
 import email.kevinphillips.biblebible.getPlatformName
@@ -86,8 +85,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
-import ui.inhouse.InHouseWordsEntryCard
-import ui.inhouse.InHouseWordsScreen
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
 
@@ -108,11 +105,9 @@ internal fun BibleHomeScreen(
     LaunchedEffect(
         BibleIQDataModel.showHomePage,
         BibleIQDataModel.showBiblicalShorts,
-        BibleIQDataModel.showInHouseWords,
     ) {
         val activeScreen = when {
             BibleIQDataModel.showBiblicalShorts -> "biblical_shorts"
-            BibleIQDataModel.showInHouseWords -> "in_house_words"
             BibleIQDataModel.showHomePage -> "home"
             else -> "scripture_reader"
         }
@@ -141,7 +136,6 @@ internal fun BibleHomeScreen(
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
     val canNavigateBack = isBottomSheetExpanded ||
         BibleIQDataModel.showBiblicalShorts ||
-        BibleIQDataModel.showInHouseWords ||
         !BibleIQDataModel.showHomePage
 
     val handleBackNavigation: () -> Unit = {
@@ -151,9 +145,6 @@ internal fun BibleHomeScreen(
             }
             BibleIQDataModel.showBiblicalShorts -> {
                 BibleIQDataModel.closeBiblicalShorts()
-            }
-            BibleIQDataModel.showInHouseWords -> {
-                BibleIQDataModel.closeInHouseWords()
             }
             !BibleIQDataModel.showHomePage -> {
                 BibleIQDataModel.navigateBackFromReader()
@@ -210,7 +201,7 @@ internal fun BibleHomeScreen(
                     .then(iosEdgeBackModifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (!BibleIQDataModel.showBiblicalShorts && !BibleIQDataModel.showInHouseWords) {
+                if (!BibleIQDataModel.showBiblicalShorts) {
                     BibleBibleTopBar(
                         onClick = { BibleIQDataModel.navigateBackFromReader() },
                         showBottomSheet = {
@@ -244,51 +235,35 @@ internal fun BibleHomeScreen(
                         onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
                         resumeShortId = BibleIQDataModel.resumeShortIdOnReturn,
                     )
-                } else if (BibleIQDataModel.showInHouseWords) {
-                    InHouseWordsScreen(
-                        onBack = { BibleIQDataModel.closeInHouseWords() },
-                        onReadChapter = { word -> openInHouseScriptureChapter(word) },
-                        initialCategory = BibleIQDataModel.selectedInHouseCategory,
-                    )
                 } else if (BibleIQDataModel.showHomePage) {
                     BibleBookList(
                         bookData = BibleAPIDataModel.uiBooks.data,
                         header = { isWideLayout ->
                             val showVotd = CloudSessionManager.verseOfTheDayEnabled
                             val showShorts = CloudSessionManager.biblicalShortsEnabled
-                            val showInHouse = CloudSessionManager.inHouseWordsEnabled
-                            if (isWideLayout && showVotd && (showShorts || showInHouse)) {
-                                Column {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            if (isWideLayout && showVotd && showShorts) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
+                                    VerseOfTheDay(
+                                        version = BibleIQDataModel.selectedVersion,
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(IntrinsicSize.Min),
-                                    ) {
-                                        VerseOfTheDay(
-                                            version = BibleIQDataModel.selectedVersion,
-                                            modifier = Modifier
-                                                .weight(1.15f)
-                                                .fillMaxHeight(),
-                                            onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
-                                        )
-                                        if (showShorts) {
-                                            BiblicalShortsEntryCard(
-                                                onOpenShorts = {
-                                                    BibleIQDataModel.resumeShortIdOnReturn = null
-                                                    BibleIQDataModel.openBiblicalShorts()
-                                                },
-                                                modifier = Modifier
-                                                    .weight(0.85f)
-                                                    .fillMaxHeight(),
-                                            )
-                                        }
-                                    }
-                                    if (showInHouse) {
-                                        InHouseWordsEntryCard(
-                                            onOpenInHouseWords = { BibleIQDataModel.openInHouseWords() }
-                                        )
-                                    }
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
+                                        onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
+                                    )
+                                    BiblicalShortsEntryCard(
+                                        onOpenShorts = {
+                                            BibleIQDataModel.resumeShortIdOnReturn = null
+                                            BibleIQDataModel.openBiblicalShorts()
+                                        },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
+                                    )
                                 }
                             } else {
                                 Column {
@@ -304,11 +279,6 @@ internal fun BibleHomeScreen(
                                                 BibleIQDataModel.resumeShortIdOnReturn = null
                                                 BibleIQDataModel.openBiblicalShorts()
                                             }
-                                        )
-                                    }
-                                    if (showInHouse) {
-                                        InHouseWordsEntryCard(
-                                            onOpenInHouseWords = { BibleIQDataModel.openInHouseWords() }
                                         )
                                     }
                                 }
@@ -494,7 +464,6 @@ internal fun BibleBookList(
                                         source = "home_grid",
                                     )
                                     BibleIQDataModel.returnToShortsOnBack = false
-                                    BibleIQDataModel.returnToInHouseOnBack = false
                                     BibleAPIDataModel.run {
                                         updateBookData(book)
                                         updateSelectedChapter(book.remoteKey)
@@ -547,36 +516,7 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
     BibleIQDataModel.closeBiblicalShorts()
     BibleIQDataModel.resumeShortIdOnReturn = shortItem.id
     BibleIQDataModel.returnToShortsOnBack = true
-    BibleIQDataModel.returnToInHouseOnBack = false
     BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)
-}
-
-private fun openInHouseScriptureChapter(word: InHouseWordDto) {
-    val targetUsfm = word.bookUsfm.ifBlank { "PSA" }
-    val targetChapter = word.chapter.coerceAtLeast(1)
-    val book = BibleAPIDataModel.bibleBooks.data?.find {
-        it.bookId.equals(targetUsfm, ignoreCase = true)
-    } ?: BookData(
-        name = word.scriptureReference.substringBeforeLast(" ").ifBlank { targetUsfm },
-        chapters = listOf(Chapter(bookId = "$targetUsfm.intro")) +
-            (1..targetChapter).map { ch ->
-                Chapter(
-                    name = "$targetUsfm.$ch",
-                    bookId = targetUsfm,
-                    number = ch.toString(),
-                    position = ch,
-                )
-            },
-    )
-    AnalyticsTracker.trackBookSelected(
-        bookId = targetUsfm,
-        bookName = book.name ?: targetUsfm,
-        source = "in_house_words",
-    )
-    BibleIQDataModel.closeInHouseWords()
-    BibleIQDataModel.returnToShortsOnBack = false
-    BibleIQDataModel.returnToInHouseOnBack = true
-    BibleIQDataModel.restoreReadingLocation(book, targetChapter)
 }
 
 private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
@@ -603,6 +543,5 @@ private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
         source = "verse_of_the_day",
     )
     BibleIQDataModel.returnToShortsOnBack = false
-    BibleIQDataModel.returnToInHouseOnBack = false
     BibleIQDataModel.restoreReadingLocation(targetBook, data.chapter.coerceAtLeast(1))
 }

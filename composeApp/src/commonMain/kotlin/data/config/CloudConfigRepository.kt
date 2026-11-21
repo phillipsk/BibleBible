@@ -92,9 +92,6 @@ object CloudSessionManager {
     val verseOfTheDayEnabled: Boolean
         get() = featureFlags.verseOfTheDayEnabled
 
-    val inHouseWordsEnabled: Boolean
-        get() = featureFlags.inHouseWordsEnabled
-
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url
     }

@@ -161,6 +161,12 @@ internal fun BiblicalShortsScreen(
         biblicalShortsRepository.filterByCategory(allShorts, selectedCategory)
             .ifEmpty { allShorts }
     }
+    val availableCategories = remember(allShorts) {
+        val present = allShorts.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
+        val ordered = biblicalShortsCategories.filter { it != "All" && it in present }
+        val extras = present.filterNot { it in biblicalShortsCategories }
+        listOf("All") + ordered + extras
+    }
 
     val infiniteFeedEnabled = !useDeterministicOrder && filteredShorts.size > 1
     val virtualPageCount = if (infiniteFeedEnabled) Int.MAX_VALUE else filteredShorts.size
@@ -454,7 +460,7 @@ internal fun BiblicalShortsScreen(
                                         .fillMaxWidth()
                                         .testTag("shorts_category_row"),
                                 ) {
-                                    items(biblicalShortsCategories) { category ->
+                                    items(availableCategories) { category ->
                                         val isSelected = selectedCategory.equals(category, ignoreCase = true)
                                         Surface(
                                             onClick = {
