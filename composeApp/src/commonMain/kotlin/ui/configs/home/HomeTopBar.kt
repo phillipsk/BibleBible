@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 
 @Composable
 internal fun HomeTopBar(onClick: () -> Unit = {}) {
@@ -49,7 +49,7 @@ internal fun HomeTopBar(onClick: () -> Unit = {}) {
 
 @Composable
 internal fun SortBibleBooksToggle() {
-    val isSortAZ = BibleIQDataModel.sortAZ
+    val isSortAZ = BibleState.sortAZ
     val otNtBg by animateColorAsState(
         targetValue = if (!isSortAZ) Color(0xFFFBD38D) else Color.Transparent,
         animationSpec = tween(220),
@@ -93,12 +93,12 @@ internal fun SortBibleBooksToggle() {
                     .clip(RoundedCornerShape(50))
                     .background(otNtBg)
                     .clickable {
-                        if (BibleIQDataModel.sortAZ) {
-                            BibleIQDataModel.sortAZ = false
+                        if (BibleState.sortAZ) {
+                            BibleState.sortAZ = false
                             AnalyticsTracker.track(
                                 "book_sort_toggled",
                                 "preferences",
-                                mapOf("sortType" to BibleIQDataModel.selectedSortType),
+                                mapOf("sortType" to BibleState.selectedSortType),
                             )
                         }
                     }
@@ -115,12 +115,12 @@ internal fun SortBibleBooksToggle() {
                     .clip(RoundedCornerShape(50))
                     .background(azBg)
                     .clickable {
-                        if (!BibleIQDataModel.sortAZ) {
-                            BibleIQDataModel.sortAZ = true
+                        if (!BibleState.sortAZ) {
+                            BibleState.sortAZ = true
                             AnalyticsTracker.track(
                                 "book_sort_toggled",
                                 "preferences",
-                                mapOf("sortType" to BibleIQDataModel.selectedSortType),
+                                mapOf("sortType" to BibleState.selectedSortType),
                             )
                         }
                     }

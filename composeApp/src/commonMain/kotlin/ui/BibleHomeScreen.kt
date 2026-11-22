@@ -68,12 +68,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.BookData
-import data.apiBible.Chapter
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.DailyVerse
-import data.bibleIQ.bibleBooksFull
+import data.bible.BibleState
+import data.bible.BookData
+import data.bible.Chapter
+import data.bible.DailyVerse
+import data.bible.bibleBooksFull
 import data.config.CloudSessionManager
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
@@ -96,33 +95,33 @@ internal fun BibleHomeScreen(
 ) {
     val scope = rememberCoroutineScope()
     val localScaffoldState = remember { scaffoldState }
-    val channel = remember { BibleIQDataModel.snackBarChannel }
+    val channel = remember { BibleState.snackBarChannel }
 
-    LaunchedEffect(BibleIQDataModel.showHomePage) {
+    LaunchedEffect(BibleState.showHomePage) {
         localScaffoldState.bottomSheetState.collapse()
     }
 
     LaunchedEffect(
-        BibleIQDataModel.showHomePage,
-        BibleIQDataModel.showBiblicalShorts,
+        BibleState.showHomePage,
+        BibleState.showBiblicalShorts,
     ) {
         val activeScreen = when {
-            BibleIQDataModel.showBiblicalShorts -> "biblical_shorts"
-            BibleIQDataModel.showHomePage -> "home"
+            BibleState.showBiblicalShorts -> "biblical_shorts"
+            BibleState.showHomePage -> "home"
             else -> "scripture_reader"
         }
         AnalyticsTracker.trackScreenView(activeScreen)
     }
 
     LaunchedEffect(
-        BibleIQDataModel.autoDemoTourEnabled,
-        BibleIQDataModel.showBiblicalShorts,
+        BibleState.autoDemoTourEnabled,
+        BibleState.showBiblicalShorts,
     ) {
-        if (BibleIQDataModel.autoDemoTourEnabled && !BibleIQDataModel.showBiblicalShorts) {
-            BibleIQDataModel.showHomePage = true
+        if (BibleState.autoDemoTourEnabled && !BibleState.showBiblicalShorts) {
+            BibleState.showHomePage = true
             delay(3500L)
-            if (BibleIQDataModel.autoDemoTourEnabled) {
-                BibleIQDataModel.openBiblicalShorts()
+            if (BibleState.autoDemoTourEnabled) {
+                BibleState.openBiblicalShorts()
             }
         }
     }
@@ -135,19 +134,19 @@ internal fun BibleHomeScreen(
 
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
     val canNavigateBack = isBottomSheetExpanded ||
-        BibleIQDataModel.showBiblicalShorts ||
-        !BibleIQDataModel.showHomePage
+        BibleState.showBiblicalShorts ||
+        !BibleState.showHomePage
 
     val handleBackNavigation: () -> Unit = {
         when {
             isBottomSheetExpanded -> scope.launch {
                 localScaffoldState.bottomSheetState.collapse()
             }
-            BibleIQDataModel.showBiblicalShorts -> {
-                BibleIQDataModel.closeBiblicalShorts()
+            BibleState.showBiblicalShorts -> {
+                BibleState.closeBiblicalShorts()
             }
-            !BibleIQDataModel.showHomePage -> {
-                BibleIQDataModel.navigateBackFromReader()
+            !BibleState.showHomePage -> {
+                BibleState.navigateBackFromReader()
             }
         }
     }
@@ -189,7 +188,7 @@ internal fun BibleHomeScreen(
         sheetPeekHeight = 0.dp,
         sheetContent = {
             BottomSheetConfigView(
-                bibleVersionsList = BibleIQDataModel.bibleVersions,
+                bibleVersionsList = BibleState.bibleVersions,
                 showAISummary = GeminiModel.showSummary,
                 bottomSheetState = localScaffoldState.bottomSheetState
             )
@@ -201,9 +200,9 @@ internal fun BibleHomeScreen(
                     .then(iosEdgeBackModifier),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (!BibleIQDataModel.showBiblicalShorts) {
+                if (!BibleState.showBiblicalShorts) {
                     BibleBibleTopBar(
-                        onClick = { BibleIQDataModel.navigateBackFromReader() },
+                        onClick = { BibleState.navigateBackFromReader() },
                         showBottomSheet = {
                             scope.launch {
                                 if (localScaffoldState.bottomSheetState.isExpanded) {
@@ -214,7 +213,7 @@ internal fun BibleHomeScreen(
                                     )
                                     localScaffoldState.bottomSheetState.collapse()
                                 } else {
-                                    Napier.v("BibleAPIDataModel.readingHistory :: count ${BibleAPIDataModel.readingHistory?.size} :: dataClass ${BibleAPIDataModel.readingHistory?.take(100)}", tag = "RH1283")
+                                    Napier.v("BibleState.readingHistory :: count ${BibleState.readingHistory?.size} :: dataClass ${BibleState.readingHistory?.take(100)}", tag = "RH1283")
                                     AnalyticsTracker.track(
                                         "bottom_sheet_toggled",
                                         "navigation",
@@ -226,18 +225,18 @@ internal fun BibleHomeScreen(
                         }
                     )
                 }
-                if (BibleIQDataModel.showBiblicalShorts) {
+                if (BibleState.showBiblicalShorts) {
                     BiblicalShortsScreen(
                         onBack = {
-                            BibleIQDataModel.resumeShortIdOnReturn = null
-                            BibleIQDataModel.closeBiblicalShorts()
+                            BibleState.resumeShortIdOnReturn = null
+                            BibleState.closeBiblicalShorts()
                         },
                         onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
-                        resumeShortId = BibleIQDataModel.resumeShortIdOnReturn,
+                        resumeShortId = BibleState.resumeShortIdOnReturn,
                     )
-                } else if (BibleIQDataModel.showHomePage) {
+                } else if (BibleState.showHomePage) {
                     BibleBookList(
-                        bookData = BibleAPIDataModel.uiBooks.data,
+                        bookData = BibleState.uiBooks.data,
                         header = { windowMetrics ->
                             val showVotd = CloudSessionManager.verseOfTheDayEnabled
                             val showShorts = CloudSessionManager.biblicalShortsEnabled
@@ -251,7 +250,7 @@ internal fun BibleHomeScreen(
                                         .height(IntrinsicSize.Min),
                                 ) {
                                     VerseOfTheDay(
-                                        version = BibleIQDataModel.selectedVersion,
+                                        version = BibleState.selectedVersion,
                                         modifier = Modifier
                                             .weight(1.15f)
                                             .fillMaxHeight(),
@@ -259,8 +258,8 @@ internal fun BibleHomeScreen(
                                     )
                                     BiblicalShortsEntryCard(
                                         onOpenShorts = {
-                                            BibleIQDataModel.resumeShortIdOnReturn = null
-                                            BibleIQDataModel.openBiblicalShorts()
+                                            BibleState.resumeShortIdOnReturn = null
+                                            BibleState.openBiblicalShorts()
                                         },
                                         modifier = Modifier
                                             .weight(0.85f)
@@ -271,15 +270,15 @@ internal fun BibleHomeScreen(
                                 Column {
                                     if (showVotd) {
                                         VerseOfTheDay(
-                                            version = BibleIQDataModel.selectedVersion,
+                                            version = BibleState.selectedVersion,
                                             onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
                                         )
                                     }
                                     if (showShorts) {
                                         BiblicalShortsEntryCard(
                                             onOpenShorts = {
-                                                BibleIQDataModel.resumeShortIdOnReturn = null
-                                                BibleIQDataModel.openBiblicalShorts()
+                                                BibleState.resumeShortIdOnReturn = null
+                                                BibleState.openBiblicalShorts()
                                             }
                                         )
                                     }
@@ -288,11 +287,11 @@ internal fun BibleHomeScreen(
                         },
                     )
                 } else {
-                    BibleIQDataModel.bibleChapter?.let { it1 ->
+                    BibleState.bibleChapter?.let { it1 ->
                         BibleScripturesPager(
                             chapters = it1,
-                            bibleVersion = BibleIQDataModel.selectedVersion,
-                            selectedBook = BibleIQDataModel.selectedBook,
+                            bibleVersion = BibleState.selectedVersion,
+                            selectedBook = BibleState.selectedBook,
                             isAISummaryLoading = GeminiModel.isLoading,
                             showAISummary = GeminiModel.showSummary,
                             bottomSheetScaffoldState = localScaffoldState
@@ -326,7 +325,7 @@ internal fun BibleBookList(
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     AnimatedVisibility(
-        visible = BibleIQDataModel.showHomePage,
+        visible = BibleState.showHomePage,
         enter = fadeIn(initialAlpha = 0.4f),
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
@@ -365,8 +364,8 @@ internal fun BibleBookList(
                         val row = index / columnsCount
                         val col = index % columnsCount
                         // Composite the book tint solidly over the deep background so there is NEVER any translucent shadow box artifact
-                        val rawColor = BibleAPIDataModel.getBibleBookColor(
-                            BibleIQDataModel.getAPIBibleOrdinal(book.bookId)
+                        val rawColor = BibleState.getBibleBookColor(
+                            BibleState.getBookOrdinal(book.bookId)
                         )
                         val solidBase = rawColor.compositeOver(Color(0xFF1A2838))
                         val tileBrush = Brush.verticalGradient(
@@ -465,13 +464,10 @@ internal fun BibleBookList(
                                         bookName = book.name ?: book.cleanedName ?: book.bookId,
                                         source = "home_grid",
                                     )
-                                    BibleIQDataModel.returnToShortsOnBack = false
-                                    BibleAPIDataModel.run {
-                                        updateBookData(book)
-                                        updateSelectedChapter(book.remoteKey)
-                                    }
-                                    BibleIQDataModel.updateSelectedBook(book)
-                                    BibleIQDataModel.showHomePage = false
+                                    BibleState.returnToShortsOnBack = false
+                                    BibleState.updateSelectedChapter(book.remoteKey)
+                                    BibleState.updateSelectedBook(book)
+                                    BibleState.showHomePage = false
                                 }
                                 .padding(horizontal = 8.dp, vertical = 10.dp),
                         ) {
@@ -496,7 +492,7 @@ internal fun BibleBookList(
 }
 
 private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
-    val book = BibleAPIDataModel.bibleBooks.data?.find {
+    val book = BibleState.bibleBooks.data?.find {
         it.bookId.equals(shortItem.bookUsfm, ignoreCase = true)
     } ?: BookData(
         name = shortItem.scriptureReference.substringBeforeLast(" "),
@@ -515,16 +511,16 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
         bookName = book.name ?: shortItem.bookUsfm,
         source = "biblical_short",
     )
-    BibleIQDataModel.closeBiblicalShorts()
-    BibleIQDataModel.resumeShortIdOnReturn = shortItem.id
-    BibleIQDataModel.returnToShortsOnBack = true
-    BibleIQDataModel.restoreReadingLocation(book, shortItem.chapter)
+    BibleState.closeBiblicalShorts()
+    BibleState.resumeShortIdOnReturn = shortItem.id
+    BibleState.returnToShortsOnBack = true
+    BibleState.restoreReadingLocation(book, shortItem.chapter)
 }
 
 private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
     val data = dailyVerse.data
     val targetUsfm = data.bookUsfm.orEmpty()
-    val targetBook = BibleAPIDataModel.bibleBooks.data?.let { books ->
+    val targetBook = BibleState.bibleBooks.data?.let { books ->
         books.find { targetUsfm.isNotBlank() && it.bookId.equals(targetUsfm, ignoreCase = true) }
             ?: books.getOrNull((data.bookNumber - 1).coerceAtLeast(0))
     } ?: BookData(
@@ -544,6 +540,6 @@ private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
         bookName = targetBook.name ?: targetBook.bookId,
         source = "verse_of_the_day",
     )
-    BibleIQDataModel.returnToShortsOnBack = false
-    BibleIQDataModel.restoreReadingLocation(targetBook, data.chapter.coerceAtLeast(1))
+    BibleState.returnToShortsOnBack = false
+    BibleState.restoreReadingLocation(targetBook, data.chapter.coerceAtLeast(1))
 }

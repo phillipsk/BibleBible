@@ -39,13 +39,33 @@ class BibleCacheIntegrationTest {
     }
 
     @Test
-    fun cacheLimitRemovesOldestEntries() {
-        verse("1", "1", "kjv", "2026-01-01")
-        verse("2", "2", "kjv", "2026-02-01")
-        verse("3", "3", "kjv", "2026-03-01")
+    fun cacheLimitRemovesLeastRecentlyUpdatedEntries() {
+        verse("1", "1", "kjv", "2026-01-01 09:00:00")
+        verse("2", "2", "kjv", "2026-02-01 09:00:00")
+        // Re-reading chapter 1 updates its updated_at so chapter 2 becomes least recently used.
+        queries.updateVerseTimestamp("2026-03-15 12:00:00", "1", "1", "kjv")
+        verse("3", "3", "kjv", "2026-03-01 09:00:00")
+
         queries.removeExcessVerses(2)
+
         assertEquals(2, queries.countVerses().executeAsOne())
-        assertTrue(queries.selectVersesByBookId("1", "1", "kjv").executeAsList().isEmpty())
+        assertEquals(1, queries.selectVersesByBookId("1", "1", "kjv").executeAsList().size)
+        assertTrue(queries.selectVersesByBookId("1", "2", "kjv").executeAsList().isEmpty())
+        assertEquals(1, queries.selectVersesByBookId("1", "3", "kjv").executeAsList().size)
+    }
+
+    @Test
+    fun multiVersionChaptersCoexistIndependentlyForSameBookAndChapter() {
+        queries.insertVerse("43003016-kjv", "43003016", "43", "3", "16", "For God so loved", "kjv", 21, "2026-11-01", "2026-11-01")
+        queries.insertVerse("43003016-bsb", "43003016", "43", "3", "16", "For God so loved the world", "bsb", 21, "2026-11-01", "2026-11-01")
+        queries.insertVerse("43003016-bbe", "43003016", "43", "3", "16", "For God had such love", "bbe", 21, "2026-11-01", "2026-11-01")
+
+        assertEquals("For God so loved", queries.selectVersesByBookId("43", "3", "kjv").executeAsList().single().t)
+        assertEquals("For God so loved the world", queries.selectVersesByBookId("43", "3", "bsb").executeAsList().single().t)
+        assertEquals("For God had such love", queries.selectVersesByBookId("43", "3", "bbe").executeAsList().single().t)
+
+        queries.updateVerseTimestamp("2026-11-20 12:00:00", "43", "3", "kjv")
+        assertEquals("2026-11-01", queries.selectVersesByBookId("43", "3", "bsb").executeAsList().single().updated_at)
     }
 
     @Test

@@ -3,7 +3,7 @@ package data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import data.config.CloudSessionManager
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
@@ -53,8 +53,8 @@ object GeminiModel {
 
     private val geminiQuery
         get() = "Generate a summary of the bible chapter " +
-                BibleIQDataModel.selectedBook.cleanedName + " " +
-                BibleIQDataModel.bibleChapter?.chapterId
+                BibleState.selectedBook.cleanedName + " " +
+                BibleState.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary(
         pullToRefresh: Boolean = false,

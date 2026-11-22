@@ -16,10 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.BookData
-import data.apiBible.Chapter
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
+import data.notifications.parseVotdNotificationPayload
 import email.kevinphillips.biblebible.cache.DriverFactory
 
 class MainActivity : ComponentActivity() {
@@ -40,11 +38,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         applyLaunchIntent(intent)
     }
 
     private fun requestNotificationPermissionAndScheduleVotd() {
-        VotdNotificationReceiver.scheduleDaily607Am(applicationContext)
+        VotdNotificationReceiver.scheduleDailyVotd(applicationContext)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(
                 this,
@@ -62,31 +61,25 @@ class MainActivity : ComponentActivity() {
 
     private fun applyLaunchIntent(launchIntent: Intent?) {
         if (launchIntent?.getBooleanExtra("auto_demo", false) == true) {
-            BibleIQDataModel.showBiblicalShorts = false
-            BibleIQDataModel.showHomePage = true
-            BibleIQDataModel.autoDemoTourEnabled = true
+            BibleState.showBiblicalShorts = false
+            BibleState.showHomePage = true
+            BibleState.autoDemoTourEnabled = true
             return
         }
-        val bookUsfm = launchIntent?.getStringExtra(VotdNotificationReceiver.EXTRA_BOOK_USFM).orEmpty()
-        val chapter = launchIntent?.getIntExtra(VotdNotificationReceiver.EXTRA_CHAPTER, -1) ?: -1
-        if (bookUsfm.isNotBlank() && chapter >= 1) {
-            val book = BibleAPIDataModel.bibleBooks.data?.find {
-                it.bookId.equals(bookUsfm, ignoreCase = true)
-            } ?: BookData(
-                name = bookUsfm,
-                chapters = listOf(Chapter(bookId = "$bookUsfm.intro")) +
-                    (1..chapter).map { ch ->
-                        Chapter(
-                            name = "$bookUsfm.$ch",
-                            bookId = bookUsfm,
-                            number = ch.toString(),
-                            position = ch,
-                        )
-                    },
-            )
-            BibleIQDataModel.returnToShortsOnBack = false
-            BibleIQDataModel.closeBiblicalShorts()
-            BibleIQDataModel.restoreReadingLocation(book, chapter)
+        parseVotdNotificationPayload(extractNotificationExtras(launchIntent))?.let { deepLink ->
+            BibleState.enqueueDeepLink(deepLink)
+        }
+    }
+
+    companion object {
+        internal fun extractNotificationExtras(intent: Intent?): Map<String, String?> {
+            val extras = intent?.extras ?: return emptyMap()
+            val mapped = mutableMapOf<String, String?>()
+            for (key in extras.keySet()) {
+                @Suppress("DEPRECATION")
+                mapped[key] = extras.get(key)?.toString()
+            }
+            return mapped
         }
     }
 }

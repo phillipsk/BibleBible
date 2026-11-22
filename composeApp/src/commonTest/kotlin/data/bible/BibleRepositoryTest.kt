@@ -1,37 +1,47 @@
-package data.bibleIQ
+package data.bible
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.engine.mock.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class BibleIQRepositoryTest {
+class BibleRepositoryTest {
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
+    @AfterTest
+    fun resetState() {
+        BibleState.updateBibleChapter(emptyList(), null, "KJV")
+    }
+
     @Test
-    fun testGetChapterBibleIQ_Success() = runTest {
+    fun testFetchBibleChapterSuccess() = runTest {
         val mockVerses = listOf(
             BibleChapter(id = "1", b = "1", c = "1", v = "1", t = "Test Verse Content")
         )
-        
+
         val mockEngine = MockEngine { _ ->
             respond(
                 content = json.encodeToString(mockVerses),
                 status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )
         }
 
@@ -43,7 +53,7 @@ class BibleIQRepositoryTest {
 
         val response = mockClient.get("https://test.com")
         val result = response.body<List<BibleChapter>>()
-        
+
         assertEquals(1, result.size)
         assertEquals("Test Verse Content", result[0].t)
     }
@@ -55,12 +65,12 @@ class BibleIQRepositoryTest {
         val verses = listOf(
             BibleChapter(id = "1", b = "1", c = "1", v = "1", t = "Genesis 1:1")
         )
-        
-        BibleIQDataModel.updateBibleChapter(verses, chapterCount, version)
-        
-        val uiState = BibleIQDataModel.bibleChapter
+
+        BibleState.updateBibleChapter(verses, chapterCount, version)
+
+        val uiState = BibleState.bibleChapter
         assertNotNull(uiState)
-        assertEquals(50L, uiState?.chapterList?.size?.toLong())
-        assertEquals(1, uiState?.bookId)
+        assertEquals(50L, uiState.chapterList?.size?.toLong())
+        assertEquals(1, uiState.bookId)
     }
 }

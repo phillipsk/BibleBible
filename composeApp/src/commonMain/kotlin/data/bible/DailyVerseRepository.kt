@@ -1,17 +1,17 @@
-package data.bibleIQ
+package data.bible
 
-import data.httpClientBibleIQ
+import data.httpClientCloudGateway
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Clock
 
 internal val supportedTranslations = setOf("KJV", "BSB", "WEB", "BBE", "RV1909", "SVD")
 
@@ -61,7 +61,7 @@ internal class DailyVerseRepository(
 
 internal suspend fun fetchDailyVerse(
     version: String,
-    client: HttpClient = httpClientBibleIQ,
+    client: HttpClient = httpClientCloudGateway,
 ): DailyVerse {
     val selected = normalizedTranslation(version)
     val response = client.get(GetVerseOfTheDay(versionId = selected.lowercase()))

@@ -42,12 +42,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
-import data.apiBible.BookData
 import data.appPrefs.ReadingSession
 import data.appPrefs.canonicalBookKey
-import data.bibleIQ.BibleChapterUIState
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.getChapterBibleIQ
+import data.bible.BibleChapterUIState
+import data.bible.BibleState
+import data.bible.BookData
+import data.bible.fetchBibleChapter
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
 
@@ -61,10 +61,10 @@ internal fun BibleScripturesPager(
     showAISummary: Boolean,
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
-        getChapterBibleIQ(book, chapter, version, history)
+        fetchBibleChapter(book, chapter, version, history)
     },
 ) {
-    val bookId = BibleIQDataModel.getAPIBibleOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
+    val bookId = BibleState.getBookOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
     val summaryScrollState = rememberScrollState()
@@ -233,12 +233,12 @@ internal fun BibleScripturesPager(
                     when (mode) {
                         "loading" -> ScriptureShimmerLoading()
                         "summary_loading" -> AiSummaryLoadingView()
-                        "summary" -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
+                        "summary" -> GeminiSummary(summaryScrollState, BibleState.selectedFontSize)
                         else -> BibleScriptures(
                             chapters,
                             scriptureScrollState,
-                            BibleIQDataModel.selectedFontSize,
-                            onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
+                            BibleState.selectedFontSize,
+                            onFontSizeChanged = { BibleState.selectedFontSize = it },
                             readingState = readingState
                         )
                     }

@@ -1,7 +1,7 @@
 package data.gemini
 
 import data.GeminiModel
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -43,7 +43,7 @@ class GeminiNavigationTest {
                 GeminiModel.generateAISummary(pullToRefresh = true, available = true) { prompt -> generateContent(prompt, client) }
             }
             started.await()
-            BibleIQDataModel.onHomeClick()
+            BibleState.onHomeClick()
             releaseResponse.complete(Unit)
             request.join()
 
@@ -51,7 +51,7 @@ class GeminiNavigationTest {
             assertNull(GeminiModel.geminiDataText, "A canceled chapter's response must not become the new summary")
             assertFalse(GeminiModel.showSummary)
             assertFalse(GeminiModel.isLoading)
-            assertTrue(BibleIQDataModel.showHomePage)
+            assertTrue(BibleState.showHomePage)
         } finally {
             releaseResponse.complete(Unit)
             GeminiModel.cancelPendingSummary()

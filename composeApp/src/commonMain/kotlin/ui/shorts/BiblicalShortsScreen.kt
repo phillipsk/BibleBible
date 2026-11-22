@@ -78,7 +78,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import data.shorts.BiblicalShortDto
 import data.shorts.ShortsPlaybackLogic
 import data.shorts.ShortsProgressManager
@@ -102,8 +102,8 @@ internal fun BiblicalShortsScreen(
     onReadChapter: (BiblicalShortDto) -> Unit,
     modifier: Modifier = Modifier,
     initialShorts: List<BiblicalShortDto> = emptyList(),
-    selectedCategory: String = BibleIQDataModel.selectedShortsCategory,
-    onCategorySelected: (String) -> Unit = { BibleIQDataModel.selectedShortsCategory = it },
+    selectedCategory: String = BibleState.selectedShortsCategory,
+    onCategorySelected: (String) -> Unit = { BibleState.selectedShortsCategory = it },
     enablePlaybackTimer: Boolean = true,
     resumeShortId: String? = null,
     progressManager: ShortsProgressManager = remember { ShortsProgressManager() },
@@ -248,12 +248,12 @@ internal fun BiblicalShortsScreen(
         }
     }
 
-    LaunchedEffect(BibleIQDataModel.autoDemoTourEnabled, filteredShorts.size) {
-        if (BibleIQDataModel.autoDemoTourEnabled && filteredShorts.size >= 2) {
+    LaunchedEffect(BibleState.autoDemoTourEnabled, filteredShorts.size) {
+        if (BibleState.autoDemoTourEnabled && filteredShorts.size >= 2) {
             delay(5500L)
             pagerState.animateScrollToPage(1)
             delay(5500L)
-            BibleIQDataModel.autoDemoTourEnabled = false
+            BibleState.autoDemoTourEnabled = false
             onReadChapter(filteredShorts[1])
         }
     }

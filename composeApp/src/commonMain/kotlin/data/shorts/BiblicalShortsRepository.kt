@@ -1,8 +1,8 @@
 package data.shorts
 
-import data.bibleIQ.GetBiblicalShorts
+import data.bible.GetBiblicalShorts
 import data.config.CloudSessionManager
-import data.httpClientBibleIQ
+import data.httpClientCloudGateway
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
@@ -316,7 +316,7 @@ internal class BiblicalShortsRepository(
 }
 
 internal suspend fun fetchBiblicalShortsFeed(
-    client: HttpClient = httpClientBibleIQ,
+    client: HttpClient = httpClientCloudGateway,
 ): BiblicalShortsFeedDto {
     val response = client.get(GetBiblicalShorts())
     check(response.status.isSuccess()) {

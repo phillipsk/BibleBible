@@ -1,0 +1,181 @@
+package email.kevinphillips.biblebible
+
+import android.app.AlarmManager
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ApplicationInfo
+import data.notifications.parseVotdNotificationPayload
+import java.util.Calendar
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class VotdNotificationReceiverTest {
+
+    @Test
+    fun nextTriggerTimeRollsToTomorrowWhenAtOrPastTargetOrWithinLeadWindow() {
+        val beforeSix = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 55, 0)
+        val expectedTodaySix = calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 0)
+        val expectedTomorrowSix = calendarMillis(2026, Calendar.NOVEMBER, 22, 6, 0, 0)
+
+        assertEquals(
+            expectedTodaySix,
+            VotdNotificationReceiver.nextTriggerTimeMillis(hour = 6, minute = 0, nowMillis = beforeSix),
+        )
+
+        val afterSix = calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 1)
+        assertEquals(
+            expectedTomorrowSix,
+            VotdNotificationReceiver.nextTriggerTimeMillis(hour = 6, minute = 0, nowMillis = afterSix),
+        )
+
+        // When woken up slightly early (5:59:50) with a 2-minute reschedule lead buffer, roll to tomorrow.
+        val earlyWake = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 59, 50)
+        assertEquals(
+            expectedTomorrowSix,
+            VotdNotificationReceiver.nextTriggerTimeMillis(
+                hour = 6,
+                minute = 0,
+                nowMillis = earlyWake,
+                minLeadMillis = 120_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun debugBuildSchedulesBoth6AmAnd9PmAllowWhileIdleAlarms() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val shadowAlarmManager = Shadows.shadowOf(alarmManager)
+
+        val now = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 0, 0)
+        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
+
+        val alarms = shadowAlarmManager.scheduledAlarms
+        assertEquals(2, alarms.size)
+        assertTrue(alarms.all { it.allowWhileIdle }, "Alarms must allow delivery during Doze mode")
+
+        val expected6Am = calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 0)
+        val expected9Pm = calendarMillis(2026, Calendar.NOVEMBER, 21, 21, 0, 0)
+        assertEquals(setOf(expected6Am, expected9Pm), alarms.map { it.triggerAtTime }.toSet())
+    }
+
+    @Test
+    fun releaseBuildSchedulesOnly6AmAndCancelsAnyDebug9PmAlarm() {
+        val app = RuntimeEnvironment.getApplication()
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val shadowAlarmManager = Shadows.shadowOf(alarmManager)
+
+        val now = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 0, 0)
+        // First schedule as debug so 9 PM exists
+        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
+        assertEquals(2, shadowAlarmManager.scheduledAlarms.size)
+
+        // Now switch to release build flags -> 9 PM must be cancelled, leaving only 6 AM
+        app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
+        assertFalse(VotdNotificationReceiver.isDebugBuild(app))
+
+        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
+        val alarms = shadowAlarmManager.scheduledAlarms
+        assertEquals(1, alarms.size)
+        assertEquals(calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 0), alarms.single().triggerAtTime)
+        assertTrue(alarms.single().allowWhileIdle)
+    }
+
+    @Test
+    fun bootCompletedReschedulesAlarmsWithoutPostingNotification() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val receiver = VotdNotificationReceiver()
+        receiver.onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
+
+        assertEquals(1, Shadows.shadowOf(alarmManager).scheduledAlarms.size)
+        assertTrue(Shadows.shadowOf(notificationManager).allNotifications.isEmpty())
+    }
+
+    @Test
+    fun postedNotificationIncludesBookChapterVerseAndVersionOnPendingIntent() {
+        val app = RuntimeEnvironment.getApplication()
+        val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val triggerIntent = Intent(app, VotdNotificationReceiver::class.java).apply {
+            putExtra(VotdNotificationReceiver.EXTRA_TITLE, "Verse of the Day · Philippians 4:13")
+            putExtra(VotdNotificationReceiver.EXTRA_BODY, "I can do all things through Christ...")
+            putExtra(VotdNotificationReceiver.EXTRA_BOOK_USFM, "PHP")
+            putExtra(VotdNotificationReceiver.EXTRA_CHAPTER, 4)
+            putExtra(VotdNotificationReceiver.EXTRA_VERSE, 13)
+            putExtra(VotdNotificationReceiver.EXTRA_VERSION, "KJV")
+        }
+
+        VotdNotificationReceiver().onReceive(app, triggerIntent)
+
+        val shadowNm = Shadows.shadowOf(notificationManager)
+        val deadline = System.currentTimeMillis() + 3_000L
+        while (shadowNm.allNotifications.isEmpty() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20)
+        }
+        val posted = shadowNm.allNotifications.singleOrNull()
+        assertNotNull(posted, "Expected VOTD notification to be posted")
+
+        val launchIntent = Shadows.shadowOf(posted.contentIntent).savedIntent
+        val extras = MainActivity.extractNotificationExtras(launchIntent)
+        val parsed = parseVotdNotificationPayload(extras)
+        assertNotNull(parsed)
+        assertEquals("PHP", parsed.bookUsfm)
+        assertEquals(4, parsed.chapter)
+        assertEquals(13, parsed.verse)
+        assertEquals("KJV", parsed.version)
+    }
+
+    @Test
+    fun mainActivityExtractsFcmPushPayloadExtrasAccurately() {
+        val fcmIntent = Intent().apply {
+            putExtra("type", "votd")
+            putExtra("bookNumber", "43")
+            putExtra("bookUsfm", "JHN")
+            putExtra("chapter", "3")
+            putExtra("verse", "16")
+            putExtra("versionId", "BSB")
+        }
+
+        val extras = MainActivity.extractNotificationExtras(fcmIntent)
+        val parsed = parseVotdNotificationPayload(extras)
+        assertNotNull(parsed)
+        assertEquals("JHN", parsed.bookUsfm)
+        assertEquals(43, parsed.bookNumber)
+        assertEquals(3, parsed.chapter)
+        assertEquals(16, parsed.verse)
+        assertEquals("BSB", parsed.version)
+    }
+
+    private fun calendarMillis(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int,
+        second: Int,
+    ): Long = Calendar.getInstance().apply {
+        set(Calendar.YEAR, year)
+        set(Calendar.MONTH, month)
+        set(Calendar.DAY_OF_MONTH, day)
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+        set(Calendar.SECOND, second)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}

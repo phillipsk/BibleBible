@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import data.config.CloudSessionManager
@@ -21,6 +22,27 @@ import kotlin.concurrent.thread
 
 class VotdNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        val action = intent?.action
+        if (action in RESCHEDULE_ONLY_ACTIONS) {
+            scheduleDailyVotd(context.applicationContext)
+            return
+        }
+
+        val isDebugEvening = action == ACTION_DEBUG_EVENING_VOTD
+        if (isDebugEvening && !isDebugBuild(context)) {
+            cancelDebugEveningVotd(context.applicationContext)
+            return
+        }
+
+        // Re-arm one-shot idle-allowed alarms for the next day (with lead buffer to prevent double-firing on early wake).
+        if (action == ACTION_DAILY_VOTD || isDebugEvening) {
+            scheduleDailyVotd(
+                context = context.applicationContext,
+                dailyMinLeadMillis = if (action == ACTION_DAILY_VOTD) RESCHEDULE_LEAD_MILLIS else 0L,
+                debugEveningMinLeadMillis = if (isDebugEvening) RESCHEDULE_LEAD_MILLIS else 0L,
+            )
+        }
+
         val pendingResult = goAsync()
         thread(name = "BibleBibleVotdNotify") {
             try {
@@ -29,13 +51,17 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 val customBody = intent?.getStringExtra(EXTRA_BODY)
                 val customBookUsfm = intent?.getStringExtra(EXTRA_BOOK_USFM)
                 val customChapter = intent?.getIntExtra(EXTRA_CHAPTER, -1) ?: -1
+                val customVerse = intent?.getIntExtra(EXTRA_VERSE, 1) ?: 1
+                val customVersion = intent?.getStringExtra(EXTRA_VERSION)
 
-                val payload = if (!customTitle.isNullOrBlank() && !customBody.isNullOrBlank()) {
+                val basePayload = if (!customTitle.isNullOrBlank() && !customBody.isNullOrBlank()) {
                     VotdPayload(
                         title = customTitle,
                         body = customBody,
                         bookUsfm = customBookUsfm.orEmpty(),
                         chapter = customChapter.coerceAtLeast(1),
+                        verse = customVerse.coerceAtLeast(1),
+                        version = customVersion,
                     )
                 } else {
                     fetchLiveVotdPayload() ?: VotdPayload(
@@ -43,10 +69,18 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                         body = "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.",
                         bookUsfm = "JHN",
                         chapter = 3,
+                        verse = 16,
                     )
                 }
 
-                showNotification(context, payload)
+                val payload = if (isDebugEvening) {
+                    basePayload.copy(title = "${basePayload.title} (Debug 9 PM)")
+                } else {
+                    basePayload
+                }
+
+                val notificationId = if (isDebugEvening) DEBUG_NOTIFICATION_ID else NOTIFICATION_ID
+                showNotification(context, payload, notificationId)
             } finally {
                 pendingResult.finish()
             }
@@ -58,6 +92,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
         val body: String,
         val bookUsfm: String,
         val chapter: Int,
+        val verse: Int = 1,
+        val version: String? = null,
     )
 
     private fun fetchLiveVotdPayload(): VotdPayload? {
@@ -66,8 +102,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             .trimEnd('/')
         return runCatching {
             val conn = (URL("$gateway/v1/notifications/preview?versionId=KJV").openConnection() as HttpURLConnection).apply {
-                connectTimeout = 5000
-                readTimeout = 5000
+                connectTimeout = 3000
+                readTimeout = 3000
             }
             val code = conn.responseCode
             val raw = if (code in 200..299) {
@@ -75,8 +111,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             } else {
                 // Fallback to /GetVerseOfTheDay if gateway hasn't deployed /v1/notifications/preview yet
                 val fallbackConn = (URL("$gateway/GetVerseOfTheDay?versionId=KJV").openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 5000
-                    readTimeout = 5000
+                    connectTimeout = 3000
+                    readTimeout = 3000
                 }
                 val fallbackJson = fallbackConn.inputStream.bufferedReader().use { it.readText() }
                 val root = Json.parseToJsonElement(fallbackJson).jsonObject
@@ -85,11 +121,14 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 val ch = dataNode["chapter_number"]?.jsonPrimitive?.intOrNull ?: 23
                 val v = dataNode["verse_number"]?.jsonPrimitive?.intOrNull ?: 1
                 val text = dataNode["text"]?.jsonPrimitive?.content.orEmpty()
+                val version = root["version"]?.jsonPrimitive?.content
                 return VotdPayload(
                     title = "Verse of the Day · $bookUsfm $ch:$v",
                     body = text,
                     bookUsfm = bookUsfm,
                     chapter = ch,
+                    verse = v,
+                    version = version,
                 )
             }
             val obj = Json.parseToJsonElement(raw).jsonObject
@@ -99,19 +138,23 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 body = obj["body"]?.jsonPrimitive?.content ?: "",
                 bookUsfm = dataObj?.get("bookUsfm")?.jsonPrimitive?.content.orEmpty(),
                 chapter = dataObj?.get("chapter")?.jsonPrimitive?.intOrNull ?: 1,
+                verse = dataObj?.get("verse")?.jsonPrimitive?.intOrNull ?: 1,
+                version = dataObj?.get("versionId")?.jsonPrimitive?.content,
             )
         }.getOrNull()
     }
 
-    private fun showNotification(context: Context, payload: VotdPayload) {
+    private fun showNotification(context: Context, payload: VotdPayload, notificationId: Int) {
         val openIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_BOOK_USFM, payload.bookUsfm)
             putExtra(EXTRA_CHAPTER, payload.chapter)
+            putExtra(EXTRA_VERSE, payload.verse)
+            payload.version?.let { putExtra(EXTRA_VERSION, it) }
         }
         val contentPendingIntent = PendingIntent.getActivity(
             context,
-            NOTIFICATION_ID,
+            notificationId,
             openIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -128,62 +171,169 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             .build()
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(notificationId, notification)
     }
 
     companion object {
         const val CHANNEL_ID = "verse_of_the_day"
         const val ACTION_DAILY_VOTD = "email.kevinphillips.biblebible.ACTION_DAILY_VOTD"
+        const val ACTION_DEBUG_EVENING_VOTD = "email.kevinphillips.biblebible.ACTION_DEBUG_EVENING_VOTD"
         const val EXTRA_TITLE = "votd_title"
         const val EXTRA_BODY = "votd_body"
         const val EXTRA_BOOK_USFM = "votd_book_usfm"
         const val EXTRA_CHAPTER = "votd_chapter"
-        private const val NOTIFICATION_ID = 607
-        private const val ALARM_REQUEST_CODE = 6070
+        const val EXTRA_VERSE = "votd_verse"
+        const val EXTRA_VERSION = "votd_version"
+
+        internal const val DAILY_HOUR = 6
+        internal const val DAILY_MINUTE = 0
+        internal const val DEBUG_EVENING_HOUR = 21
+        internal const val DEBUG_EVENING_MINUTE = 0
+
+        private const val NOTIFICATION_ID = 600
+        private const val DEBUG_NOTIFICATION_ID = 2100
+        // Reuse original 6070 request code so existing devices overwrite any legacy 6:07 AM PendingIntent.
+        internal const val DAILY_ALARM_REQUEST_CODE = 6070
+        internal const val DEBUG_EVENING_ALARM_REQUEST_CODE = 2100
+        private const val RESCHEDULE_LEAD_MILLIS = 120_000L
+
+        private val RESCHEDULE_ONLY_ACTIONS = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
+        )
+
+        fun isDebugBuild(context: Context): Boolean =
+            (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                if (manager.getNotificationChannel(CHANNEL_ID) == null) {
-                    val channel = NotificationChannel(
-                        CHANNEL_ID,
-                        "Verse of the Day",
-                        NotificationManager.IMPORTANCE_HIGH,
-                    ).apply {
-                        description = "Daily morning Verse of the Day scripture notification (6:07 AM)"
-                    }
-                    manager.createNotificationChannel(channel)
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Verse of the Day",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply {
+                    description = "Daily morning Verse of the Day scripture notification (6:00 AM)"
                 }
+                manager.createNotificationChannel(channel)
             }
         }
 
-        fun scheduleDaily607Am(context: Context) {
-            ensureChannel(context)
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-            val intent = Intent(context, VotdNotificationReceiver::class.java).apply {
-                action = ACTION_DAILY_VOTD
-            }
-            val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                ALARM_REQUEST_CODE,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-
+        internal fun nextTriggerTimeMillis(
+            hour: Int,
+            minute: Int,
+            nowMillis: Long = System.currentTimeMillis(),
+            minLeadMillis: Long = 0L,
+        ): Long {
             val nextTrigger = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 6)
-                set(Calendar.MINUTE, 7)
+                timeInMillis = nowMillis
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
-                if (timeInMillis <= System.currentTimeMillis()) {
+                if (timeInMillis <= nowMillis + minLeadMillis) {
                     add(Calendar.DAY_OF_YEAR, 1)
                 }
             }
+            return nextTrigger.timeInMillis
+        }
 
-            alarmManager.setInexactRepeating(
+        fun scheduleDailyVotd(
+            context: Context,
+            nowMillis: Long = System.currentTimeMillis(),
+            dailyMinLeadMillis: Long = 0L,
+            debugEveningMinLeadMillis: Long = 0L,
+        ) {
+            ensureChannel(context)
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+
+            val dailyTriggerAt = nextTriggerTimeMillis(
+                hour = DAILY_HOUR,
+                minute = DAILY_MINUTE,
+                nowMillis = nowMillis,
+                minLeadMillis = dailyMinLeadMillis,
+            )
+            scheduleIdleAllowedAlarm(
+                alarmManager = alarmManager,
+                triggerAtMillis = dailyTriggerAt,
+                pendingIntent = buildAlarmPendingIntent(context, ACTION_DAILY_VOTD, DAILY_ALARM_REQUEST_CODE),
+            )
+
+            if (isDebugBuild(context)) {
+                val debugTriggerAt = nextTriggerTimeMillis(
+                    hour = DEBUG_EVENING_HOUR,
+                    minute = DEBUG_EVENING_MINUTE,
+                    nowMillis = nowMillis,
+                    minLeadMillis = debugEveningMinLeadMillis,
+                )
+                scheduleIdleAllowedAlarm(
+                    alarmManager = alarmManager,
+                    triggerAtMillis = debugTriggerAt,
+                    pendingIntent = buildAlarmPendingIntent(
+                        context,
+                        ACTION_DEBUG_EVENING_VOTD,
+                        DEBUG_EVENING_ALARM_REQUEST_CODE,
+                    ),
+                )
+            } else {
+                cancelDebugEveningVotd(context)
+            }
+        }
+
+        fun cancelDebugEveningVotd(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+            val existing = PendingIntent.getBroadcast(
+                context,
+                DEBUG_EVENING_ALARM_REQUEST_CODE,
+                Intent(context, VotdNotificationReceiver::class.java).apply {
+                    action = ACTION_DEBUG_EVENING_VOTD
+                },
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            ) ?: return
+            alarmManager.cancel(existing)
+            existing.cancel()
+        }
+
+        private fun buildAlarmPendingIntent(
+            context: Context,
+            action: String,
+            requestCode: Int,
+        ): PendingIntent {
+            val intent = Intent(context, VotdNotificationReceiver::class.java).apply {
+                this.action = action
+            }
+            return PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
+
+        private fun scheduleIdleAllowedAlarm(
+            alarmManager: AlarmManager,
+            triggerAtMillis: Long,
+            pendingIntent: PendingIntent,
+        ) {
+            val canUseExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+            if (canUseExact) {
+                try {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent,
+                    )
+                    return
+                } catch (_: SecurityException) {
+                    // Fall through to inexact idle-allowed alarm if OEM restricts exact alarms
+                }
+            }
+            alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
-                nextTrigger.timeInMillis,
-                AlarmManager.INTERVAL_DAY,
+                triggerAtMillis,
                 pendingIntent,
             )
         }

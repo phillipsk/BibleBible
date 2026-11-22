@@ -16,7 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import data.bibleIQ.BibleChapterUIState
+import data.bible.BibleChapterUIState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

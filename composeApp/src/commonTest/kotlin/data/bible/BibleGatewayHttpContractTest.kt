@@ -1,4 +1,4 @@
-package data.bibleIQ
+package data.bible
 
 import data.AppHttpClientConfig
 import data.config.CloudSessionManager
@@ -18,7 +18,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /** Exercises the production client configuration and typed Cloud Gateway requests without network. */
-class BibleIQHttpContractTest {
+class BibleGatewayHttpContractTest {
     @AfterTest
     fun resetSession() {
         CloudSessionManager.resetForTesting()
@@ -40,7 +40,7 @@ class BibleIQHttpContractTest {
             assertNull(request.headers["x-goog-api-key"])
             respond(
                 """[{"id":"43003016","b":"43","c":"3","v":"16","t":"For God so loved the world","extra":"ignored"}]""",
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
         val client = createHttpClient(
@@ -85,7 +85,7 @@ class BibleIQHttpContractTest {
             respond(
                 """{"version":"BBE","date":"2026-11-17","data":{"book_number":43,"chapter_number":3,"verse_number":16,"text":"For God had such love for the world","book_usfm":"JHN"}}""",
                 HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, "application/json")
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
             )
         }
         val client = createHttpClient(

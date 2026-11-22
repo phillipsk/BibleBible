@@ -1,9 +1,12 @@
 package data
 
-import data.apiBible.BibleAPIBook
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.json.JSON_BOOKS_API_BIBLE
-import data.bibleIQ.*
+import data.bible.BibleBooksResponse
+import data.bible.BibleChapter
+import data.bible.BibleState
+import data.bible.BookData
+import data.bible.ChapterCount
+import data.bible.fetchBibleChapter
+import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.ktor.client.engine.mock.*
@@ -26,7 +29,7 @@ class BibleRepositoryIntegrationTest {
     @Test fun chapterLoadsThroughRepositoryAndUpdatesReader() = runTest {
         clearCache()
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val original = BibleAPIDataModel.bibleBooks
+        val original = BibleState.bibleBooks
         val paths = mutableListOf<String>()
         val client = createHttpClient(AppHttpClientConfig(baseUrl = "biblebible-api.example.run.app"),
             engine = MockEngine { request ->
@@ -42,17 +45,17 @@ class BibleRepositoryIntegrationTest {
                 respond(body, headers = headersOf(HttpHeaders.ContentType, "application/json"))
             }, enableLogging = false)
         try {
-            val books = Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
-            BibleAPIDataModel.updateBooks(books)
-            getChapterBibleIQ(books.data!!.first(), version = "BSB", updateReadingHistory = false, client = client)
+            val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+            BibleState.updateBooks(books)
+            fetchBibleChapter(books.data!!.first(), version = "BSB", updateReadingHistory = false, client = client)
             assertEquals(listOf("/GetChapter", "/GetChapterCount"), paths)
-            assertEquals("[1] In the beginning God created the heavens and the earth.", BibleIQDataModel.bibleChapter?.text)
-            assertEquals(50, BibleIQDataModel.bibleChapter?.chapterList?.size)
+            assertEquals("[1] In the beginning God created the heavens and the earth.", BibleState.bibleChapter?.text)
+            assertEquals(50, BibleState.bibleChapter?.chapterList?.size)
         } finally {
             clearCache()
             client.close()
-            BibleAPIDataModel.updateBooks(original)
-            BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
+            BibleState.updateBooks(original)
+            BibleState.updateBibleChapter(emptyList(), null, "KJV")
             Dispatchers.resetMain()
         }
     }
@@ -60,18 +63,18 @@ class BibleRepositoryIntegrationTest {
     @Test fun emptyApiResponseReportsErrorInsteadOfReplacingPassage() = runTest {
         clearCache()
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        while (BibleIQDataModel.snackBarChannel.tryReceive().isSuccess) { }
+        while (BibleState.snackBarChannel.tryReceive().isSuccess) { }
         val client = createHttpClient(AppHttpClientConfig(baseUrl = "biblebible-api.example.run.app"),
             engine = MockEngine { respond("[]", headers = headersOf(HttpHeaders.ContentType, "application/json")) }, enableLogging = false)
         try {
-            BibleIQDataModel.updateBibleChapter(listOf(BibleChapter("1", "1", "1", "1", "Previous")), ChapterCount(50), "KJV")
-            getChapterBibleIQ(data.apiBible.BookData(), updateReadingHistory = false, client = client)
-            assertEquals("Error fetching chapter", BibleIQDataModel.snackBarChannel.tryReceive().getOrNull())
-            assertEquals("[1] Previous", BibleIQDataModel.bibleChapter?.text)
+            BibleState.updateBibleChapter(listOf(BibleChapter("1", "1", "1", "1", "Previous")), ChapterCount(50), "KJV")
+            fetchBibleChapter(BookData(), updateReadingHistory = false, client = client)
+            assertEquals("Error fetching chapter", BibleState.snackBarChannel.tryReceive().getOrNull())
+            assertEquals("[1] Previous", BibleState.bibleChapter?.text)
         } finally {
             clearCache()
             client.close()
-            BibleIQDataModel.updateBibleChapter(emptyList(), null, "KJV")
+            BibleState.updateBibleChapter(emptyList(), null, "KJV")
             Dispatchers.resetMain()
         }
     }

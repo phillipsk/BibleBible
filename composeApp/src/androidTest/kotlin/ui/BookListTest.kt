@@ -6,7 +6,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import fake.TestData
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,8 +21,8 @@ class BookListTest {
 
     @Before
     fun resetNavigationState() {
-        BibleIQDataModel.showHomePage = true
-        BibleIQDataModel.sortAZ = false
+        BibleState.showHomePage = true
+        BibleState.sortAZ = false
     }
 
     @Test
@@ -47,8 +47,8 @@ class BookListTest {
         composeTestRule.onNodeWithText("Genesis").performClick()
         
         composeTestRule.runOnIdle {
-            assertEquals("Genesis", BibleIQDataModel.selectedBook.cleanedName)
-            assertFalse(BibleIQDataModel.showHomePage)
+            assertEquals("Genesis", BibleState.selectedBook.cleanedName)
+            assertFalse(BibleState.showHomePage)
         }
     }
 

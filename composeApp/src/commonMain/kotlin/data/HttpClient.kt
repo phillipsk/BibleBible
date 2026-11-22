@@ -1,6 +1,6 @@
 package data
 
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import data.config.CloudSessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
@@ -36,7 +36,7 @@ internal fun createHttpClient(
     timeout: Long = TIMEOUT_LIMIT,
     engine: HttpClientEngine? = null,
     logger: Logger = Logger.SIMPLE,
-    enableLogging: Boolean = !BibleIQDataModel.RELEASE_BUILD,
+    enableLogging: Boolean = !BibleState.RELEASE_BUILD,
 ): HttpClient {
     val configure: HttpClientConfig<*>.() -> Unit = {
         followRedirects = false
@@ -86,20 +86,6 @@ internal fun createHttpClient(
 }
 
 val httpClientCloudGateway: HttpClient by lazy {
-    val config = AppHttpClientConfig(
-        baseUrl = CloudSessionManager.gatewayHost,
-    )
-    createHttpClient(config)
-}
-
-val httpClientBibleAPI: HttpClient by lazy {
-    val config = AppHttpClientConfig(
-        baseUrl = CloudSessionManager.gatewayHost,
-    )
-    createHttpClient(config)
-}
-
-val httpClientBibleIQ: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = CloudSessionManager.gatewayHost,
     )
