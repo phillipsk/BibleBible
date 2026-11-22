@@ -1,11 +1,13 @@
 package ui.configs
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.BottomSheetState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
@@ -14,9 +16,11 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
@@ -38,25 +42,49 @@ internal fun BibleMenu(
     onInteraction: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope { Dispatchers.IO }
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        bibleVersionsList.data.forEach { version ->
-            if (version.abbreviation != null) {
-                val selected = remember(selectedVersion) { selectedVersion == version.abbreviation }
+    val validVersions = remember(bibleVersionsList.data) {
+        bibleVersionsList.data.filter { it.abbreviation != null }
+    }
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val viewportPx = with(density) { maxWidth.toPx() }
+        val estimatedChipWidthPx = with(density) { 88.dp.toPx() }
+        val centerOffset = -((viewportPx - estimatedChipWidthPx) / 2f).toInt()
+
+        LaunchedEffect(bottomSheetState.isExpanded, selectedVersion, maxWidth) {
+            if (bottomSheetState.isExpanded) {
+                val selectedIdx = validVersions.indexOfFirst {
+                    it.abbreviation.equals(selectedVersion, ignoreCase = true)
+                }
+                if (selectedIdx >= 0) {
+                    listState.animateScrollToItem(index = selectedIdx, scrollOffset = centerOffset)
+                }
+            }
+        }
+
+        LazyRow(
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(validVersions, key = { it.abbreviation ?: it.uiAbbreviation }) { version ->
+                val abbr = version.abbreviation ?: return@items
+                val selected = selectedVersion.equals(abbr, ignoreCase = true)
                 FilterChip(
                     onClick = {
                         onInteraction()
                         val previousVersion = BibleState.selectedVersion
-                        BibleState.updateSelectedVersion(version.abbreviation)
-                        AnalyticsTracker.trackTranslationChanged(previousVersion, version.abbreviation)
+                        BibleState.updateSelectedVersion(abbr)
+                        AnalyticsTracker.trackTranslationChanged(previousVersion, abbr)
                         scope.launch {
                             Napier.v(
-                                "updateUserPrefsBibleVersion :: selectedVersion ${version.abbreviation}",
-                                tag = "AP8243"
+                                "updateUserPrefsBibleVersion :: selectedVersion $abbr",
+                                tag = "AP8243",
                             )
-                            updateUserPrefsBibleVersion(version.abbreviation)
+                            updateUserPrefsBibleVersion(abbr)
                             delay(400)
                             bottomSheetState.collapse()
                         }
@@ -67,7 +95,7 @@ internal fun BibleMenu(
                             Icon(
                                 imageVector = Icons.Filled.Done,
                                 contentDescription = "Done icon",
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(12.dp),
                             )
                         }
                     } else {
