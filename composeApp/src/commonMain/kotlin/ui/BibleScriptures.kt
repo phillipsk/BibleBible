@@ -3,9 +3,13 @@ package ui
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +21,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -94,81 +99,93 @@ internal fun BibleScriptures(
             .collect { updateUserPreferences(it, BibleIQDataModel.selectedVersion) }
     }
 
-    Column(
-        modifier = Modifier
-            .testTag("ScriptureReader")
-            .onSizeChanged { size ->
-                if (size != viewportSize) {
-                    readingState.restoring = true
-                    viewportSize = size
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        val windowMetrics = computeAdaptiveWindowMetrics(maxWidth, maxHeight)
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("ScriptureReader")
+                .onSizeChanged { size ->
+                    if (size != viewportSize) {
+                        readingState.restoring = true
+                        viewportSize = size
+                    }
                 }
-            }
-            .verticalScroll(scrollState)
-            .navigationBarsPadding()
-            .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 18.dp)
-            .pointerInput(Unit) {
-                try {
-                    awaitPointerEventScope {
-                        var gestureFontSize = currentFontSize
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.changes.count { it.pressed } > 1) {
-                                if (!readingState.zooming) {
-                                    gestureFontSize = currentFontSize
-                                    readingState.beginZoom(scrollState.value)
+                .verticalScroll(scrollState)
+                .navigationBarsPadding()
+                .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 18.dp)
+                .pointerInput(Unit) {
+                    try {
+                        awaitPointerEventScope {
+                            var gestureFontSize = currentFontSize
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                if (event.changes.count { it.pressed } > 1) {
+                                    if (!readingState.zooming) {
+                                        gestureFontSize = currentFontSize
+                                        readingState.beginZoom(scrollState.value)
+                                    }
+                                    val zoom = event.calculateZoom()
+                                    if (zoom.isFinite() && zoom != 1f) {
+                                        val maximum = if (isDesktopPlatform()) 72f else 40f
+                                        gestureFontSize = (gestureFontSize * zoom).coerceIn(12f, maximum)
+                                        changeFontSize(gestureFontSize)
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                } else {
+                                    if (readingState.zooming) {
+                                        AnalyticsTracker.track(
+                                            "scripture_pinch_zoom",
+                                            "preferences",
+                                            mapOf("fontSize" to gestureFontSize.toInt().toString()),
+                                        )
+                                    }
+                                    readingState.endZoom()
                                 }
-                                val zoom = event.calculateZoom()
-                                if (zoom.isFinite() && zoom != 1f) {
-                                    val maximum = if (isDesktopPlatform()) 72f else 40f
-                                    gestureFontSize = (gestureFontSize * zoom).coerceIn(12f, maximum)
-                                    changeFontSize(gestureFontSize)
-                                    event.changes.forEach { it.consume() }
-                                }
-                            } else {
-                                if (readingState.zooming) {
-                                    AnalyticsTracker.track(
-                                        "scripture_pinch_zoom",
-                                        "preferences",
-                                        mapOf("fontSize" to gestureFontSize.toInt().toString()),
-                                    )
-                                }
-                                readingState.endZoom()
                             }
                         }
-                    }
-                } finally {
-                    // Disposal/cancellation must not leave a reused reader locked.
-                    readingState.endZoom()
-                }
-            }
-            .pointerInput(Unit) {
-                detectTapGestures(onDoubleTap = {
-                    val nextSize = if (currentFontSize == 30f) previousFontSize else {
-                        previousFontSize = currentFontSize
-                        30f
-                    }
-                    AnalyticsTracker.track(
-                        "scripture_double_tap_zoom",
-                        "preferences",
-                        mapOf("fontSize" to nextSize.toInt().toString()),
-                    )
-                    changeFontSize(nextSize)
-                })
-            }
-    ) {
-        chapters.text?.let { text ->
-            Text(
-                text = text,
-                fontSize = selectedFontSize.sp,
-                modifier = Modifier.testTag("ScriptureText"),
-                onTextLayout = { result ->
-                    if (!sameTextGeometry(textLayout, result)) {
-                        readingState.restoring = true
-                        readingState.layout = result
-                        textLayout = result
+                    } finally {
+                        // Disposal/cancellation must not leave a reused reader locked.
+                        readingState.endZoom()
                     }
                 }
-            )
+                .pointerInput(Unit) {
+                    detectTapGestures(onDoubleTap = {
+                        val nextSize = if (currentFontSize == 30f) previousFontSize else {
+                            previousFontSize = currentFontSize
+                            30f
+                        }
+                        AnalyticsTracker.track(
+                            "scripture_double_tap_zoom",
+                            "preferences",
+                            mapOf("fontSize" to nextSize.toInt().toString()),
+                        )
+                        changeFontSize(nextSize)
+                    })
+                }
+        ) {
+            chapters.text?.let { text ->
+                Text(
+                    text = text,
+                    fontSize = selectedFontSize.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .widthIn(max = windowMetrics.maxReadingWidth)
+                        .fillMaxWidth()
+                        .testTag("ScriptureText"),
+                    onTextLayout = { result ->
+                        if (!sameTextGeometry(textLayout, result)) {
+                            readingState.restoring = true
+                            readingState.layout = result
+                            textLayout = result
+                        }
+                    }
+                )
+            }
         }
     }
 }

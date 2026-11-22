@@ -1,5 +1,6 @@
 package ui.shorts
 
+import android.graphics.Matrix
 import android.graphics.SurfaceTexture
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -19,6 +20,35 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.viewinterop.AndroidView
 import data.shorts.BiblicalShortDto
 
+/**
+ * Applies a center-crop aspect-ratio transform so 9:16 video streams fill any phone, foldable,
+ * or theater viewport cleanly without stretching or squishing.
+ */
+private fun updateTextureCenterCropTransform(
+    textureView: TextureView,
+    videoWidth: Int,
+    videoHeight: Int,
+    viewWidth: Int,
+    viewHeight: Int,
+) {
+    if (videoWidth <= 0 || videoHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return
+    val videoAspect = videoWidth.toFloat() / videoHeight.toFloat()
+    val viewAspect = viewWidth.toFloat() / viewHeight.toFloat()
+    val scaleX: Float
+    val scaleY: Float
+    if (videoAspect > viewAspect) {
+        scaleX = videoAspect / viewAspect
+        scaleY = 1f
+    } else {
+        scaleX = 1f
+        scaleY = viewAspect / videoAspect
+    }
+    val matrix = Matrix().apply {
+        setScale(scaleX, scaleY, viewWidth / 2f, viewHeight / 2f)
+    }
+    textureView.setTransform(matrix)
+}
+
 @Composable
 internal actual fun ShortsVideoPlayer(
     shortItem: BiblicalShortDto,
@@ -32,6 +62,7 @@ internal actual fun ShortsVideoPlayer(
 ) {
     var videoReady by remember(shortItem.id) { mutableStateOf(false) }
     var mediaPlayerRef by remember(shortItem.id) { mutableStateOf<MediaPlayer?>(null) }
+    var videoSize by remember(shortItem.id) { mutableStateOf(0 to 0) }
 
     LaunchedEffect(seekRequestId, isActive) {
         if (seekRequestId > 0 && isActive && videoReady) {
@@ -72,6 +103,7 @@ internal actual fun ShortsVideoPlayer(
                     .alpha(if (videoReady) 1f else 0f),
                 factory = { context ->
                     TextureView(context).apply {
+                        val textureView = this
                         isOpaque = false
                         surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                             override fun onSurfaceTextureAvailable(
@@ -91,9 +123,27 @@ internal actual fun ShortsVideoPlayer(
                                         setSurface(surface)
                                         setDataSource(streamUrl)
                                         isLooping = true
+                                        setOnVideoSizeChangedListener { _, vWidth, vHeight ->
+                                            videoSize = vWidth to vHeight
+                                            updateTextureCenterCropTransform(
+                                                textureView,
+                                                vWidth,
+                                                vHeight,
+                                                width,
+                                                height,
+                                            )
+                                        }
                                         setOnPreparedListener { player ->
                                             val volume = if (isMuted) 0f else 1f
                                             player.setVolume(volume, volume)
+                                            videoSize = player.videoWidth to player.videoHeight
+                                            updateTextureCenterCropTransform(
+                                                textureView,
+                                                player.videoWidth,
+                                                player.videoHeight,
+                                                width,
+                                                height,
+                                            )
                                             videoReady = true
                                             if (isActive && !isPaused) {
                                                 player.start()
@@ -111,9 +161,17 @@ internal actual fun ShortsVideoPlayer(
 
                             override fun onSurfaceTextureSizeChanged(
                                 surfaceTexture: SurfaceTexture,
-                                width: Int,
-                                height: Int,
-                            ) = Unit
+                                viewWidth: Int,
+                                viewHeight: Int,
+                            ) {
+                                updateTextureCenterCropTransform(
+                                    textureView,
+                                    videoSize.first,
+                                    videoSize.second,
+                                    viewWidth,
+                                    viewHeight,
+                                )
+                            }
 
                             override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
                                 runCatching {
@@ -128,7 +186,14 @@ internal actual fun ShortsVideoPlayer(
                         }
                     }
                 },
-                update = { _ ->
+                update = { textureView ->
+                    updateTextureCenterCropTransform(
+                        textureView,
+                        videoSize.first,
+                        videoSize.second,
+                        textureView.width,
+                        textureView.height,
+                    )
                     val player = mediaPlayerRef ?: return@AndroidView
                     val volume = if (isMuted) 0f else 1f
                     runCatching {
