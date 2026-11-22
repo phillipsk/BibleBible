@@ -1,21 +1,31 @@
 package ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.ScrollableTabRow
-import androidx.compose.material.Tab
-import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,8 +35,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.apiBible.BookData
 import data.appPrefs.ReadingSession
@@ -93,38 +107,71 @@ internal fun BibleScripturesPager(
 
         Column(Modifier.fillMaxSize()) {
             if (sameBook && !chapters.chapterList.isNullOrEmpty()) {
-                ScrollableTabRow(
-                    selectedTabIndex = pagerState.currentPage.coerceIn(0, chapterCount - 1),
-                    edgePadding = 16.dp,
-                    indicator = { positions ->
-                        positions.getOrNull(pagerState.currentPage)?.let { position ->
+                val chapterListState = rememberLazyListState()
+                val density = LocalDensity.current
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .background(MaterialTheme.colors.surface),
+                ) {
+                    val viewportPx = with(density) { maxWidth.toPx() }
+                    val itemWidthPx = with(density) { 42.dp.toPx() }
+                    val selectedIdx = pagerState.currentPage.coerceIn(0, chapterCount - 1)
+
+                    // Re-center the active chapter on page changes AND orientation/width changes (landscape <-> portrait)
+                    LaunchedEffect(selectedIdx, chapterCount, maxWidth) {
+                        val centerOffset = -((viewportPx - itemWidthPx) / 2f).toInt()
+                        chapterListState.animateScrollToItem(index = selectedIdx, scrollOffset = centerOffset)
+                    }
+
+                    LazyRow(
+                        state = chapterListState,
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        itemsIndexed(chapters.chapterList) { index, chapter ->
+                            val isSelected = selectedIdx == index
                             Box(
-                                Modifier.padding(vertical = 8.dp)
-                                    .tabIndicatorOffset(position)
-                                    .size(32.dp)
-                                    .border(2.dp, MaterialTheme.colors.primary, CircleShape)
-                            )
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier.border(2.dp, MaterialTheme.colors.primary, CircleShape)
+                                        } else {
+                                            Modifier
+                                        }
+                                    )
+                                    .clickable {
+                                        AnalyticsTracker.track(
+                                            "chapter_tab_clicked",
+                                            "reading",
+                                            mapOf(
+                                                "bookKey" to canonicalBookKey(selectedBook),
+                                                "chapter" to chapter.toString(),
+                                            ),
+                                        )
+                                        scope.launch { pagerState.animateScrollToPage(index) }
+                                    },
+                            ) {
+                                Text(
+                                    text = chapter.toString(),
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.78f),
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
                         }
                     }
-                ) {
-                    chapters.chapterList.forEachIndexed { index, chapter ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                AnalyticsTracker.track(
-                                    "chapter_tab_clicked",
-                                    "reading",
-                                    mapOf(
-                                        "bookKey" to canonicalBookKey(selectedBook),
-                                        "chapter" to chapter.toString(),
-                                    ),
-                                )
-                                scope.launch { pagerState.animateScrollToPage(index) }
-                            },
-                            text = { Text(chapter.toString(), fontWeight = FontWeight.Bold) }
-                        )
-                    }
                 }
+                Divider(
+                    color = Color(0x33FFFFFF),
+                    thickness = 1.dp,
+                )
             }
 
             val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
@@ -170,17 +217,31 @@ internal fun BibleScripturesPager(
                 verticalAlignment = Alignment.Top,
                 userScrollEnabled = !isDesktopPlatform()
             ) { page ->
-                when {
-                    !sameBook || chapters.chapterId != page + 1 || chapters.text == null -> LoadingScreen()
-                    isAISummaryLoading && showAISummary -> LoadingScreen()
-                    showAISummary -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
-                    else -> BibleScriptures(
-                        chapters,
-                        scriptureScrollState,
-                        BibleIQDataModel.selectedFontSize,
-                        onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
-                        readingState = readingState
-                    )
+                val targetChapter = page + 1
+                val pageMode = when {
+                    !sameBook || chapters.chapterId != targetChapter || chapters.text == null -> "loading"
+                    isAISummaryLoading && showAISummary -> "summary_loading"
+                    showAISummary -> "summary"
+                    else -> "scripture"
+                }
+                Crossfade(
+                    targetState = pageMode,
+                    animationSpec = tween(durationMillis = 180),
+                    modifier = Modifier.fillMaxSize(),
+                    label = "chapter_page_crossfade",
+                ) { mode ->
+                    when (mode) {
+                        "loading" -> ScriptureShimmerLoading()
+                        "summary_loading" -> AiSummaryLoadingView()
+                        "summary" -> GeminiSummary(summaryScrollState, BibleIQDataModel.selectedFontSize)
+                        else -> BibleScriptures(
+                            chapters,
+                            scriptureScrollState,
+                            BibleIQDataModel.selectedFontSize,
+                            onFontSizeChanged = { BibleIQDataModel.selectedFontSize = it },
+                            readingState = readingState
+                        )
+                    }
                 }
             }
         }

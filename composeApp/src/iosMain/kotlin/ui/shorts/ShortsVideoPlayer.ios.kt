@@ -34,6 +34,8 @@ internal actual fun ShortsVideoPlayer(
     isMuted: Boolean,
     isPaused: Boolean,
     elapsedSeconds: Int,
+    seekTargetSeconds: Int,
+    seekRequestId: Int,
     modifier: Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -95,6 +97,12 @@ internal actual fun ShortsVideoPlayer(
                     player.play()
                 } else {
                     player.pause()
+                }
+            }
+
+            LaunchedEffect(seekRequestId, isActive) {
+                if (seekRequestId > 0 && isActive) {
+                    player.seekToTime(CMTimeMake(value = seekTargetSeconds.coerceAtLeast(0).toLong(), timescale = 1))
                 }
             }
 

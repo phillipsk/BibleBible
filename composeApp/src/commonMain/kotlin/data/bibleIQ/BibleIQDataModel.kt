@@ -172,13 +172,29 @@ object BibleIQDataModel {
             ?.plus(1) ?: 1
     }
 
+    var returnToShortsOnBack by mutableStateOf(false)
+    var resumeShortIdOnReturn by mutableStateOf<String?>(null)
+
     val onHomeClick: () -> Unit = {
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")
+        BibleIQDataModel.returnToShortsOnBack = false
+        BibleIQDataModel.resumeShortIdOnReturn = null
         BibleIQDataModel.showBiblicalShorts = false
         BibleIQDataModel.showHomePage = true
         ReadingSession.goHome()
+    }
+
+    internal fun navigateBackFromReader() {
+        GeminiModel.cancelPendingSummary()
+        if (returnToShortsOnBack) {
+            returnToShortsOnBack = false
+            AnalyticsTracker.track("reader_back_to_shorts", "navigation")
+            openBiblicalShorts()
+        } else {
+            onHomeClick()
+        }
     }
 
 

@@ -113,4 +113,21 @@ class CloudConfigRepositoryTest {
         assertNull(CloudSessionManager.parseSecureGatewayUrl("https://user:pass@example.com"))
         assertNotNull(CloudSessionManager.parseSecureGatewayUrl("https://biblebible-api.example.run.app"))
     }
+
+    @Test
+    fun featureFlagsToggleBiblicalShortsAndVerseOfTheDay() = runTest {
+        assertTrue(CloudSessionManager.biblicalShortsEnabled)
+        assertTrue(CloudSessionManager.verseOfTheDayEnabled)
+
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(
+                    biblicalShortsEnabled = false,
+                    verseOfTheDayEnabled = false,
+                )
+            )
+        )
+        assertFalse(CloudSessionManager.biblicalShortsEnabled)
+        assertFalse(CloudSessionManager.verseOfTheDayEnabled)
+    }
 }
