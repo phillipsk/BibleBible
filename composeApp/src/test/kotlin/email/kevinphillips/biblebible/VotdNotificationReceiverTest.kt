@@ -56,6 +56,7 @@ class VotdNotificationReceiverTest {
     fun debugBuildSchedulesBoth6AmAnd9PmAllowWhileIdleAlarms() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val shadowAlarmManager = Shadows.shadowOf(alarmManager)
 
@@ -74,6 +75,7 @@ class VotdNotificationReceiverTest {
     @Test
     fun releaseBuildSchedulesOnly6AmAndCancelsAnyDebug9PmAlarm() {
         val app = RuntimeEnvironment.getApplication()
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val shadowAlarmManager = Shadows.shadowOf(alarmManager)
 
@@ -98,6 +100,7 @@ class VotdNotificationReceiverTest {
     fun bootCompletedReschedulesAlarmsWithoutPostingNotification() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -109,8 +112,29 @@ class VotdNotificationReceiverTest {
     }
 
     @Test
+    fun disabledNotificationsCancelAlarmsAndIgnoreBootCompletedReschedule() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val shadowAlarmManager = Shadows.shadowOf(alarmManager)
+
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
+        VotdNotificationReceiver.scheduleDailyVotd(app)
+        assertEquals(2, shadowAlarmManager.scheduledAlarms.size)
+
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, false)
+        VotdNotificationReceiver.cancelAllVotd(app)
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
+
+        VotdNotificationReceiver().onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
+    }
+
+    @Test
     fun postedNotificationIncludesBookChapterVerseAndVersionOnPendingIntent() {
         val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val triggerIntent = Intent(app, VotdNotificationReceiver::class.java).apply {
             putExtra(VotdNotificationReceiver.EXTRA_TITLE, "Verse of the Day · Philippians 4:13")
@@ -160,6 +184,43 @@ class VotdNotificationReceiverTest {
         assertEquals(3, parsed.chapter)
         assertEquals(16, parsed.verse)
         assertEquals("BSB", parsed.version)
+    }
+
+    @Test
+    fun releaseBuildIgnoresCustomNotificationOverrideExtras() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
+        data.config.CloudSessionManager.overrideGatewayUrlForTesting("https://unconfigured.invalid")
+        try {
+            val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val spoofIntent = Intent(app, VotdNotificationReceiver::class.java).apply {
+                putExtra(VotdNotificationReceiver.EXTRA_TITLE, "Spoofed Title")
+                putExtra(VotdNotificationReceiver.EXTRA_BODY, "Spoofed Body")
+                putExtra(VotdNotificationReceiver.EXTRA_BOOK_USFM, "REV")
+                putExtra(VotdNotificationReceiver.EXTRA_CHAPTER, 22)
+                putExtra(VotdNotificationReceiver.EXTRA_VERSE, 21)
+            }
+
+            VotdNotificationReceiver().onReceive(app, spoofIntent)
+
+            val shadowNm = Shadows.shadowOf(notificationManager)
+            val deadline = System.currentTimeMillis() + 5_000L
+            while (shadowNm.allNotifications.isEmpty() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20)
+            }
+            val posted = shadowNm.allNotifications.singleOrNull()
+            assertNotNull(posted, "Expected fallback notification instead of spoofed extras")
+            val launchIntent = Shadows.shadowOf(posted.contentIntent).savedIntent
+            val extras = MainActivity.extractNotificationExtras(launchIntent)
+            val parsed = parseVotdNotificationPayload(extras)
+            assertNotNull(parsed)
+            assertEquals("JHN", parsed.bookUsfm)
+            assertEquals(3, parsed.chapter)
+            assertEquals(16, parsed.verse)
+        } finally {
+            data.config.CloudSessionManager.resetForTesting()
+        }
     }
 
     private fun calendarMillis(

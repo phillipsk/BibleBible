@@ -1,26 +1,29 @@
 package email.kevinphillips.biblebible
 
 import App
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import data.bible.BibleState
+import data.notifications.AndroidNotificationPermissionHost
+import data.notifications.VotdNotificationController
 import data.notifications.parseVotdNotificationPayload
 import email.kevinphillips.biblebible.cache.DriverFactory
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            AndroidNotificationPermissionHost.onPermissionResult(granted)
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
@@ -28,7 +31,8 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         DriverFactory.context = applicationContext
-        requestNotificationPermissionAndScheduleVotd()
+        AndroidNotificationPermissionHost.attach(this, notificationPermissionLauncher)
+        VotdNotificationController.refresh()
         applyLaunchIntent(intent)
 
         setContent {
@@ -36,27 +40,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        VotdNotificationController.refresh()
+    }
+
+    override fun onDestroy() {
+        AndroidNotificationPermissionHost.detach(this)
+        super.onDestroy()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         applyLaunchIntent(intent)
-    }
-
-    private fun requestNotificationPermissionAndScheduleVotd() {
-        VotdNotificationReceiver.scheduleDailyVotd(applicationContext)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val granted = ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    1001,
-                )
-            }
-        }
     }
 
     private fun applyLaunchIntent(launchIntent: Intent?) {

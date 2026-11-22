@@ -23,6 +23,10 @@ import kotlin.concurrent.thread
 class VotdNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action
+        if (!isUserNotificationsEnabled(context.applicationContext)) {
+            cancelAllVotd(context.applicationContext)
+            return
+        }
         if (action in RESCHEDULE_ONLY_ACTIONS) {
             scheduleDailyVotd(context.applicationContext)
             return
@@ -47,12 +51,13 @@ class VotdNotificationReceiver : BroadcastReceiver() {
         thread(name = "BibleBibleVotdNotify") {
             try {
                 ensureChannel(context)
-                val customTitle = intent?.getStringExtra(EXTRA_TITLE)
-                val customBody = intent?.getStringExtra(EXTRA_BODY)
-                val customBookUsfm = intent?.getStringExtra(EXTRA_BOOK_USFM)
-                val customChapter = intent?.getIntExtra(EXTRA_CHAPTER, -1) ?: -1
-                val customVerse = intent?.getIntExtra(EXTRA_VERSE, 1) ?: 1
-                val customVersion = intent?.getStringExtra(EXTRA_VERSION)
+                val allowCustomExtras = isDebugBuild(context)
+                val customTitle = if (allowCustomExtras) intent?.getStringExtra(EXTRA_TITLE) else null
+                val customBody = if (allowCustomExtras) intent?.getStringExtra(EXTRA_BODY) else null
+                val customBookUsfm = if (allowCustomExtras) intent?.getStringExtra(EXTRA_BOOK_USFM) else null
+                val customChapter = if (allowCustomExtras) (intent?.getIntExtra(EXTRA_CHAPTER, -1) ?: -1) else -1
+                val customVerse = if (allowCustomExtras) (intent?.getIntExtra(EXTRA_VERSE, 1) ?: 1) else 1
+                val customVersion = if (allowCustomExtras) intent?.getStringExtra(EXTRA_VERSION) else null
 
                 val basePayload = if (!customTitle.isNullOrBlank() && !customBody.isNullOrBlank()) {
                     VotdPayload(
@@ -197,13 +202,27 @@ class VotdNotificationReceiver : BroadcastReceiver() {
         internal const val DEBUG_EVENING_ALARM_REQUEST_CODE = 2100
         private const val RESCHEDULE_LEAD_MILLIS = 120_000L
 
+        private const val PREFS_NAME = "biblebible_notifications_prefs"
+        private const val KEY_USER_ENABLED = "votd_notifications_enabled"
+
         private val RESCHEDULE_ONLY_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
-            AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED,
         )
+
+        fun isUserNotificationsEnabled(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getBoolean(KEY_USER_ENABLED, false)
+        }
+
+        fun setUserNotificationsEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_USER_ENABLED, enabled)
+                .apply()
+        }
 
         fun isDebugBuild(context: Context): Boolean =
             (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
@@ -247,6 +266,10 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             dailyMinLeadMillis: Long = 0L,
             debugEveningMinLeadMillis: Long = 0L,
         ) {
+            if (!isUserNotificationsEnabled(context)) {
+                cancelAllVotd(context)
+                return
+            }
             ensureChannel(context)
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
 
@@ -281,6 +304,28 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             } else {
                 cancelDebugEveningVotd(context)
             }
+        }
+
+        fun cancelAllVotd(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+            listOf(
+                ACTION_DAILY_VOTD to DAILY_ALARM_REQUEST_CODE,
+                ACTION_DEBUG_EVENING_VOTD to DEBUG_EVENING_ALARM_REQUEST_CODE,
+            ).forEach { (action, requestCode) ->
+                val existing = PendingIntent.getBroadcast(
+                    context,
+                    requestCode,
+                    Intent(context, VotdNotificationReceiver::class.java).apply {
+                        this.action = action
+                    },
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+                ) ?: return@forEach
+                alarmManager?.cancel(existing)
+                existing.cancel()
+            }
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            manager?.cancel(NOTIFICATION_ID)
+            manager?.cancel(DEBUG_NOTIFICATION_ID)
         }
 
         fun cancelDebugEveningVotd(context: Context) {
@@ -318,19 +363,7 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             triggerAtMillis: Long,
             pendingIntent: PendingIntent,
         ) {
-            val canUseExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
-            if (canUseExact) {
-                try {
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerAtMillis,
-                        pendingIntent,
-                    )
-                    return
-                } catch (_: SecurityException) {
-                    // Fall through to inexact idle-allowed alarm if OEM restricts exact alarms
-                }
-            }
+            // Use Doze-compatible inexact alarms so the app complies with Google Play Exact Alarm policy.
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 triggerAtMillis,

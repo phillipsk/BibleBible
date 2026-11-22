@@ -37,16 +37,22 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetScaffoldState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +80,7 @@ import data.bible.Chapter
 import data.bible.DailyVerse
 import data.bible.bibleBooksFull
 import data.config.CloudSessionManager
+import data.notifications.VotdNotificationController
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
 import email.kevinphillips.biblebible.getPlatformName
@@ -127,9 +134,52 @@ internal fun BibleHomeScreen(
     }
 
     LaunchedEffect(Unit) {
+        VotdNotificationController.refresh()
         channel.receiveAsFlow().collect { errorMsg ->
             localScaffoldState.snackbarHostState.showSnackbar(message = errorMsg)
         }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                VotdNotificationController.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (BibleState.showHomePage &&
+        !BibleState.showBiblicalShorts &&
+        !BibleState.autoDemoTourEnabled &&
+        VotdNotificationController.shouldShowOptInPrompt
+    ) {
+        AlertDialog(
+            onDismissRequest = { VotdNotificationController.dismissOptInPrompt() },
+            title = {
+                Text(
+                    text = "Daily Verse of the Day",
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = {
+                Text(
+                    text = "Receive a morning scripture reminder at 6:00 AM and tap straight to that book, chapter, and verse. You can turn this on or off anytime in the settings drawer.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { VotdNotificationController.onEnableRequested() }) {
+                    Text("Enable")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { VotdNotificationController.dismissOptInPrompt() }) {
+                    Text("Not now")
+                }
+            },
+        )
     }
 
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
