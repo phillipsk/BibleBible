@@ -27,11 +27,24 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.native.concurrent.ThreadLocal
 
+private val validBookShimmerStyles = setOf(
+    "soft_gold_sheen",
+    "candle_breathe",
+    "row_wave",
+    "horizon_pulse",
+    "electric",
+    "none",
+)
+
 @Serializable
 data class CloudFeatureFlagsDto(
     val biblicalShortsEnabled: Boolean = true,
     val verseOfTheDayEnabled: Boolean = true,
     val inHouseWordsEnabled: Boolean = true,
+    val bookShimmerStyle: String = "soft_gold_sheen",
+    val bookShimmerPace: Float = 1.0f,
+    val bookShimmerIntensity: Float = 1.0f,
+    val bookSectionPaddingDp: Int = 10,
 )
 
 @Serializable
@@ -91,6 +104,28 @@ object CloudSessionManager {
 
     val verseOfTheDayEnabled: Boolean
         get() = featureFlags.verseOfTheDayEnabled
+
+    val bookShimmerStyle: String
+        get() = featureFlags.bookShimmerStyle
+            .trim()
+            .lowercase()
+            .takeIf { it in validBookShimmerStyles }
+            ?: "soft_gold_sheen"
+
+    val bookShimmerPace: Float
+        get() = featureFlags.bookShimmerPace
+            .takeIf { it.isFinite() }
+            ?.coerceIn(0.25f, 3.0f)
+            ?: 1.0f
+
+    val bookShimmerIntensity: Float
+        get() = featureFlags.bookShimmerIntensity
+            .takeIf { it.isFinite() }
+            ?.coerceIn(0f, 2.0f)
+            ?: 1.0f
+
+    val bookSectionPaddingDp: Int
+        get() = featureFlags.bookSectionPaddingDp.coerceIn(0, 48)
 
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url

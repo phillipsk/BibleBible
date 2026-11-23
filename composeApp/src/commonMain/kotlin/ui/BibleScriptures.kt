@@ -42,6 +42,7 @@ import data.bible.BibleState
 import data.notifications.findVerseCharacterOffset
 import data.notifications.findVerseCharacterRange
 import email.kevinphillips.biblebible.isDesktopPlatform
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -60,7 +61,7 @@ internal fun BibleScriptures(
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val currentFontSize by rememberUpdatedState(selectedFontSize)
     val changeFontSize by rememberUpdatedState(onFontSizeChanged)
-    readingState.contentInset = with(LocalDensity.current) { 4.dp.roundToPx() }
+    readingState.contentInset = with(LocalDensity.current) { 12.dp.roundToPx() }
 
     LaunchedEffect(scrollState, readingState) {
         var interactionActive = false
@@ -78,6 +79,12 @@ internal fun BibleScriptures(
     // Keep our own restoration out of the capture flow to avoid cumulative drift.
     LaunchedEffect(textLayout, viewportSize, selectedFontSize, readingState.zoomReleaseGeneration, readingState) {
         val layout = textLayout ?: return@LaunchedEffect
+        if (BibleState.pendingTargetVerse != null &&
+            BibleState.pendingTargetBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
+            BibleState.pendingTargetChapter == chapters.chapterId
+        ) {
+            return@LaunchedEffect
+        }
         // A release can arrive before the final font change has been measured.
         // Only the effect for that measured font may unlock anchor capture.
         if (layout.layoutInput.style.fontSize != selectedFontSize.sp) return@LaunchedEffect
@@ -99,6 +106,7 @@ internal fun BibleScriptures(
 
     LaunchedEffect(
         textLayout,
+        viewportSize,
         chapters.text,
         BibleState.pendingTargetVerse,
         BibleState.pendingTargetBookId,
@@ -108,6 +116,7 @@ internal fun BibleScriptures(
         val targetBookId = BibleState.pendingTargetBookId ?: return@LaunchedEffect
         val targetChapter = BibleState.pendingTargetChapter ?: return@LaunchedEffect
         val layout = textLayout ?: return@LaunchedEffect
+        if (viewportSize.height <= 0) return@LaunchedEffect
         val chapterText = chapters.text ?: return@LaunchedEffect
         if (chapterText.isBlank()) return@LaunchedEffect
         if (!BibleState.selectedBook.bookId.equals(targetBookId, ignoreCase = true) ||
@@ -116,17 +125,36 @@ internal fun BibleScriptures(
             return@LaunchedEffect
         }
 
-        val charOffset = findVerseCharacterOffset(
+        val activeVersion = chapters.version ?: BibleState.selectedVersion
+        val verseEnd = BibleState.highlightedVerseEnd?.coerceAtLeast(targetVerse) ?: targetVerse
+        val verseRange = findVerseCharacterRange(
+            chapterText = chapterText,
+            verseStart = targetVerse,
+            verseEnd = verseEnd,
+            version = activeVersion,
+        ) ?: findVerseCharacterOffset(
             chapterText = chapterText,
             verseNumber = targetVerse,
-            version = chapters.version ?: BibleState.selectedVersion,
-        )
-        if (charOffset != null) {
-            readingState.jumpToOffset(charOffset)
+            version = activeVersion,
+        )?.let { it..it } ?: if (targetVerse == 1) 0..0 else null
+
+        if (verseRange != null) {
+            val startIdx = verseRange.first.coerceIn(0, (chapterText.length - 1).coerceAtLeast(0))
+            val endIdx = verseRange.last.coerceIn(startIdx, (chapterText.length - 1).coerceAtLeast(0))
+            val startLine = layout.getLineForOffset(startIdx)
+            val endLine = layout.getLineForOffset(endIdx)
+            val verseMidY = (layout.getLineTop(startLine) + layout.getLineBottom(endLine)) / 2f +
+                readingState.contentInset
+            readingState.jumpToOffset(startIdx)
             withFrameNanos { }
-            scrollState.scrollTo(readingState.scrollOffset(layout))
-            readingState.restoredScrollOffset = scrollState.value
+            val centeredScroll = (verseMidY - viewportSize.height / 2f)
+                .roundToInt()
+                .coerceIn(0, scrollState.maxValue)
+            scrollState.scrollTo(centeredScroll)
             readingState.restoring = false
+            readingState.restoredScrollOffset = null
+            readingState.capture(scrollState.value)
+            readingState.restoredScrollOffset = scrollState.value
         }
         BibleState.clearPendingTargetVerse()
     }
@@ -157,7 +185,7 @@ internal fun BibleScriptures(
                 }
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
-                .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 120.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 120.dp)
                 .pointerInput(Unit) {
                     try {
                         awaitPointerEventScope {
@@ -231,7 +259,6 @@ internal fun BibleScriptures(
                                 addStyle(
                                     style = SpanStyle(
                                         color = Color(0xFFFBD38D),
-                                        background = Color(0x2CFBD38D),
                                         fontWeight = FontWeight.SemiBold,
                                     ),
                                     start = start,
@@ -244,6 +271,7 @@ internal fun BibleScriptures(
                 Text(
                     text = renderedText,
                     fontSize = selectedFontSize.sp,
+                    lineHeight = (selectedFontSize * 1.48f).sp,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .widthIn(max = windowMetrics.maxReadingWidth)

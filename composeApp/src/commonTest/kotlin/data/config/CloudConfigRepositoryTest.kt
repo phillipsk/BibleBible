@@ -118,16 +118,43 @@ class CloudConfigRepositoryTest {
     fun featureFlagsToggleBiblicalShortsAndVerseOfTheDay() = runTest {
         assertTrue(CloudSessionManager.biblicalShortsEnabled)
         assertTrue(CloudSessionManager.verseOfTheDayEnabled)
+        assertEquals("soft_gold_sheen", CloudSessionManager.bookShimmerStyle)
+        assertEquals(1.0f, CloudSessionManager.bookShimmerPace)
+        assertEquals(1.0f, CloudSessionManager.bookShimmerIntensity)
+        assertEquals(10, CloudSessionManager.bookSectionPaddingDp)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
                 features = CloudFeatureFlagsDto(
                     biblicalShortsEnabled = false,
                     verseOfTheDayEnabled = false,
+                    bookShimmerStyle = "ROW_WAVE",
+                    bookShimmerPace = 0.65f,
+                    bookShimmerIntensity = 1.35f,
+                    bookSectionPaddingDp = 16,
                 )
             )
         )
         assertFalse(CloudSessionManager.biblicalShortsEnabled)
         assertFalse(CloudSessionManager.verseOfTheDayEnabled)
+        assertEquals("row_wave", CloudSessionManager.bookShimmerStyle)
+        assertEquals(0.65f, CloudSessionManager.bookShimmerPace)
+        assertEquals(1.35f, CloudSessionManager.bookShimmerIntensity)
+        assertEquals(16, CloudSessionManager.bookSectionPaddingDp)
+
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(
+                    bookShimmerStyle = "unknown_style",
+                    bookShimmerPace = 10f,
+                    bookShimmerIntensity = -1f,
+                    bookSectionPaddingDp = 200,
+                )
+            )
+        )
+        assertEquals("soft_gold_sheen", CloudSessionManager.bookShimmerStyle)
+        assertEquals(3.0f, CloudSessionManager.bookShimmerPace)
+        assertEquals(0f, CloudSessionManager.bookShimmerIntensity)
+        assertEquals(48, CloudSessionManager.bookSectionPaddingDp)
     }
 }

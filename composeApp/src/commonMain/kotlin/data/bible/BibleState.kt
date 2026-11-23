@@ -79,6 +79,8 @@ object BibleState {
 
     var pendingDeepLink by mutableStateOf<ScriptureDeepLink?>(null)
         private set
+    var navigationGeneration by mutableStateOf(0)
+        private set
     var pendingTargetVerse by mutableStateOf<Int?>(null)
         private set
     var pendingTargetBookId by mutableStateOf<String?>(null)
@@ -125,13 +127,9 @@ object BibleState {
         highlightedVerseChapter = safeChapter
         highlightedVerseStart = safeStart
         highlightedVerseEnd = safeEnd
-        if (safeStart > 1) {
-            pendingTargetVerse = safeStart
-            pendingTargetBookId = bookId
-            pendingTargetChapter = safeChapter
-        } else {
-            clearPendingTargetVerse()
-        }
+        pendingTargetVerse = safeStart
+        pendingTargetBookId = bookId
+        pendingTargetChapter = safeChapter
     }
 
     internal suspend fun consumePendingDeepLink(
@@ -200,13 +198,12 @@ object BibleState {
         returnToShortsOnBack = false
         closeBiblicalShorts()
         restoreReadingLocation(matchedBook, targetRef.chapter.coerceAtLeast(1))
-        if (targetRef.verse > 1) {
-            pendingTargetVerse = targetRef.verse
-            pendingTargetBookId = matchedBook.bookId
-            pendingTargetChapter = targetRef.chapter.coerceAtLeast(1)
-        } else {
-            clearPendingTargetVerse()
-        }
+        focusScriptureVerse(
+            bookId = matchedBook.bookId,
+            chapter = targetRef.chapter.coerceAtLeast(1),
+            verseStart = targetRef.verse.coerceAtLeast(1),
+            verseEnd = targetRef.verse.coerceAtLeast(1),
+        )
         AnalyticsTracker.trackBookSelected(
             bookId = matchedBook.bookId,
             bookName = matchedBook.name ?: resolvedUsfm,
@@ -341,6 +338,7 @@ object BibleState {
             )
         }
         showHomePage = false
+        navigationGeneration += 1
     }
 
     internal fun discardReadingLocation() {
@@ -397,10 +395,12 @@ object BibleState {
     fun updateReadingHistory(newHistory: List<SelectReadingHistory>) {
         readingHistory = newHistory.map {
             if (it.b == null || it.c == null) return@map ReadingHistoryUIState()
+            val ordinal = it.b.toIntOrNull()
             ReadingHistoryUIState(
-                bookName = bibleBooks.data?.getOrNull(it.b.toInt() - 1)?.name,
+                bookName = ordinal?.let { ord -> bibleBooks.data?.getOrNull(ord - 1)?.name },
                 chapterId = it.c.toInt(),
                 date = transformDate(it.DATE),
+                bookOrdinal = ordinal,
             )
         }
     }
