@@ -88,6 +88,17 @@ internal fun BottomSheetConfigView(
             DailyVerseNotificationToggleRow(
                 onInteraction = { interactionNonce++ },
             )
+            DailyReminderTimePickerRow(
+                selectedHour = VotdNotificationController.reminderHour,
+                selectedMinute = VotdNotificationController.reminderMinute,
+                onTimeSelected = { hour, minute ->
+                    interactionNonce++
+                    VotdNotificationController.updateReminderTime(hour, minute)
+                },
+                labelColor = MaterialTheme.colors.onSurface,
+                onMenuOpened = { interactionNonce++ },
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
             Divider(modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
         }
         if (!readingHistory.isNullOrEmpty()) {
@@ -117,10 +128,11 @@ private fun DailyVerseNotificationToggleRow(
 ) {
     val isEnabled = VotdNotificationController.effectivelyEnabled
     val status = VotdNotificationController.permissionStatus
+    val timeLabel = VotdNotificationController.formattedReminderTime
     val subtitle = when {
-        status == NotificationPermissionStatus.DENIED -> "Blocked in device settings — tap to open"
-        isEnabled -> "6:00 AM daily scripture reminder"
-        else -> "Off — tap to enable 6:00 AM reminder"
+        status == NotificationPermissionStatus.DENIED -> "Blocked in device settings. Tap to open"
+        isEnabled -> "$timeLabel daily scripture reminder"
+        else -> "Off. Tap to enable $timeLabel reminder"
     }
     val onToggle: (Boolean) -> Unit = { checked ->
         onInteraction()

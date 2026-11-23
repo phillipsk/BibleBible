@@ -10,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
@@ -30,20 +32,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -66,6 +74,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,6 +101,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
+import ui.configs.DailyReminderTimePickerRow
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
 
@@ -157,30 +167,76 @@ internal fun BibleHomeScreen(
         !BibleState.autoDemoTourEnabled &&
         VotdNotificationController.shouldShowOptInPrompt
     ) {
-        AlertDialog(
-            onDismissRequest = { VotdNotificationController.dismissOptInPrompt() },
-            title = {
-                Text(
-                    text = "Daily Verse of the Day",
-                    fontWeight = FontWeight.Bold,
-                )
-            },
-            text = {
-                Text(
-                    text = "Receive a morning scripture reminder at 6:00 AM and tap straight to that book, chapter, and verse. You can turn this on or off anytime in the settings drawer.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { VotdNotificationController.onEnableRequested() }) {
-                    Text("Enable")
+        Dialog(onDismissRequest = { VotdNotificationController.dismissOptInPrompt() }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF132238),
+                border = BorderStroke(1.5.dp, Color(0x66FBD38D)),
+                elevation = 12.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp)
+                    .testTag("votd_opt_in_dialog"),
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        text = "Daily Verse of the Day",
+                        color = Color(0xFFFBD38D),
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Start your morning in God's Word. Choose your daily reminder time below and tap straight to that book, chapter, and verse. You can adjust or turn this off anytime in Settings.",
+                        color = Color(0xFFE2E8F0),
+                        fontSize = 16.sp,
+                        lineHeight = 23.sp,
+                    )
+                    DailyReminderTimePickerRow(
+                        selectedHour = VotdNotificationController.reminderHour,
+                        selectedMinute = VotdNotificationController.reminderMinute,
+                        onTimeSelected = { hour, minute ->
+                            VotdNotificationController.updateReminderTime(hour, minute)
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        TextButton(onClick = { VotdNotificationController.dismissOptInPrompt() }) {
+                            Text(
+                                text = "Not now",
+                                color = Color(0xFFCBD5E1),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Button(
+                            onClick = { VotdNotificationController.onEnableRequested() },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color(0xFFFBD38D),
+                                contentColor = Color(0xFF09111E),
+                            ),
+                            modifier = Modifier.testTag("votd_opt_in_enable_btn"),
+                        ) {
+                            Text(
+                                text = "Enable",
+                                color = Color(0xFF09111E),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { VotdNotificationController.dismissOptInPrompt() }) {
-                    Text("Not now")
-                }
-            },
-        )
+            }
+        }
     }
 
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded

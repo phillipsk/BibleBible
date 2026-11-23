@@ -114,6 +114,23 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         prefs?.edit()?.putBoolean(KEY_PROMPT_DISMISSED, dismissed)?.apply()
     }
 
+    override fun getReminderTime(): Pair<Int, Int> {
+        val ctx = context ?: return 6 to 0
+        return VotdNotificationReceiver.getReminderHour(ctx) to VotdNotificationReceiver.getReminderMinute(ctx)
+    }
+
+    override fun setReminderTime(hour: Int, minute: Int) {
+        val ctx = context ?: return
+        VotdNotificationReceiver.setReminderTime(ctx, hour, minute)
+    }
+
+    override fun rescheduleIfEnabled() {
+        val ctx = context ?: return
+        if (isUserEnabled()) {
+            VotdNotificationReceiver.scheduleDailyVotd(ctx)
+        }
+    }
+
     override fun queryOsPermissionStatus(onResult: (NotificationPermissionStatus) -> Unit) {
         val ctx = context
         if (ctx == null) {

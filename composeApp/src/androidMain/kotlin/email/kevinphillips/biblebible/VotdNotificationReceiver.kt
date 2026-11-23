@@ -204,6 +204,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
 
         private const val PREFS_NAME = "biblebible_notifications_prefs"
         private const val KEY_USER_ENABLED = "votd_notifications_enabled"
+        private const val KEY_REMINDER_HOUR = "votd_reminder_hour"
+        private const val KEY_REMINDER_MINUTE = "votd_reminder_minute"
 
         private val RESCHEDULE_ONLY_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
@@ -221,6 +223,24 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean(KEY_USER_ENABLED, enabled)
+                .apply()
+        }
+
+        fun getReminderHour(context: Context): Int =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_REMINDER_HOUR, DAILY_HOUR)
+                .coerceIn(0, 23)
+
+        fun getReminderMinute(context: Context): Int =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_REMINDER_MINUTE, DAILY_MINUTE)
+                .coerceIn(0, 59)
+
+        fun setReminderTime(context: Context, hour: Int, minute: Int) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putInt(KEY_REMINDER_HOUR, hour.coerceIn(0, 23))
+                .putInt(KEY_REMINDER_MINUTE, minute.coerceIn(0, 59))
                 .apply()
         }
 
@@ -274,8 +294,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
 
             val dailyTriggerAt = nextTriggerTimeMillis(
-                hour = DAILY_HOUR,
-                minute = DAILY_MINUTE,
+                hour = getReminderHour(context),
+                minute = getReminderMinute(context),
                 nowMillis = nowMillis,
                 minLeadMillis = dailyMinLeadMillis,
             )

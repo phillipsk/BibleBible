@@ -12,12 +12,48 @@ enum class NotificationPermissionStatus {
     UNSUPPORTED,
 }
 
+data class DailyReminderTimeOption(
+    val hour: Int,
+    val minute: Int,
+    val label: String,
+)
+
+val dailyReminderTimeOptions: List<DailyReminderTimeOption> = listOf(
+    DailyReminderTimeOption(5, 0, "5:00 AM"),
+    DailyReminderTimeOption(5, 30, "5:30 AM"),
+    DailyReminderTimeOption(6, 0, "6:00 AM"),
+    DailyReminderTimeOption(6, 30, "6:30 AM"),
+    DailyReminderTimeOption(7, 0, "7:00 AM"),
+    DailyReminderTimeOption(7, 30, "7:30 AM"),
+    DailyReminderTimeOption(8, 0, "8:00 AM"),
+    DailyReminderTimeOption(9, 0, "9:00 AM"),
+    DailyReminderTimeOption(12, 0, "12:00 PM"),
+    DailyReminderTimeOption(18, 0, "6:00 PM"),
+    DailyReminderTimeOption(20, 0, "8:00 PM"),
+    DailyReminderTimeOption(21, 0, "9:00 PM"),
+)
+
+fun formatReminderTime12Hour(hour: Int, minute: Int): String {
+    val cleanHour = hour.coerceIn(0, 23)
+    val cleanMinute = minute.coerceIn(0, 59)
+    val period = if (cleanHour < 12) "AM" else "PM"
+    val displayHour = when (val h12 = cleanHour % 12) {
+        0 -> 12
+        else -> h12
+    }
+    val minStr = if (cleanMinute < 10) "0$cleanMinute" else "$cleanMinute"
+    return "$displayHour:$minStr $period"
+}
+
 interface NotificationPlatformBridge {
     val isSupported: Boolean
     fun isUserEnabled(): Boolean
     fun setUserEnabled(enabled: Boolean)
     fun isPromptDismissed(): Boolean
     fun setPromptDismissed(dismissed: Boolean)
+    fun getReminderTime(): Pair<Int, Int> = 6 to 0
+    fun setReminderTime(hour: Int, minute: Int) {}
+    fun rescheduleIfEnabled() {}
     fun queryOsPermissionStatus(onResult: (NotificationPermissionStatus) -> Unit)
     fun requestEnable(onResult: (NotificationPermissionStatus) -> Unit)
     fun disableAndCancel()
@@ -45,6 +81,15 @@ object VotdNotificationController {
     var promptDismissed by mutableStateOf(false)
         private set
 
+    var reminderHour by mutableStateOf(6)
+        private set
+
+    var reminderMinute by mutableStateOf(0)
+        private set
+
+    val formattedReminderTime: String
+        get() = formatReminderTime12Hour(reminderHour, reminderMinute)
+
     val isSupported: Boolean
         get() = bridge.isSupported
 
@@ -62,6 +107,9 @@ object VotdNotificationController {
         val currentBridge = bridge
         userEnabled = currentBridge.isUserEnabled()
         promptDismissed = currentBridge.isPromptDismissed()
+        val (savedHour, savedMinute) = currentBridge.getReminderTime()
+        reminderHour = savedHour.coerceIn(0, 23)
+        reminderMinute = savedMinute.coerceIn(0, 59)
         if (!currentBridge.isSupported) {
             permissionStatus = NotificationPermissionStatus.UNSUPPORTED
             return
@@ -70,6 +118,17 @@ object VotdNotificationController {
             permissionStatus = status
             userEnabled = currentBridge.isUserEnabled()
             promptDismissed = currentBridge.isPromptDismissed()
+        }
+    }
+
+    fun updateReminderTime(hour: Int, minute: Int) {
+        val cleanHour = hour.coerceIn(0, 23)
+        val cleanMinute = minute.coerceIn(0, 59)
+        reminderHour = cleanHour
+        reminderMinute = cleanMinute
+        bridge.setReminderTime(cleanHour, cleanMinute)
+        if (effectivelyEnabled) {
+            bridge.rescheduleIfEnabled()
         }
     }
 
@@ -116,5 +175,7 @@ object VotdNotificationController {
         userEnabled = false
         permissionStatus = NotificationPermissionStatus.NOT_DETERMINED
         promptDismissed = false
+        reminderHour = 6
+        reminderMinute = 0
     }
 }

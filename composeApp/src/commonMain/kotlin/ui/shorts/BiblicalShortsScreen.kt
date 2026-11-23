@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -36,8 +35,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -50,7 +47,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Slider
 import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Surface
@@ -181,12 +177,6 @@ internal fun BiblicalShortsScreen(
     val filteredShorts = remember(allShorts, selectedCategory) {
         biblicalShortsRepository.filterByCategory(allShorts, selectedCategory)
             .ifEmpty { allShorts }
-    }
-    val availableCategories = remember(allShorts) {
-        val present = allShorts.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
-        val ordered = biblicalShortsCategories.filter { it != "All" && it in present }
-        val extras = present.filterNot { it in biblicalShortsCategories }
-        listOf("All") + ordered + extras
     }
 
     val infiniteFeedEnabled = !useDeterministicOrder && filteredShorts.size > 1
@@ -474,17 +464,6 @@ internal fun BiblicalShortsScreen(
                                         maxDuration = maxDuration,
                                         onSeekSeconds = seekHandler,
                                     )
-                                    ShortsCategoryFilterRow(
-                                        categories = availableCategories,
-                                        selectedCategory = selectedCategory,
-                                        onCategorySelected = onCategorySelected,
-                                        edgeFadeColor = Color(0xFF131E30),
-                                    )
-                                    ShortsPrimaryActionRow(
-                                        shortItem = shortItem,
-                                        onReadChapter = readChapterHandler,
-                                        onNext = nextShortHandler,
-                                    )
                                 }
                             }
                         }
@@ -503,52 +482,45 @@ internal fun BiblicalShortsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.Center,
+                                .clip(RoundedCornerShape(16.dp))
+                                .then(tapGestureModifier),
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .then(tapGestureModifier),
-                            ) {
-                                if (videoPreviewOverride != null) {
-                                    videoPreviewOverride(shortItem, Modifier.fillMaxSize())
-                                } else {
-                                    ShortsVideoPlayer(
-                                        shortItem = shortItem,
-                                        isActive = isCurrentPage && isAppInForeground,
-                                        isMuted = isMuted,
-                                        isPaused = isPaused,
-                                        elapsedSeconds = pageElapsed,
-                                        seekTargetSeconds = seekTargetSeconds,
-                                        seekRequestId = seekRequestId,
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                }
-
-                                ShortsSoundToastPill(
-                                    visible = isCurrentPage && soundToastLabel != null,
-                                    label = soundToastLabel.orEmpty(),
-                                    modifier = Modifier.align(Alignment.Center),
-                                )
-                                ShortsCard2ReadNowButton(
-                                    visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
-                                    onClick = readChapterHandler,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomCenter)
-                                        .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
+                            if (videoPreviewOverride != null) {
+                                videoPreviewOverride(shortItem, Modifier.fillMaxSize())
+                            } else {
+                                ShortsVideoPlayer(
+                                    shortItem = shortItem,
+                                    isActive = isCurrentPage && isAppInForeground,
+                                    isMuted = isMuted,
+                                    isPaused = isPaused,
+                                    elapsedSeconds = pageElapsed,
+                                    seekTargetSeconds = seekTargetSeconds,
+                                    seekRequestId = seekRequestId,
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
+
+                            ShortsSoundToastPill(
+                                visible = isCurrentPage && soundToastLabel != null,
+                                label = soundToastLabel.orEmpty(),
+                                modifier = Modifier.align(Alignment.Center),
+                            )
+                            ShortsCard2ReadNowButton(
+                                visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                onClick = readChapterHandler,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
+                            )
                         }
 
-                        // Dedicated bottom dock keeps scrubber, category pills, and buttons clear of video captions
+                        // Compact bottom dock keeps swipe hint and scrubber clear of full-screen video captions
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xFF09111E))
-                                .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp),
+                                .padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 6.dp),
                         ) {
                             ShortsSwipeHintBadge(
                                 visible = isCurrentPage && showSwipeHint,
@@ -559,16 +531,6 @@ internal fun BiblicalShortsScreen(
                                 pageElapsed = pageElapsed,
                                 maxDuration = maxDuration,
                                 onSeekSeconds = seekHandler,
-                            )
-                            ShortsCategoryFilterRow(
-                                categories = availableCategories,
-                                selectedCategory = selectedCategory,
-                                onCategorySelected = onCategorySelected,
-                            )
-                            ShortsPrimaryActionRow(
-                                shortItem = shortItem,
-                                onReadChapter = readChapterHandler,
-                                onNext = nextShortHandler,
                             )
                         }
                     }
@@ -608,7 +570,7 @@ internal fun BiblicalShortsScreen(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = activeShort?.category ?: "Daily Scripture Moments",
+                        text = "Daily Scripture Moments",
                         color = Color(0xFFCBD5E1),
                         fontSize = 11.sp,
                         maxLines = 1,
@@ -705,13 +667,13 @@ internal fun BiblicalShortsScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
                     ) {
                         Text(
                             text = "Welcome to Biblical Words",
                             color = Color(0xFFFBD38D),
-                            fontSize = 18.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                         )
                         TutorialTipRow(
@@ -729,7 +691,7 @@ internal fun BiblicalShortsScreen(
                             title = "Swipe up",
                             subtitle = "View the next Biblical Word",
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Button(
                             onClick = {
                                 showTutorialOverlay = false
@@ -749,7 +711,8 @@ internal fun BiblicalShortsScreen(
                                 text = "Got it",
                                 color = Color(0xFF0F172A),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(vertical = 4.dp),
                             )
                         }
                     }
@@ -872,76 +835,6 @@ private fun ShortsScrubberRow(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun ShortsCategoryFilterRow(
-    categories: List<String> = biblicalShortsCategories,
-    selectedCategory: String,
-    onCategorySelected: (String) -> Unit,
-    edgeFadeColor: Color = Color(0xFF09111E),
-) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        LazyRow(
-            contentPadding = PaddingValues(start = 6.dp, end = 34.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("shorts_category_row"),
-        ) {
-            items(categories) { category ->
-                val isSelected = selectedCategory.equals(category, ignoreCase = true)
-                Surface(
-                    onClick = {
-                        AnalyticsTracker.track(
-                            "short_category_filtered",
-                            "biblical_shorts",
-                            mapOf("category" to category),
-                        )
-                        onCategorySelected(category)
-                    },
-                    shape = RoundedCornerShape(50),
-                    color = if (isSelected) Color(0xFFFBD38D) else Color(0xFF142033),
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) Color(0xFFFBD38D) else Color(0x44FFFFFF),
-                    ),
-                    elevation = 0.dp,
-                ) {
-                    Text(
-                        text = category,
-                        color = if (isSelected) Color(0xFF0F172A) else Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
-                    )
-                }
-            }
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .width(34.dp)
-                .height(30.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(Color.Transparent, edgeFadeColor)
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .width(10.dp)
-                .height(30.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(edgeFadeColor, Color.Transparent)
-                    )
-                )
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
 private fun ShortsCard2ReadNowButton(
     visible: Boolean,
     onClick: () -> Unit,
@@ -1018,62 +911,6 @@ private fun ShortsCard2ReadNowButton(
                         .alpha(secondAlpha),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ShortsPrimaryActionRow(
-    shortItem: BiblicalShortDto,
-    onReadChapter: () -> Unit,
-    onNext: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(
-            onClick = onReadChapter,
-            shape = RoundedCornerShape(50),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color(0xFFFBD38D),
-                contentColor = Color(0xFF0F172A),
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .testTag("read_chapter_btn_${shortItem.id}"),
-        ) {
-            Text(
-                text = "Read Chapter",
-                color = Color(0xFF0F172A),
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-            )
-        }
-
-        OutlinedButton(
-            onClick = onNext,
-            shape = RoundedCornerShape(50),
-            border = BorderStroke(1.dp, Color(0x66FFFFFF)),
-            colors = ButtonDefaults.outlinedButtonColors(
-                backgroundColor = Color(0xFF142033),
-                contentColor = Color.White,
-            ),
-            modifier = Modifier.testTag("next_short_btn_${shortItem.id}"),
-        ) {
-            Text(
-                text = "Next",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-            )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
         }
     }
 }
@@ -1173,13 +1010,13 @@ private fun TutorialTipRow(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(38.dp)
+                .size(44.dp)
                 .background(Color(0x2AFBD38D), CircleShape),
         ) {
             Text(
                 text = badge,
                 color = Color(0xFFFBD38D),
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
         }
@@ -1187,13 +1024,13 @@ private fun TutorialTipRow(
             Text(
                 text = title,
                 color = Color.White,
-                fontSize = 14.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 text = subtitle,
                 color = Color(0xFFCBD5E1),
-                fontSize = 12.sp,
+                fontSize = 14.5.sp,
             )
         }
     }

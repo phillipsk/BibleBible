@@ -50,7 +50,12 @@ internal fun cancelIosDailyVotdNotifications() {
 }
 
 @OptIn(ExperimentalNativeApi::class)
-internal fun scheduleIosDailyVotdNotifications() {
+internal fun scheduleIosDailyVotdNotifications(
+    hour: Int = 6,
+    minute: Int = 0,
+) {
+    val cleanHour = hour.coerceIn(0, 23).toLong()
+    val cleanMinute = minute.coerceIn(0, 59).toLong()
     val center = UNUserNotificationCenter.currentNotificationCenter()
     val isDebug = Platform.isDebugBinary
 
@@ -65,8 +70,8 @@ internal fun scheduleIosDailyVotdNotifications() {
     scheduleDailyLocalNotification(
         center = center,
         identifier = DAILY_VOTD_ID,
-        hour = 6,
-        minute = 0,
+        hour = cleanHour,
+        minute = cleanMinute,
         title = "Verse of the Day",
         body = "Start your morning with today’s scripture in BibleBible.",
         userInfo = fallbackUserInfo,
@@ -100,8 +105,8 @@ internal fun scheduleIosDailyVotdNotifications() {
         scheduleDailyLocalNotification(
             center = center,
             identifier = DAILY_VOTD_ID,
-            hour = 6,
-            minute = 0,
+            hour = cleanHour,
+            minute = cleanMinute,
             title = liveTitle,
             body = data.text,
             userInfo = liveUserInfo,

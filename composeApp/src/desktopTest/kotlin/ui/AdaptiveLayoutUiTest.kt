@@ -3,11 +3,15 @@ package ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import data.shorts.BiblicalShortDto
@@ -83,8 +87,14 @@ class AdaptiveLayoutUiTest {
         }
 
         onNodeWithTag("shorts_adaptive_dual_pane").assertDoesNotExist()
+        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
-        onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}").performClick()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
+            SemanticsActions.SetProgress
+        ) { setProgress ->
+            setProgress(sampleShorts.first().effectiveScene2StartSeconds().toFloat() + 1f)
+        }
+        onNodeWithTag("short_card2_read_now_button", useUnmergedTree = true).performClick()
         runOnIdle { assertEquals(sampleShorts.first().id, clickedChapter?.id) }
     }
 
@@ -112,12 +122,18 @@ class AdaptiveLayoutUiTest {
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
         onNodeWithText(sampleShorts.first().title).assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
-        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
         onNodeWithText("Sound Off").assertIsDisplayed()
 
-        onNodeWithTag("next_short_btn_${sampleShorts.first().id}").performClick()
+        onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
+        waitForIdle()
         onNodeWithText(sampleShorts[1].title).assertIsDisplayed()
-        onNodeWithTag("read_chapter_btn_${sampleShorts[1].id}").performClick()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
+            SemanticsActions.SetProgress
+        ) { setProgress ->
+            setProgress(sampleShorts[1].effectiveScene2StartSeconds().toFloat() + 1f)
+        }
+        onNodeWithTag("short_card2_read_now_button", useUnmergedTree = true).performClick()
         runOnIdle { assertEquals(sampleShorts[1].id, clickedChapter?.id) }
     }
 
@@ -143,8 +159,11 @@ class AdaptiveLayoutUiTest {
         onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
         onNodeWithText(sampleShorts.first().scriptureReference).assertIsDisplayed()
-        onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}").assertIsDisplayed()
-        onNodeWithTag("next_short_btn_${sampleShorts.first().id}").assertIsDisplayed()
+        onNodeWithTag("shorts_category_row").assertDoesNotExist()
+        onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}").assertDoesNotExist()
+        onNodeWithTag("next_short_btn_${sampleShorts.first().id}").assertDoesNotExist()
+        onNodeWithTag("shorts_progress_scrubber").assertIsDisplayed()
+        onNodeWithTag("shorts_mute_toggle").assertIsDisplayed()
     }
 
     private fun dismissedTutorialManager(): ShortsProgressManager = ShortsProgressManager(
