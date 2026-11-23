@@ -83,12 +83,13 @@ class BiblicalShortsUiTest {
         onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
 
         // Advance to second short and tap Read Chapter
+        val expectedSecond = sampleShorts[1]
         onNodeWithText("Next").performClick()
-        onNodeWithTag("read_chapter_btn_02-1a-inhouse-covenant-provision").performClick()
+        onNodeWithTag("read_chapter_btn_${expectedSecond.id}").performClick()
         runOnIdle {
-            assertEquals("02-1a-inhouse-covenant-provision", openedChapter?.id)
-            assertEquals(19, openedChapter?.bookId)
-            assertEquals(37, openedChapter?.chapter)
+            assertEquals(expectedSecond.id, openedChapter?.id)
+            assertEquals(expectedSecond.bookId, openedChapter?.bookId)
+            assertEquals(expectedSecond.chapter, openedChapter?.chapter)
         }
     }
 }

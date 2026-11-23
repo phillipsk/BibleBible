@@ -26,13 +26,15 @@ class BiblicalShortsRepositoryTest {
     @Test
     fun defaultCatalogContainsCuratedSubThirtySecondShortsWithValidCategories() {
         val catalog = defaultBiblicalShortsCatalog("https://biblebible.example.run.app")
-        assertEquals(10, catalog.size)
-        assertEquals(10, catalog.map { it.id }.toSet().size)
+        assertEquals(24, catalog.size)
+        assertEquals(24, catalog.map { it.id }.toSet().size)
 
         val validCategories = biblicalShortsCategories.filter { it != "All" }.toSet()
         catalog.forEachIndexed { idx, item ->
             assertEquals(idx + 1, item.order)
             assertTrue(item.durationSeconds in 15..29, "Duration out of range for ${item.id}")
+            assertTrue(item.bodyDurationSeconds != null && item.bodyDurationSeconds > 0.0, "Missing bodyDurationSeconds for ${item.id}")
+            assertEquals(2.5, item.promoEndCardSeconds)
             assertTrue(item.bookId in 1..66, "Book ID out of range for ${item.id}")
             assertTrue(item.chapter >= 1 && item.verse >= 1)
             assertTrue(item.lesson.isNotBlank())
@@ -40,9 +42,9 @@ class BiblicalShortsRepositoryTest {
             assertTrue(item.scriptureReference.isNotBlank())
             assertTrue(item.category in validCategories, "Category ${item.category} missing for ${item.id}")
             assertEquals(3, item.scenes.size)
-            assertEquals(
-                "https://biblebible.example.run.app/v1/shorts/media/${item.id}.mp4",
-                item.videoUrl,
+            assertTrue(
+                item.videoUrl.startsWith("https://"),
+                "Expected HTTPS GCS or gateway URL for ${item.id}, got ${item.videoUrl}",
             )
         }
 
@@ -88,14 +90,14 @@ class BiblicalShortsRepositoryTest {
             )
             val first = repo.getShorts()
             val second = repo.getShorts()
-            assertEquals(10, first.size)
-            assertEquals(10, second.size)
+            assertEquals(24, first.size)
+            assertEquals(24, second.size)
             assertEquals(1, networkCalls)
 
             val faithOnly = repo.filterByCategory(first, "Faith & Courage")
-            assertEquals(2, faithOnly.size)
+            assertEquals(6, faithOnly.size)
             assertTrue(faithOnly.all { it.category == "Faith & Courage" })
-            assertEquals(10, repo.filterByCategory(first, "All").size)
+            assertEquals(24, repo.filterByCategory(first, "All").size)
         } finally {
             client.close()
         }
@@ -108,7 +110,7 @@ class BiblicalShortsRepositoryTest {
             fallbackProvider = { defaultBiblicalShortsCatalog("") },
         )
         val shorts = repo.getShorts()
-        assertEquals(10, shorts.size)
-        assertEquals("01-1a-inhouse-moving-in-obedience", shorts.first().id)
+        assertEquals(24, shorts.size)
+        assertEquals("01-col3-bond-that-holds", shorts.first().id)
     }
 }
