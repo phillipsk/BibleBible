@@ -36,6 +36,29 @@ private val validBookShimmerStyles = setOf(
     "none",
 )
 
+private val validTabletBookLayouts = setOf(
+    "split_testaments",
+    "testament_divider",
+    "mobile_breaks",
+)
+
+private val validReaderLayoutStyles = setOf(
+    "literary_serif",
+    "verse_per_line",
+    "classic_inline",
+)
+
+private fun parseUsfmSet(rawCsv: String, fallback: Set<String>): Set<String> {
+    val parsed = rawCsv.split(",")
+        .map { it.trim().uppercase() }
+        .filter { it.isNotEmpty() }
+        .toSet()
+    return parsed.ifEmpty { fallback }
+}
+
+private val defaultMobileSectionBreaks = setOf("JOS", "JOB", "DAN", "MAL", "ROM", "PHM")
+private val defaultTabletSectionBreaks = setOf("MAL")
+
 @Serializable
 data class CloudFeatureFlagsDto(
     val biblicalShortsEnabled: Boolean = true,
@@ -45,6 +68,14 @@ data class CloudFeatureFlagsDto(
     val bookShimmerPace: Float = 1.0f,
     val bookShimmerIntensity: Float = 1.0f,
     val bookSectionPaddingDp: Int = 10,
+    val bookGridTabletLayout: String = "split_testaments",
+    val bookSectionBreaksMobile: String = "JOS,JOB,DAN,MAL,ROM,PHM",
+    val bookSectionBreaksTablet: String = "MAL",
+    val readerLayoutStyle: String = "literary_serif",
+    val readerLineHeightMultiplier: Float = 1.68f,
+    val readerVerseGapDp: Int = 14,
+    val readerDefaultFontSizeSp: Float = 20.0f,
+    val readerRedLetterEnabled: Boolean = false,
 )
 
 @Serializable
@@ -126,6 +157,44 @@ object CloudSessionManager {
 
     val bookSectionPaddingDp: Int
         get() = featureFlags.bookSectionPaddingDp.coerceIn(0, 48)
+
+    val bookGridTabletLayout: String
+        get() = featureFlags.bookGridTabletLayout
+            .trim()
+            .lowercase()
+            .takeIf { it in validTabletBookLayouts }
+            ?: "split_testaments"
+
+    val bookSectionBreaksMobile: Set<String>
+        get() = parseUsfmSet(featureFlags.bookSectionBreaksMobile, defaultMobileSectionBreaks)
+
+    val bookSectionBreaksTablet: Set<String>
+        get() = parseUsfmSet(featureFlags.bookSectionBreaksTablet, defaultTabletSectionBreaks)
+
+    val readerLayoutStyle: String
+        get() = featureFlags.readerLayoutStyle
+            .trim()
+            .lowercase()
+            .takeIf { it in validReaderLayoutStyles }
+            ?: "literary_serif"
+
+    val readerLineHeightMultiplier: Float
+        get() = featureFlags.readerLineHeightMultiplier
+            .takeIf { it.isFinite() }
+            ?.coerceIn(1.2f, 2.2f)
+            ?: 1.68f
+
+    val readerVerseGapDp: Int
+        get() = featureFlags.readerVerseGapDp.coerceIn(0, 32)
+
+    val readerDefaultFontSizeSp: Float
+        get() = featureFlags.readerDefaultFontSizeSp
+            .takeIf { it.isFinite() }
+            ?.coerceIn(14f, 32f)
+            ?: 20.0f
+
+    val readerRedLetterEnabled: Boolean
+        get() = featureFlags.readerRedLetterEnabled
 
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url

@@ -420,6 +420,20 @@ object BibleState {
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         returnToShortsOnBack = false
         resumeShortIdOnReturn = null
+        clearHighlightedVerse()
+        clearPendingTargetVerse()
+        showBiblicalShorts = false
+        showHomePage = true
+        ReadingSession.goHome()
+    }
+
+    internal fun exitBiblicalShortsToHome() {
+        closeBiblicalShorts()
+        GeminiModel.cancelPendingSummary()
+        returnToShortsOnBack = false
+        resumeShortIdOnReturn = null
+        clearHighlightedVerse()
+        clearPendingTargetVerse()
         showBiblicalShorts = false
         showHomePage = true
         ReadingSession.goHome()
@@ -429,6 +443,10 @@ object BibleState {
         GeminiModel.cancelPendingSummary()
         if (returnToShortsOnBack) {
             returnToShortsOnBack = false
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+            showHomePage = true
+            ReadingSession.goHome()
             AnalyticsTracker.track("reader_back_to_shorts", "navigation")
             openBiblicalShorts()
         } else {

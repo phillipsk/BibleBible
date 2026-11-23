@@ -12,6 +12,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import platform.Foundation.NSDateComponents
 import platform.Foundation.NSProcessInfo
+import platform.UIKit.UIColor
+import platform.UIKit.UIViewController
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationRequest
@@ -28,7 +30,7 @@ fun handleIosNotificationTap(userInfo: Map<Any?, *>) {
     parseVotdNotificationPayload(extras)?.let { BibleState.enqueueDeepLink(it) }
 }
 
-fun MainViewController() = run {
+fun MainViewController(): UIViewController {
     val processInfo = NSProcessInfo.processInfo
     val hasDemoArg = processInfo.arguments.any { it.toString() == "--auto-demo" }
     val hasDemoEnv = processInfo.environment["BIBLEBIBLE_AUTO_DEMO"]?.toString() == "1"
@@ -39,7 +41,14 @@ fun MainViewController() = run {
     } else {
         VotdNotificationController.refresh()
     }
-    ComposeUIViewController { App() }
+    return ComposeUIViewController { App() }.apply {
+        view.backgroundColor = UIColor(
+            red = 9.0 / 255.0,
+            green = 17.0 / 255.0,
+            blue = 30.0 / 255.0,
+            alpha = 1.0,
+        )
+    }
 }
 
 internal fun cancelIosDailyVotdNotifications() {

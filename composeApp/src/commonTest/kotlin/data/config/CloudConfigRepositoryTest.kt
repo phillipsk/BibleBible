@@ -122,6 +122,14 @@ class CloudConfigRepositoryTest {
         assertEquals(1.0f, CloudSessionManager.bookShimmerPace)
         assertEquals(1.0f, CloudSessionManager.bookShimmerIntensity)
         assertEquals(10, CloudSessionManager.bookSectionPaddingDp)
+        assertEquals("split_testaments", CloudSessionManager.bookGridTabletLayout)
+        assertEquals(setOf("JOS", "JOB", "DAN", "MAL", "ROM", "PHM"), CloudSessionManager.bookSectionBreaksMobile)
+        assertEquals(setOf("MAL"), CloudSessionManager.bookSectionBreaksTablet)
+        assertEquals("literary_serif", CloudSessionManager.readerLayoutStyle)
+        assertEquals(1.68f, CloudSessionManager.readerLineHeightMultiplier)
+        assertEquals(14, CloudSessionManager.readerVerseGapDp)
+        assertEquals(20.0f, CloudSessionManager.readerDefaultFontSizeSp)
+        assertFalse(CloudSessionManager.readerRedLetterEnabled)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
@@ -132,6 +140,14 @@ class CloudConfigRepositoryTest {
                     bookShimmerPace = 0.65f,
                     bookShimmerIntensity = 1.35f,
                     bookSectionPaddingDp = 16,
+                    bookGridTabletLayout = "TESTAMENT_DIVIDER",
+                    bookSectionBreaksMobile = "jos, mal",
+                    bookSectionBreaksTablet = "jos,mal",
+                    readerLayoutStyle = "VERSE_PER_LINE",
+                    readerLineHeightMultiplier = 1.85f,
+                    readerVerseGapDp = 18,
+                    readerDefaultFontSizeSp = 22f,
+                    readerRedLetterEnabled = true,
                 )
             )
         )
@@ -141,6 +157,14 @@ class CloudConfigRepositoryTest {
         assertEquals(0.65f, CloudSessionManager.bookShimmerPace)
         assertEquals(1.35f, CloudSessionManager.bookShimmerIntensity)
         assertEquals(16, CloudSessionManager.bookSectionPaddingDp)
+        assertEquals("testament_divider", CloudSessionManager.bookGridTabletLayout)
+        assertEquals(setOf("JOS", "MAL"), CloudSessionManager.bookSectionBreaksMobile)
+        assertEquals(setOf("JOS", "MAL"), CloudSessionManager.bookSectionBreaksTablet)
+        assertEquals("verse_per_line", CloudSessionManager.readerLayoutStyle)
+        assertEquals(1.85f, CloudSessionManager.readerLineHeightMultiplier)
+        assertEquals(18, CloudSessionManager.readerVerseGapDp)
+        assertEquals(22f, CloudSessionManager.readerDefaultFontSizeSp)
+        assertTrue(CloudSessionManager.readerRedLetterEnabled)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
@@ -149,6 +173,12 @@ class CloudConfigRepositoryTest {
                     bookShimmerPace = 10f,
                     bookShimmerIntensity = -1f,
                     bookSectionPaddingDp = 200,
+                    bookGridTabletLayout = "invalid",
+                    bookSectionBreaksMobile = "",
+                    readerLayoutStyle = "unknown",
+                    readerLineHeightMultiplier = 9f,
+                    readerVerseGapDp = -5,
+                    readerDefaultFontSizeSp = 5f,
                 )
             )
         )
@@ -156,5 +186,11 @@ class CloudConfigRepositoryTest {
         assertEquals(3.0f, CloudSessionManager.bookShimmerPace)
         assertEquals(0f, CloudSessionManager.bookShimmerIntensity)
         assertEquals(48, CloudSessionManager.bookSectionPaddingDp)
+        assertEquals("split_testaments", CloudSessionManager.bookGridTabletLayout)
+        assertEquals(setOf("JOS", "JOB", "DAN", "MAL", "ROM", "PHM"), CloudSessionManager.bookSectionBreaksMobile)
+        assertEquals("literary_serif", CloudSessionManager.readerLayoutStyle)
+        assertEquals(2.2f, CloudSessionManager.readerLineHeightMultiplier)
+        assertEquals(0, CloudSessionManager.readerVerseGapDp)
+        assertEquals(14f, CloudSessionManager.readerDefaultFontSizeSp)
     }
 }

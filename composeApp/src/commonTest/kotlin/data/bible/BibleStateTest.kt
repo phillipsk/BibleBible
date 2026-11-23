@@ -4,7 +4,9 @@ import email.kevinphillips.biblebible.db.SelectReadingHistory
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BibleStateTest {
@@ -111,5 +113,40 @@ class BibleStateTest {
     fun testSingleChapterBooks() {
         assertTrue(BibleState.singleChapterBooksOrdinal.contains("31"))
         assertTrue(BibleState.singleChapterBooksOrdinal.contains("57"))
+    }
+
+    @Test
+    fun testBiblicalWordsReadChapterBackStackAlwaysExitsToHome() {
+        val isaiah = BookData(
+            id = "ISA",
+            name = "Isaiah",
+            chapters = listOf(
+                Chapter(bookId = "ISA.intro"),
+                Chapter(bookId = "ISA.64", number = "64", position = 64),
+            ),
+        )
+        BibleState.openBiblicalShorts()
+        BibleState.closeBiblicalShorts()
+        BibleState.resumeShortIdOnReturn = "isa-64-8"
+        BibleState.returnToShortsOnBack = true
+        BibleState.restoreReadingLocation(isaiah, 64)
+        BibleState.focusScriptureVerse(bookId = "ISA", chapter = 64, verseStart = 8, verseEnd = 8)
+
+        assertFalse(BibleState.showHomePage)
+        assertFalse(BibleState.showBiblicalShorts)
+
+        // First Back from Isaiah 64 returns to Biblical Words with underlying page reset to Home
+        BibleState.navigateBackFromReader()
+        assertTrue(BibleState.showBiblicalShorts)
+        assertTrue(BibleState.showHomePage)
+        assertFalse(BibleState.returnToShortsOnBack)
+        assertEquals("isa-64-8", BibleState.resumeShortIdOnReturn)
+        assertNull(BibleState.highlightedVerseBookId)
+
+        // Second Back from Biblical Words exits directly to Home without reopening Isaiah
+        BibleState.exitBiblicalShortsToHome()
+        assertFalse(BibleState.showBiblicalShorts)
+        assertTrue(BibleState.showHomePage)
+        assertNull(BibleState.resumeShortIdOnReturn)
     }
 }

@@ -155,7 +155,9 @@ class ReaderPolishAndDeepLinkUiTest {
 
         setContent {
             BibleBibleTheme {
-                BibleBookList(bookData = books.data)
+                Box(modifier = Modifier.size(412.dp, 915.dp)) {
+                    BibleBookList(bookData = books.data)
+                }
             }
         }
 
@@ -165,6 +167,34 @@ class ReaderPolishAndDeepLinkUiTest {
         runOnIdle { BibleState.sortAZ = true }
         waitForIdle()
         onNodeWithTag("book_section_spacer_0").assertDoesNotExist()
+    }
+
+    @Test
+    fun tabletBookGridSplitsOldAndNewTestamentsBalancedThreeByThree() = runComposeUiTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(
+                    bookSectionPaddingDp = 12,
+                    bookGridTabletLayout = "split_testaments",
+                )
+            )
+        )
+        BibleState.sortAZ = false
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(1200.dp, 860.dp)) {
+                    BibleBookList(bookData = books.data)
+                }
+            }
+        }
+
+        waitForIdle()
+        onNodeWithTag("tablet_split_testaments_grid").assertIsDisplayed()
+        onNodeWithText("Old Testament").assertIsDisplayed()
+        onNodeWithText("New Testament").assertIsDisplayed()
+        onNodeWithTag("split_old_testament_spacer_0").assertExists()
     }
 
     @Test

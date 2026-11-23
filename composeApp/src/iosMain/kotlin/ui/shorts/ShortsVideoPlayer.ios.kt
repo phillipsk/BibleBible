@@ -2,13 +2,22 @@
 
 package ui.shorts
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.UIKitView
 import data.shorts.BiblicalShortDto
 import kotlinx.coroutines.delay
@@ -42,24 +51,22 @@ internal actual fun ShortsVideoPlayer(
     seekRequestId: Int,
     modifier: Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        ShortsStoryboardBackdrop(
-            shortItem = shortItem,
-            elapsedSeconds = elapsedSeconds,
-            isPaused = isPaused,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        val streamUrl = shortItem.videoUrl.trim()
-        val nsUrl = remember(streamUrl) {
-            if (streamUrl.startsWith("http://") || streamUrl.startsWith("https://")) {
-                NSURL.URLWithString(streamUrl)
-            } else {
-                null
-            }
+    val streamUrl = shortItem.videoUrl.trim()
+    val nsUrl = remember(streamUrl) {
+        if (streamUrl.startsWith("http://") || streamUrl.startsWith("https://")) {
+            NSURL.URLWithString(streamUrl)
+        } else {
+            null
         }
+    }
+    var videoReady by remember(shortItem.id, nsUrl) { mutableStateOf(false) }
 
-        if (nsUrl != null) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF09111E)),
+    ) {
+        if (nsUrl != null && isActive) {
             val player = remember(shortItem.id, nsUrl) {
                 AVPlayer.playerWithURL(nsUrl).apply {
                     muted = isMuted
@@ -68,6 +75,22 @@ internal actual fun ShortsVideoPlayer(
             val playerLayer = remember(shortItem.id, player) {
                 AVPlayerLayer.playerLayerWithPlayer(player).apply {
                     videoGravity = AVLayerVideoGravityResizeAspectFill
+                    backgroundColor = UIColor(
+                        red = 9.0 / 255.0,
+                        green = 17.0 / 255.0,
+                        blue = 30.0 / 255.0,
+                        alpha = 1.0,
+                    ).CGColor
+                }
+            }
+
+            LaunchedEffect(shortItem.id, playerLayer) {
+                while (coroutineIsActive) {
+                    if (playerLayer.readyForDisplay) {
+                        videoReady = true
+                        break
+                    }
+                    delay(35L)
                 }
             }
 
@@ -80,7 +103,13 @@ internal actual fun ShortsVideoPlayer(
                             playerLayer.frame = bounds
                         }
                     }.apply {
-                        backgroundColor = UIColor.clearColor
+                        clipsToBounds = true
+                        backgroundColor = UIColor(
+                            red = 9.0 / 255.0,
+                            green = 17.0 / 255.0,
+                            blue = 30.0 / 255.0,
+                            alpha = 1.0,
+                        )
                         layer.addSublayer(playerLayer)
                     }
                 },
@@ -139,8 +168,23 @@ internal actual fun ShortsVideoPlayer(
                 onDispose {
                     NSNotificationCenter.defaultCenter.removeObserver(observer)
                     player.pause()
+                    videoReady = false
                 }
             }
+        }
+
+        AnimatedVisibility(
+            visible = !videoReady || !isActive || nsUrl == null,
+            enter = fadeIn(tween(120)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            ShortsStoryboardBackdrop(
+                shortItem = shortItem,
+                elapsedSeconds = elapsedSeconds,
+                isPaused = isPaused,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

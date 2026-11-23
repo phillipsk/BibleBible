@@ -259,7 +259,7 @@ internal fun BibleHomeScreen(
                 localScaffoldState.bottomSheetState.collapse()
             }
             BibleState.showBiblicalShorts -> {
-                BibleState.closeBiblicalShorts()
+                BibleState.exitBiblicalShortsToHome()
             }
             !BibleState.showHomePage -> {
                 BibleState.navigateBackFromReader()
@@ -344,8 +344,7 @@ internal fun BibleHomeScreen(
                 if (BibleState.showBiblicalShorts) {
                     BiblicalShortsScreen(
                         onBack = {
-                            BibleState.resumeShortIdOnReturn = null
-                            BibleState.closeBiblicalShorts()
+                            BibleState.exitBiblicalShortsToHome()
                         },
                         onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
                         resumeShortId = BibleState.resumeShortIdOnReturn,
@@ -419,20 +418,20 @@ internal fun BibleHomeScreen(
     )
 }
 
-private val sectionEndBookIds = setOf("JOS", "JOB", "DAN", "MAL", "ROM", "PHM")
-
 private fun partitionBookSections(
-    bookDataList: List<BookData>,
+    indexedBooks: List<IndexedValue<BookData>>,
+    sectionBreakIds: Set<String>,
     applySections: Boolean,
 ): List<List<IndexedValue<BookData>>> {
-    if (!applySections || bookDataList.isEmpty()) {
-        return listOf(bookDataList.withIndex().toList())
+    if (!applySections || indexedBooks.isEmpty()) {
+        return listOf(indexedBooks)
     }
     val sections = mutableListOf<List<IndexedValue<BookData>>>()
     var currentSection = mutableListOf<IndexedValue<BookData>>()
-    bookDataList.forEachIndexed { index, book ->
-        currentSection.add(IndexedValue(index, book))
-        if (book.bookId.uppercase() in sectionEndBookIds && index < bookDataList.lastIndex) {
+    indexedBooks.forEachIndexed { pos, indexedBook ->
+        currentSection.add(indexedBook)
+        val usfm = indexedBook.value.bookId.uppercase()
+        if (usfm in sectionBreakIds && pos < indexedBooks.lastIndex) {
             sections.add(currentSection)
             currentSection = mutableListOf()
         }
@@ -453,6 +452,9 @@ internal fun BibleBookList(
     val shimmerPace = CloudSessionManager.bookShimmerPace
     val shimmerIntensity = CloudSessionManager.bookShimmerIntensity
     val sectionPaddingDp = CloudSessionManager.bookSectionPaddingDp
+    val tabletLayoutMode = CloudSessionManager.bookGridTabletLayout
+    val mobileBreakIds = CloudSessionManager.bookSectionBreaksMobile
+    val tabletBreakIds = CloudSessionManager.bookSectionBreaksTablet
 
     val baseDurationMs = when (shimmerStyle) {
         "soft_gold_sheen" -> 5400
@@ -487,13 +489,30 @@ internal fun BibleBookList(
         exit = fadeOut(animationSpec = tween(durationMillis = 250))
     ) {
         bookData?.let { bookDataList ->
-            val applySectionBreaks = !BibleState.sortAZ && sectionPaddingDp > 0
-            val sections = remember(bookDataList, applySectionBreaks) {
-                partitionBookSections(bookDataList, applySectionBreaks)
-            }
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val windowMetrics = computeAdaptiveWindowMetrics(maxWidth, maxHeight)
                 val columnsCount = windowMetrics.bookGridColumns
+                val indexedAll = remember(bookDataList) { bookDataList.withIndex().toList() }
+                val otBooks = remember(indexedAll) {
+                    indexedAll.filter { BibleState.getBookOrdinal(it.value.bookId) <= 39 }
+                }
+                val ntBooks = remember(indexedAll) {
+                    indexedAll.filter { BibleState.getBookOrdinal(it.value.bookId) > 39 }
+                }
+                val useSplitTestaments = !BibleState.sortAZ &&
+                    columnsCount >= 6 &&
+                    tabletLayoutMode == "split_testaments" &&
+                    otBooks.isNotEmpty() &&
+                    ntBooks.isNotEmpty()
+                val applySectionBreaks = !BibleState.sortAZ && sectionPaddingDp > 0
+                val activeBreakIds = when {
+                    columnsCount <= 3 || tabletLayoutMode == "mobile_breaks" -> mobileBreakIds
+                    else -> tabletBreakIds
+                }
+                val flatSections = remember(indexedAll, activeBreakIds, applySectionBreaks) {
+                    partitionBookSections(indexedAll, activeBreakIds, applySectionBreaks)
+                }
+
                 LazyVerticalGrid(
                     state = lazyGridState,
                     columns = GridCells.Fixed(columnsCount),
@@ -521,34 +540,140 @@ internal fun BibleBookList(
                             )
                         }
                     }
-                    sections.forEachIndexed { sectionIndex, sectionBooks ->
-                        itemsIndexed(
-                            items = sectionBooks,
-                            key = { _, indexedBook -> "${indexedBook.value.bookId}-${indexedBook.index}" },
-                        ) { _, indexedBook ->
-                            BookTileCard(
-                                index = indexedBook.index,
-                                book = indexedBook.value,
-                                columnsCount = columnsCount,
-                                shimmerStyle = shimmerStyle,
-                                shimmerProgress = shimmerProgress,
-                                shimmerIntensity = shimmerIntensity,
-                            )
-                        }
-                        if (applySectionBreaks && sectionIndex < sections.lastIndex) {
-                            item(
-                                span = { GridItemSpan(maxLineSpan) },
-                                key = "book_section_spacer_$sectionIndex",
+
+                    if (useSplitTestaments) {
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            key = "tablet_split_testaments_grid",
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("tablet_split_testaments_grid"),
                             ) {
-                                Spacer(
-                                    modifier = Modifier
-                                        .height(sectionPaddingDp.dp)
-                                        .testTag("book_section_spacer_$sectionIndex"),
+                                SplitTestamentColumn(
+                                    heading = "Old Testament",
+                                    indexedBooks = otBooks,
+                                    breakIds = mobileBreakIds,
+                                    sectionPaddingDp = sectionPaddingDp,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                    modifier = Modifier.weight(1f),
                                 )
+                                SplitTestamentColumn(
+                                    heading = "New Testament",
+                                    indexedBooks = ntBooks,
+                                    breakIds = mobileBreakIds,
+                                    sectionPaddingDp = sectionPaddingDp,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    } else {
+                        flatSections.forEachIndexed { sectionIndex, sectionBooks ->
+                            itemsIndexed(
+                                items = sectionBooks,
+                                key = { _, indexedBook -> "${indexedBook.value.bookId}-${indexedBook.index}" },
+                            ) { _, indexedBook ->
+                                BookTileCard(
+                                    index = indexedBook.index,
+                                    book = indexedBook.value,
+                                    columnsCount = columnsCount,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                )
+                            }
+                            if (applySectionBreaks && sectionIndex < flatSections.lastIndex) {
+                                item(
+                                    span = { GridItemSpan(maxLineSpan) },
+                                    key = "book_section_spacer_$sectionIndex",
+                                ) {
+                                    val isTestamentDivider = columnsCount > 3 &&
+                                        sectionBooks.lastOrNull()?.value?.bookId.equals("MAL", ignoreCase = true)
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("book_section_spacer_$sectionIndex"),
+                                    ) {
+                                        Spacer(modifier = Modifier.height(sectionPaddingDp.dp))
+                                        if (isTestamentDivider) {
+                                            Text(
+                                                text = "New Testament",
+                                                color = Color(0xFFFBD38D),
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(start = 6.dp, top = 4.dp, bottom = 6.dp),
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SplitTestamentColumn(
+    heading: String,
+    indexedBooks: List<IndexedValue<BookData>>,
+    breakIds: Set<String>,
+    sectionPaddingDp: Int,
+    shimmerStyle: String,
+    shimmerProgress: Float,
+    shimmerIntensity: Float,
+    modifier: Modifier = Modifier,
+) {
+    val sections = remember(indexedBooks, breakIds, sectionPaddingDp) {
+        partitionBookSections(indexedBooks, breakIds, sectionPaddingDp > 0)
+    }
+    Column(modifier = modifier) {
+        Text(
+            text = heading,
+            color = Color(0xFFFBD38D),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp,
+            modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
+        )
+        sections.forEachIndexed { sectionIndex, sectionBooks ->
+            val chunkRows = sectionBooks.chunked(3)
+            chunkRows.forEach { rowItems ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (slot in 0 until 3) {
+                        val entry = rowItems.getOrNull(slot)
+                        if (entry != null) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                BookTileCard(
+                                    index = entry.index,
+                                    book = entry.value,
+                                    columnsCount = 3,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+            if (sectionPaddingDp > 0 && sectionIndex < sections.lastIndex) {
+                Spacer(
+                    modifier = Modifier
+                        .height(sectionPaddingDp.dp)
+                        .testTag("split_${heading.lowercase().replace(' ', '_')}_spacer_$sectionIndex"),
+                )
             }
         }
     }

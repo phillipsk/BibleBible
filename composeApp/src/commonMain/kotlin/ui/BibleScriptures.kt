@@ -39,6 +39,7 @@ import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
 import data.bible.BibleChapterUIState
 import data.bible.BibleState
+import data.config.CloudSessionManager
 import data.notifications.findVerseCharacterOffset
 import data.notifications.findVerseCharacterRange
 import email.kevinphillips.biblebible.isDesktopPlatform
@@ -271,7 +272,7 @@ internal fun BibleScriptures(
                 Text(
                     text = renderedText,
                     fontSize = selectedFontSize.sp,
-                    lineHeight = (selectedFontSize * 1.48f).sp,
+                    lineHeight = (selectedFontSize * CloudSessionManager.readerLineHeightMultiplier).sp,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .widthIn(max = windowMetrics.maxReadingWidth)

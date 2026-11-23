@@ -1,11 +1,17 @@
 package ui.shorts
 
-import android.graphics.Matrix
-import android.graphics.SurfaceTexture
+import android.graphics.Color as AndroidColor
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.view.Surface
-import android.view.TextureView
+import android.view.Gravity
+import android.view.SurfaceHolder
+import android.view.SurfaceView
+import android.widget.FrameLayout
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,40 +22,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import data.shorts.BiblicalShortDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive as coroutineIsActive
-
-/**
- * Applies a center-crop aspect-ratio transform so 9:16 video streams fill any phone, foldable,
- * or theater viewport cleanly without stretching or squishing.
- */
-private fun updateTextureCenterCropTransform(
-    textureView: TextureView,
-    videoWidth: Int,
-    videoHeight: Int,
-    viewWidth: Int,
-    viewHeight: Int,
-) {
-    if (videoWidth <= 0 || videoHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return
-    val videoAspect = videoWidth.toFloat() / videoHeight.toFloat()
-    val viewAspect = viewWidth.toFloat() / viewHeight.toFloat()
-    val scaleX: Float
-    val scaleY: Float
-    if (videoAspect > viewAspect) {
-        scaleX = videoAspect / viewAspect
-        scaleY = 1f
-    } else {
-        scaleX = 1f
-        scaleY = viewAspect / videoAspect
-    }
-    val matrix = Matrix().apply {
-        setScale(scaleX, scaleY, viewWidth / 2f, viewHeight / 2f)
-    }
-    textureView.setTransform(matrix)
-}
 
 @Composable
 internal actual fun ShortsVideoPlayer(
@@ -62,9 +39,10 @@ internal actual fun ShortsVideoPlayer(
     seekRequestId: Int,
     modifier: Modifier,
 ) {
-    var videoReady by remember(shortItem.id) { mutableStateOf(false) }
-    var mediaPlayerRef by remember(shortItem.id) { mutableStateOf<MediaPlayer?>(null) }
-    var videoSize by remember(shortItem.id) { mutableStateOf(0 to 0) }
+    val streamUrl = shortItem.videoUrl.trim()
+    val hasValidStream = streamUrl.startsWith("http://") || streamUrl.startsWith("https://")
+    var videoReady by remember(shortItem.id, streamUrl) { mutableStateOf(false) }
+    var mediaPlayerRef by remember(shortItem.id, streamUrl) { mutableStateOf<MediaPlayer?>(null) }
 
     LaunchedEffect(seekRequestId, isActive) {
         if (seekRequestId > 0 && isActive && videoReady) {
@@ -106,31 +84,29 @@ internal actual fun ShortsVideoPlayer(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        ShortsStoryboardBackdrop(
-            shortItem = shortItem,
-            elapsedSeconds = elapsedSeconds,
-            isPaused = isPaused,
-            modifier = Modifier.fillMaxSize(),
-        )
-
-        val streamUrl = shortItem.videoUrl.trim()
-        if (streamUrl.startsWith("http://") || streamUrl.startsWith("https://")) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF09111E)),
+    ) {
+        if (hasValidStream && isActive) {
             AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(if (videoReady) 1f else 0f),
+                modifier = Modifier.fillMaxSize(),
                 factory = { context ->
-                    TextureView(context).apply {
-                        val textureView = this
-                        isOpaque = false
-                        surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                            override fun onSurfaceTextureAvailable(
-                                surfaceTexture: SurfaceTexture,
-                                width: Int,
-                                height: Int,
-                            ) {
-                                val surface = Surface(surfaceTexture)
+                    FrameLayout(context).apply {
+                        setBackgroundColor(AndroidColor.rgb(9, 17, 30))
+                        clipChildren = true
+                        clipToOutline = true
+                        val surfaceView = SurfaceView(context).apply {
+                            layoutParams = FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                Gravity.CENTER,
+                            )
+                        }
+                        addView(surfaceView)
+                        surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
+                            override fun surfaceCreated(holder: SurfaceHolder) {
                                 runCatching {
                                     MediaPlayer().apply {
                                         setAudioAttributes(
@@ -139,34 +115,23 @@ internal actual fun ShortsVideoPlayer(
                                                 .setUsage(AudioAttributes.USAGE_MEDIA)
                                                 .build()
                                         )
-                                        setSurface(surface)
+                                        setDisplay(holder)
+                                        setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING)
                                         setDataSource(streamUrl)
                                         isLooping = true
-                                        setOnVideoSizeChangedListener { _, vWidth, vHeight ->
-                                            videoSize = vWidth to vHeight
-                                            updateTextureCenterCropTransform(
-                                                textureView,
-                                                vWidth,
-                                                vHeight,
-                                                width,
-                                                height,
-                                            )
+                                        setOnInfoListener { _, what, _ ->
+                                            if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
+                                                videoReady = true
+                                            }
+                                            false
                                         }
                                         setOnPreparedListener { player ->
                                             val volume = if (isMuted) 0f else 1f
                                             player.setVolume(volume, volume)
-                                            videoSize = player.videoWidth to player.videoHeight
-                                            updateTextureCenterCropTransform(
-                                                textureView,
-                                                player.videoWidth,
-                                                player.videoHeight,
-                                                width,
-                                                height,
-                                            )
-                                            videoReady = true
                                             if (isActive && !isPaused) {
                                                 player.start()
                                             }
+                                            videoReady = true
                                         }
                                         setOnErrorListener { _, _, _ ->
                                             videoReady = false
@@ -178,41 +143,22 @@ internal actual fun ShortsVideoPlayer(
                                 }
                             }
 
-                            override fun onSurfaceTextureSizeChanged(
-                                surfaceTexture: SurfaceTexture,
-                                viewWidth: Int,
-                                viewHeight: Int,
-                            ) {
-                                updateTextureCenterCropTransform(
-                                    textureView,
-                                    videoSize.first,
-                                    videoSize.second,
-                                    viewWidth,
-                                    viewHeight,
-                                )
-                            }
+                            override fun surfaceChanged(
+                                holder: SurfaceHolder,
+                                format: Int,
+                                width: Int,
+                                height: Int,
+                            ) = Unit
 
-                            override fun onSurfaceTextureDestroyed(surfaceTexture: SurfaceTexture): Boolean {
-                                runCatching {
-                                    mediaPlayerRef?.release()
-                                }
+                            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                runCatching { mediaPlayerRef?.release() }
                                 mediaPlayerRef = null
                                 videoReady = false
-                                return true
                             }
-
-                            override fun onSurfaceTextureUpdated(surfaceTexture: SurfaceTexture) = Unit
-                        }
+                        })
                     }
                 },
-                update = { textureView ->
-                    updateTextureCenterCropTransform(
-                        textureView,
-                        videoSize.first,
-                        videoSize.second,
-                        textureView.width,
-                        textureView.height,
-                    )
+                update = {
                     val player = mediaPlayerRef ?: return@AndroidView
                     val volume = if (isMuted) 0f else 1f
                     runCatching {
@@ -228,28 +174,27 @@ internal actual fun ShortsVideoPlayer(
                 },
             )
 
-            LaunchedEffect(isActive, isPaused, isMuted, videoReady) {
-                val player = mediaPlayerRef ?: return@LaunchedEffect
-                runCatching {
-                    val volume = if (isMuted) 0f else 1f
-                    player.setVolume(volume, volume)
-                    if (videoReady) {
-                        if (isActive && !isPaused && !player.isPlaying) {
-                            player.start()
-                        } else if ((!isActive || isPaused) && player.isPlaying) {
-                            player.pause()
-                        }
-                    }
-                }
-            }
-
-            DisposableEffect(shortItem.id) {
+            DisposableEffect(shortItem.id, streamUrl) {
                 onDispose {
                     runCatching { mediaPlayerRef?.release() }
                     mediaPlayerRef = null
                     videoReady = false
                 }
             }
+        }
+
+        AnimatedVisibility(
+            visible = !videoReady || !isActive || !hasValidStream,
+            enter = fadeIn(tween(120)),
+            exit = fadeOut(tween(180)),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            ShortsStoryboardBackdrop(
+                shortItem = shortItem,
+                elapsedSeconds = elapsedSeconds,
+                isPaused = isPaused,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

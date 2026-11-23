@@ -159,11 +159,40 @@ class AdaptiveLayoutUiTest {
         onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
         onNodeWithText(sampleShorts.first().scriptureReference).assertIsDisplayed()
+        onNodeWithText("Faith & Courage", substring = true, ignoreCase = true).assertDoesNotExist()
+        onNodeWithTag("dual_pane_read_chapter_btn").assertIsDisplayed()
         onNodeWithTag("shorts_category_row").assertDoesNotExist()
         onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}").assertDoesNotExist()
         onNodeWithTag("next_short_btn_${sampleShorts.first().id}").assertDoesNotExist()
         onNodeWithTag("shorts_progress_scrubber").assertIsDisplayed()
         onNodeWithTag("shorts_mute_toggle").assertIsDisplayed()
+    }
+
+    @Test
+    fun phoneLandscapeUsesCompactDualPaneWithoutCategoryBadge() = runComposeUiTest {
+        val sampleShorts = defaultBiblicalShortsCatalog("")
+        val progressManager = dismissedTutorialManager()
+        var clickedChapter: BiblicalShortDto? = null
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(844.dp, 390.dp)) {
+                    BiblicalShortsScreen(
+                        initialShorts = sampleShorts,
+                        onBack = {},
+                        onReadChapter = { clickedChapter = it },
+                        enablePlaybackTimer = false,
+                        progressManager = progressManager,
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
+        onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
+        onNodeWithText("Faith & Courage", substring = true, ignoreCase = true).assertDoesNotExist()
+        onNodeWithTag("dual_pane_read_chapter_btn").assertIsDisplayed().performClick()
+        runOnIdle { assertEquals(sampleShorts.first().id, clickedChapter?.id) }
     }
 
     private fun dismissedTutorialManager(): ShortsProgressManager = ShortsProgressManager(
