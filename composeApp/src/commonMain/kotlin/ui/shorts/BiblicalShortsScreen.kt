@@ -1,8 +1,15 @@
 package ui.shorts
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -50,6 +57,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
@@ -66,6 +74,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -239,7 +248,7 @@ internal fun BiblicalShortsScreen(
 
     LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused, isAppInForeground) {
         if (!enablePlaybackTimer || activeShort == null || isPaused || !isAppInForeground) return@LaunchedEffect
-        val maxDuration = activeShort.durationSeconds.coerceAtLeast(1)
+        val maxDuration = activeShort.effectiveInAppDurationSeconds()
         while (isActive) {
             withContext(Dispatchers.Default) {
                 delay(1000L)
@@ -306,7 +315,7 @@ internal fun BiblicalShortsScreen(
             ) { page ->
                 val shortItem = filteredShorts[page % filteredShorts.size]
                 val isCurrentPage = page == pagerState.currentPage
-                val maxDuration = shortItem.durationSeconds.coerceAtLeast(1)
+                val maxDuration = shortItem.effectiveInAppDurationSeconds()
                 val pageElapsed = if (isCurrentPage) elapsedSeconds.coerceIn(0, maxDuration) else 0
 
                 val tapGestureModifier = Modifier.pointerInput(isCurrentPage) {
@@ -416,6 +425,13 @@ internal fun BiblicalShortsScreen(
                                     label = soundToastLabel.orEmpty(),
                                     modifier = Modifier.align(Alignment.Center),
                                 )
+                                ShortsCard2ReadNowButton(
+                                    visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                    onClick = readChapterHandler,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
+                                )
                             }
                         }
 
@@ -515,6 +531,13 @@ internal fun BiblicalShortsScreen(
                                     visible = isCurrentPage && soundToastLabel != null,
                                     label = soundToastLabel.orEmpty(),
                                     modifier = Modifier.align(Alignment.Center),
+                                )
+                                ShortsCard2ReadNowButton(
+                                    visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                    onClick = readChapterHandler,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
                                 )
                             }
                         }
@@ -914,6 +937,88 @@ private fun ShortsCategoryFilterRow(
                     )
                 )
         )
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun ShortsCard2ReadNowButton(
+    visible: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically { it / 3 },
+        exit = fadeOut(),
+        modifier = modifier,
+    ) {
+        val transition = rememberInfiniteTransition()
+        val firstShift by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 4f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 720, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        )
+        val firstAlpha by transition.animateFloat(
+            initialValue = 0.45f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 720, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        )
+        val secondAlpha by transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.45f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 720, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        )
+
+        Surface(
+            onClick = onClick,
+            shape = CircleShape,
+            color = Color(0xFFFBD38D),
+            border = BorderStroke(1.dp, Color(0xFFFFE8B3)),
+            elevation = 6.dp,
+            modifier = Modifier.testTag("short_card2_read_now_button"),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = "Read Now",
+                    color = Color(0xFF09111E),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color(0xFF09111E),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset(x = firstShift.dp)
+                        .alpha(firstAlpha),
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = Color(0xFF09111E),
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset(x = (firstShift * 0.8f - 4f).dp)
+                        .alpha(secondAlpha),
+                )
+            }
+        }
     }
 }
 

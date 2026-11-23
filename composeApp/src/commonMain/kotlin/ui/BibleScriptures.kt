@@ -23,11 +23,15 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,6 +40,7 @@ import data.appPrefs.updateUserPreferences
 import data.bible.BibleChapterUIState
 import data.bible.BibleState
 import data.notifications.findVerseCharacterOffset
+import data.notifications.findVerseCharacterRange
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -204,8 +209,40 @@ internal fun BibleScriptures(
                 }
         ) {
             chapters.text?.let { text ->
+                val isHighlightedChapter =
+                    BibleState.highlightedVerseBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
+                        BibleState.highlightedVerseChapter == chapters.chapterId
+                val highlightStart = if (isHighlightedChapter) BibleState.highlightedVerseStart else null
+                val highlightEnd = if (isHighlightedChapter) BibleState.highlightedVerseEnd else null
+                val activeVersion = chapters.version ?: BibleState.selectedVersion
+                val renderedText = remember(text, highlightStart, highlightEnd, activeVersion) {
+                    buildAnnotatedString {
+                        append(text)
+                        if (highlightStart != null && highlightEnd != null) {
+                            val range = findVerseCharacterRange(
+                                chapterText = text,
+                                verseStart = highlightStart,
+                                verseEnd = highlightEnd,
+                                version = activeVersion,
+                            )
+                            if (range != null) {
+                                val start = range.first.coerceIn(0, text.length)
+                                val end = (range.last + 1).coerceIn(start, text.length)
+                                addStyle(
+                                    style = SpanStyle(
+                                        color = Color(0xFFFBD38D),
+                                        background = Color(0x2CFBD38D),
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                                    start = start,
+                                    end = end,
+                                )
+                            }
+                        }
+                    }
+                }
                 Text(
-                    text = text,
+                    text = renderedText,
                     fontSize = selectedFontSize.sp,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)

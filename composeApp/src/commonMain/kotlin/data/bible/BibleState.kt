@@ -86,6 +86,15 @@ object BibleState {
     var pendingTargetChapter by mutableStateOf<Int?>(null)
         private set
 
+    var highlightedVerseBookId by mutableStateOf<String?>(null)
+        private set
+    var highlightedVerseChapter by mutableStateOf<Int?>(null)
+        private set
+    var highlightedVerseStart by mutableStateOf<Int?>(null)
+        private set
+    var highlightedVerseEnd by mutableStateOf<Int?>(null)
+        private set
+
     fun enqueueDeepLink(link: ScriptureDeepLink) {
         pendingDeepLink = link
     }
@@ -94,6 +103,35 @@ object BibleState {
         pendingTargetVerse = null
         pendingTargetBookId = null
         pendingTargetChapter = null
+    }
+
+    fun clearHighlightedVerse() {
+        highlightedVerseBookId = null
+        highlightedVerseChapter = null
+        highlightedVerseStart = null
+        highlightedVerseEnd = null
+    }
+
+    fun focusScriptureVerse(
+        bookId: String,
+        chapter: Int,
+        verseStart: Int,
+        verseEnd: Int = verseStart,
+    ) {
+        val safeChapter = chapter.coerceAtLeast(1)
+        val safeStart = verseStart.coerceAtLeast(1)
+        val safeEnd = verseEnd.coerceAtLeast(safeStart)
+        highlightedVerseBookId = bookId
+        highlightedVerseChapter = safeChapter
+        highlightedVerseStart = safeStart
+        highlightedVerseEnd = safeEnd
+        if (safeStart > 1) {
+            pendingTargetVerse = safeStart
+            pendingTargetBookId = bookId
+            pendingTargetChapter = safeChapter
+        } else {
+            clearPendingTargetVerse()
+        }
     }
 
     internal suspend fun consumePendingDeepLink(
@@ -265,11 +303,26 @@ object BibleState {
 
     internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
-        selectedChapter = chapter ?: "${selectedBook.bookId}.1"
+        val resolved = chapter ?: "${selectedBook.bookId}.1"
+        val resolvedChapterNum = resolved.substringAfter('.').toIntOrNull()
+        if (highlightedVerseBookId != null &&
+            (!highlightedVerseBookId.equals(selectedBook.bookId, ignoreCase = true) ||
+                (resolvedChapterNum != null && highlightedVerseChapter != resolvedChapterNum))
+        ) {
+            clearHighlightedVerse()
+        }
+        selectedChapter = resolved
     }
 
     fun updateSelectedBook(newBook: BookData) {
-        if (newBook.bookId != selectedBook.bookId) GeminiModel.cancelPendingSummary()
+        if (newBook.bookId != selectedBook.bookId) {
+            GeminiModel.cancelPendingSummary()
+            if (highlightedVerseBookId != null &&
+                !highlightedVerseBookId.equals(newBook.bookId, ignoreCase = true)
+            ) {
+                clearHighlightedVerse()
+            }
+        }
         selectedBook = newBook
     }
 
@@ -293,6 +346,7 @@ object BibleState {
     internal fun discardReadingLocation() {
         bibleChapter = BibleChapterUIState()
         clearPendingTargetVerse()
+        clearHighlightedVerse()
         GeminiModel.cancelPendingSummary()
         showHomePage = true
     }

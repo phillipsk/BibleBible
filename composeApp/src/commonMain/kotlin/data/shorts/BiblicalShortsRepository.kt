@@ -38,8 +38,35 @@ internal data class BiblicalShortDto(
     val lesson: String,
     val accentColorHex: String = "#3A5F8F",
     val videoUrl: String = "",
+    val bodyDurationSeconds: Double? = null,
+    val promoEndCardSeconds: Double = 0.0,
+    val scene2StartSeconds: Int? = null,
     val scenes: List<BiblicalShortSceneDto> = emptyList(),
-)
+) {
+    /**
+     * Returns the playback timestamp (in seconds) right before a social promotional end card,
+     * allowing the app to reuse the exact same MP4 file while looping cleanly inside the app.
+     */
+    fun inAppCutoffSeconds(): Double? {
+        val explicit = bodyDurationSeconds
+        if (explicit != null && explicit > 0.0) {
+            return explicit
+        }
+        if (promoEndCardSeconds > 0.0 && durationSeconds.toDouble() > promoEndCardSeconds + 2.0) {
+            return (durationSeconds.toDouble() - promoEndCardSeconds).coerceAtLeast(2.0)
+        }
+        return null
+    }
+
+    fun effectiveInAppDurationSeconds(): Int =
+        inAppCutoffSeconds()?.toInt()?.coerceAtLeast(1) ?: durationSeconds.coerceAtLeast(1)
+
+    fun effectiveScene2StartSeconds(): Int {
+        val total = effectiveInAppDurationSeconds()
+        val raw = scene2StartSeconds ?: maxOf(5, (total * 0.36).toInt())
+        return raw.coerceIn(1, (total - 1).coerceAtLeast(1))
+    }
+}
 
 @Serializable
 internal data class BiblicalShortsFeedDto(

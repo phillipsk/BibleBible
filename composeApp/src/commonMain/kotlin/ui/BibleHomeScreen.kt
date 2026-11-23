@@ -81,6 +81,7 @@ import data.bible.DailyVerse
 import data.bible.bibleBooksFull
 import data.config.CloudSessionManager
 import data.notifications.VotdNotificationController
+import data.notifications.parseVerseRange
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
 import email.kevinphillips.biblebible.getPlatformName
@@ -565,6 +566,13 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
     BibleState.resumeShortIdOnReturn = shortItem.id
     BibleState.returnToShortsOnBack = true
     BibleState.restoreReadingLocation(book, shortItem.chapter)
+    val verseRange = parseVerseRange(shortItem.scriptureReference, shortItem.verse)
+    BibleState.focusScriptureVerse(
+        bookId = book.bookId,
+        chapter = shortItem.chapter,
+        verseStart = verseRange.first,
+        verseEnd = verseRange.last,
+    )
 }
 
 private fun openDailyVerseChapter(dailyVerse: DailyVerse) {

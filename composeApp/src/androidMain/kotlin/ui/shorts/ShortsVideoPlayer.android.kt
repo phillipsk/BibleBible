@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.viewinterop.AndroidView
 import data.shorts.BiblicalShortDto
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive as coroutineIsActive
 
 /**
  * Applies a center-crop aspect-ratio transform so 9:16 video streams fill any phone, foldable,
@@ -69,6 +71,23 @@ internal actual fun ShortsVideoPlayer(
             runCatching {
                 mediaPlayerRef?.seekTo((seekTargetSeconds.coerceAtLeast(0)) * 1000)
             }
+        }
+    }
+
+    LaunchedEffect(isActive, isPaused, videoReady, shortItem.id) {
+        val cutoffMs = shortItem.inAppCutoffSeconds()?.let { (it * 1000.0).toLong() } ?: return@LaunchedEffect
+        if (!isActive || isPaused || !videoReady || cutoffMs <= 0L) return@LaunchedEffect
+        while (coroutineIsActive) {
+            val player = mediaPlayerRef
+            if (player != null) {
+                val posMs = runCatching {
+                    if (player.isPlaying) player.currentPosition else -1
+                }.getOrDefault(-1)
+                if (posMs >= cutoffMs) {
+                    runCatching { player.seekTo(0) }
+                }
+            }
+            delay(120L)
         }
     }
 

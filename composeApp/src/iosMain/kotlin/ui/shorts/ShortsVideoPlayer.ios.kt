@@ -11,15 +11,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitView
 import data.shorts.BiblicalShortDto
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive as coroutineIsActive
 import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
 import platform.AVFoundation.AVPlayerLayer
 import platform.AVFoundation.currentItem
+import platform.AVFoundation.currentTime
 import platform.AVFoundation.muted
 import platform.AVFoundation.pause
 import platform.AVFoundation.play
 import platform.AVFoundation.seekToTime
+import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMake
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
@@ -103,6 +107,21 @@ internal actual fun ShortsVideoPlayer(
             LaunchedEffect(seekRequestId, isActive) {
                 if (seekRequestId > 0 && isActive) {
                     player.seekToTime(CMTimeMake(value = seekTargetSeconds.coerceAtLeast(0).toLong(), timescale = 1))
+                }
+            }
+
+            LaunchedEffect(isActive, isPaused, shortItem.id) {
+                val cutoffSec = shortItem.inAppCutoffSeconds() ?: return@LaunchedEffect
+                if (!isActive || isPaused || cutoffSec <= 0.0) return@LaunchedEffect
+                while (coroutineIsActive) {
+                    val posSec = CMTimeGetSeconds(player.currentTime())
+                    if (!posSec.isNaN() && posSec >= cutoffSec) {
+                        player.seekToTime(CMTimeMake(value = 0L, timescale = 1))
+                        if (isActive && !isPaused) {
+                            player.play()
+                        }
+                    }
+                    delay(120L)
                 }
             }
 
