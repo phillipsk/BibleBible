@@ -368,7 +368,8 @@ internal fun BiblicalShortsScreen(
                 }
 
                 val isCompactLandscape = maxHeight < 520.dp
-                val isLargeTablet = maxWidth >= 820.dp && maxHeight >= 580.dp
+                val isPortraitTablet = maxHeight > maxWidth && !isCompactLandscape
+                val isLargeTablet = maxWidth >= 780.dp && maxHeight >= 580.dp
 
                 if (windowMetrics.isDualPaneShorts) {
                     val topBarReserve = when {
@@ -376,10 +377,15 @@ internal fun BiblicalShortsScreen(
                         isLargeTablet -> 72.dp
                         else -> 60.dp
                     }
-                    val horizontalInset = if (isCompactLandscape) 14.dp else 24.dp
+                    val horizontalInset = when {
+                        isCompactLandscape -> 14.dp
+                        isPortraitTablet -> 18.dp
+                        else -> 24.dp
+                    }
                     val bottomInset = if (isCompactLandscape) 10.dp else 20.dp
                     val availableTheaterHeight = (maxHeight - topBarReserve - bottomInset - 8.dp).coerceAtLeast(250.dp)
-                    val constrainedPaneWidth = ((minOf(maxWidth, 1240.dp) - (horizontalInset * 2) - windowMetrics.hingeSafeGap) * 0.44f)
+                    val paneWidthShare = if (isPortraitTablet) 0.48f else 0.44f
+                    val constrainedPaneWidth = ((minOf(maxWidth, 1240.dp) - (horizontalInset * 2) - windowMetrics.hingeSafeGap) * paneWidthShare)
                         .coerceAtLeast(160.dp)
                     val normalizedTheaterHeight = minOf(availableTheaterHeight, constrainedPaneWidth * (16f / 9f))
 
@@ -488,7 +494,7 @@ internal fun BiblicalShortsScreen(
                                             ),
                                     ) {
                                         ShortsSwipeHintBadge(
-                                            visible = isCurrentPage && (showSwipeHint || isLargeTablet),
+                                            visible = isCurrentPage,
                                             hintOffsetPx = hintBounceOffsetPx,
                                             isLargeTablet = isLargeTablet,
                                             isCompactLandscape = isCompactLandscape,

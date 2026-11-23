@@ -6,6 +6,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -120,14 +122,14 @@ class AdaptiveLayoutUiTest {
 
         onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
-        onNodeWithText(sampleShorts.first().title).assertIsDisplayed()
+        onAllNodesWithText(sampleShorts.first().title).onFirst().assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
         onNodeWithText("Sound Off").assertIsDisplayed()
 
         onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
         waitForIdle()
-        onNodeWithText(sampleShorts[1].title).assertIsDisplayed()
+        onAllNodesWithText(sampleShorts[1].title).onFirst().assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
             SemanticsActions.SetProgress
         ) { setProgress ->
@@ -158,7 +160,7 @@ class AdaptiveLayoutUiTest {
 
         onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
-        onNodeWithText(sampleShorts.first().scriptureReference).assertIsDisplayed()
+        onAllNodesWithText(sampleShorts.first().scriptureReference).onFirst().assertIsDisplayed()
         onNodeWithText("Faith & Courage", substring = true, ignoreCase = true).assertDoesNotExist()
         onNodeWithTag("dual_pane_read_chapter_btn").assertIsDisplayed()
         onNodeWithTag("shorts_category_row").assertDoesNotExist()

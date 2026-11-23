@@ -1,11 +1,8 @@
 package ui.shorts
 
-import android.graphics.Color as AndroidColor
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.view.Gravity
-import android.view.SurfaceHolder
-import android.view.SurfaceView
+import android.graphics.Matrix
+import android.os.Build
+import android.view.TextureView
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -18,16 +15,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import data.shorts.BiblicalShortDto
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive as coroutineIsActive
 
+private fun isAndroidEmulator(): Boolean {
+    return Build.HARDWARE.contains("ranchu", ignoreCase = true) ||
+        Build.HARDWARE.contains("goldfish", ignoreCase = true) ||
+        Build.FINGERPRINT.contains("generic", ignoreCase = true) ||
+        Build.FINGERPRINT.contains("emu", ignoreCase = true) ||
+        Build.MODEL.contains("Emulator", ignoreCase = true) ||
+        Build.MODEL.contains("sdk_gphone", ignoreCase = true)
+}
+
+@kotlin.OptIn(UnstableApi::class)
 @Composable
 internal actual fun ShortsVideoPlayer(
     shortItem: BiblicalShortDto,
@@ -42,12 +61,12 @@ internal actual fun ShortsVideoPlayer(
     val streamUrl = shortItem.videoUrl.trim()
     val hasValidStream = streamUrl.startsWith("http://") || streamUrl.startsWith("https://")
     var videoReady by remember(shortItem.id, streamUrl) { mutableStateOf(false) }
-    var mediaPlayerRef by remember(shortItem.id, streamUrl) { mutableStateOf<MediaPlayer?>(null) }
+    var exoPlayerRef by remember(shortItem.id, streamUrl) { mutableStateOf<ExoPlayer?>(null) }
 
     LaunchedEffect(seekRequestId, isActive) {
         if (seekRequestId > 0 && isActive && videoReady) {
             runCatching {
-                mediaPlayerRef?.seekTo((seekTargetSeconds.coerceAtLeast(0)) * 1000)
+                exoPlayerRef?.seekTo((seekTargetSeconds.coerceAtLeast(0)) * 1000L)
             }
         }
     }
@@ -56,13 +75,13 @@ internal actual fun ShortsVideoPlayer(
         val cutoffMs = shortItem.inAppCutoffSeconds()?.let { (it * 1000.0).toLong() } ?: return@LaunchedEffect
         if (!isActive || isPaused || !videoReady || cutoffMs <= 0L) return@LaunchedEffect
         while (coroutineIsActive) {
-            val player = mediaPlayerRef
+            val player = exoPlayerRef
             if (player != null) {
                 val posMs = runCatching {
-                    if (player.isPlaying) player.currentPosition else -1
-                }.getOrDefault(-1)
+                    if (player.isPlaying) player.currentPosition else -1L
+                }.getOrDefault(-1L)
                 if (posMs >= cutoffMs) {
-                    runCatching { player.seekTo(0) }
+                    runCatching { player.seekTo(0L) }
                 }
             }
             delay(120L)
@@ -70,17 +89,10 @@ internal actual fun ShortsVideoPlayer(
     }
 
     LaunchedEffect(isActive, isPaused, isMuted, videoReady) {
-        val player = mediaPlayerRef ?: return@LaunchedEffect
-        val volume = if (isMuted) 0f else 1f
+        val player = exoPlayerRef ?: return@LaunchedEffect
         runCatching {
-            player.setVolume(volume, volume)
-            if (videoReady) {
-                if (isActive && !isPaused && !player.isPlaying) {
-                    player.start()
-                } else if ((!isActive || isPaused) && player.isPlaying) {
-                    player.pause()
-                }
-            }
+            player.volume = if (isMuted) 0f else 1f
+            player.playWhenReady = isActive && !isPaused
         }
     }
 
@@ -90,95 +102,154 @@ internal actual fun ShortsVideoPlayer(
             .background(Color(0xFF09111E)),
     ) {
         if (hasValidStream && isActive) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    FrameLayout(context).apply {
-                        setBackgroundColor(AndroidColor.rgb(9, 17, 30))
-                        clipChildren = true
-                        clipToOutline = true
-                        val surfaceView = SurfaceView(context).apply {
+            key(shortItem.id, streamUrl) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        var knownVideoWidth = 0
+                        var knownVideoHeight = 0
+
+                        val textureView = TextureView(context).apply {
                             layoutParams = FrameLayout.LayoutParams(
                                 FrameLayout.LayoutParams.MATCH_PARENT,
                                 FrameLayout.LayoutParams.MATCH_PARENT,
-                                Gravity.CENTER,
                             )
+                            isOpaque = false
                         }
-                        addView(surfaceView)
-                        surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-                            override fun surfaceCreated(holder: SurfaceHolder) {
-                                runCatching {
-                                    MediaPlayer().apply {
-                                        setAudioAttributes(
-                                            AudioAttributes.Builder()
-                                                .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
-                                                .setUsage(AudioAttributes.USAGE_MEDIA)
-                                                .build()
-                                        )
-                                        setDisplay(holder)
-                                        setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING)
-                                        setDataSource(streamUrl)
-                                        isLooping = true
-                                        setOnInfoListener { _, what, _ ->
-                                            if (what == MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
-                                                videoReady = true
-                                            }
-                                            false
+
+                        fun applyCenterCropTransform() {
+                            val vw = textureView.width
+                            val vh = textureView.height
+                            if (vw <= 0 || vh <= 0 || knownVideoWidth <= 0 || knownVideoHeight <= 0) return
+                            val viewRatio = vw.toFloat() / vh.toFloat()
+                            val videoRatio = knownVideoWidth.toFloat() / knownVideoHeight.toFloat()
+                            val scaleX: Float
+                            val scaleY: Float
+                            if (videoRatio > viewRatio) {
+                                scaleX = videoRatio / viewRatio
+                                scaleY = 1f
+                            } else {
+                                scaleX = 1f
+                                scaleY = viewRatio / videoRatio
+                            }
+                            val matrix = Matrix().apply {
+                                setScale(scaleX, scaleY, vw / 2f, vh / 2f)
+                            }
+                            textureView.setTransform(matrix)
+                        }
+
+                        textureView.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+                            if ((right - left) != (oldRight - oldLeft) || (bottom - top) != (oldBottom - oldTop)) {
+                                applyCenterCropTransform()
+                            }
+                        }
+
+                        val renderersFactory = DefaultRenderersFactory(context)
+                            .setEnableDecoderFallback(true)
+                            .setMediaCodecSelector(
+                                MediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
+                                    val defaults = MediaCodecSelector.DEFAULT.getDecoderInfos(
+                                        mimeType,
+                                        requiresSecureDecoder,
+                                        requiresTunnelingDecoder,
+                                    )
+                                    if (isAndroidEmulator()) {
+                                        val nonGoldfish = defaults.filterNot {
+                                            it.name.contains("goldfish", ignoreCase = true)
                                         }
-                                        setOnPreparedListener { player ->
-                                            val volume = if (isMuted) 0f else 1f
-                                            player.setVolume(volume, volume)
-                                            if (isActive && !isPaused) {
-                                                player.start()
+                                        val selected = nonGoldfish.ifEmpty { defaults }
+                                        if (mimeType.startsWith("video/")) {
+                                            Napier.d(
+                                                "ShortsVideo emulator codec selection for $mimeType: ${selected.joinToString { it.name }}",
+                                                tag = "ShortsVideo",
+                                            )
+                                        }
+                                        selected
+                                    } else {
+                                        defaults
+                                    }
+                                },
+                            )
+
+                        runCatching {
+                            ExoPlayer.Builder(context, renderersFactory)
+                                .build()
+                                .apply {
+                                    setAudioAttributes(
+                                        AudioAttributes.Builder()
+                                            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                                            .setUsage(C.USAGE_MEDIA)
+                                            .build(),
+                                        false,
+                                    )
+                                    repeatMode = Player.REPEAT_MODE_ONE
+                                    volume = if (isMuted) 0f else 1f
+                                    playWhenReady = isActive && !isPaused
+                                    setVideoTextureView(textureView)
+                                    addListener(object : Player.Listener {
+                                        override fun onVideoSizeChanged(videoSize: VideoSize) {
+                                            if (videoSize.width > 0 && videoSize.height > 0) {
+                                                knownVideoWidth = videoSize.width
+                                                knownVideoHeight = videoSize.height
+                                                textureView.post { applyCenterCropTransform() }
                                             }
+                                        }
+
+                                        override fun onRenderedFirstFrame() {
                                             videoReady = true
                                         }
-                                        setOnErrorListener { _, _, _ ->
+
+                                        override fun onPlayerError(error: PlaybackException) {
+                                            Napier.w(
+                                                "ExoPlayer error: ${error.message} url=$streamUrl",
+                                                error,
+                                                tag = "ShortsVideo",
+                                            )
                                             videoReady = false
-                                            true
                                         }
-                                        prepareAsync()
-                                        mediaPlayerRef = this
-                                    }
+                                    })
+                                    setMediaItem(MediaItem.fromUri(streamUrl))
+                                    prepare()
+                                    exoPlayerRef = this
                                 }
-                            }
+                        }.onFailure { err ->
+                            Napier.e("ExoPlayer setup failed: ${err.message}", err, tag = "ShortsVideo")
+                        }
 
-                            override fun surfaceChanged(
-                                holder: SurfaceHolder,
-                                format: Int,
-                                width: Int,
-                                height: Int,
-                            ) = Unit
-
-                            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                                runCatching { mediaPlayerRef?.release() }
-                                mediaPlayerRef = null
-                                videoReady = false
-                            }
-                        })
-                    }
-                },
-                update = {
-                    val player = mediaPlayerRef ?: return@AndroidView
-                    val volume = if (isMuted) 0f else 1f
-                    runCatching {
-                        player.setVolume(volume, volume)
-                        if (videoReady) {
-                            if (isActive && !isPaused && !player.isPlaying) {
-                                player.start()
-                            } else if ((!isActive || isPaused) && player.isPlaying) {
-                                player.pause()
+                        FrameLayout(context).apply {
+                            clipChildren = true
+                            clipToOutline = true
+                            addView(textureView)
+                        }
+                    },
+                    update = {
+                        val player = exoPlayerRef ?: return@AndroidView
+                        runCatching {
+                            player.volume = if (isMuted) 0f else 1f
+                            player.playWhenReady = isActive && !isPaused
+                        }
+                    },
+                    onRelease = { view ->
+                        val texture = (view as? FrameLayout)?.getChildAt(0) as? TextureView
+                        runCatching {
+                            exoPlayerRef?.let { player ->
+                                if (texture != null) {
+                                    player.clearVideoTextureView(texture)
+                                }
+                                player.release()
                             }
                         }
-                    }
-                },
-            )
+                        exoPlayerRef = null
+                        videoReady = false
+                    },
+                )
 
-            DisposableEffect(shortItem.id, streamUrl) {
-                onDispose {
-                    runCatching { mediaPlayerRef?.release() }
-                    mediaPlayerRef = null
-                    videoReady = false
+                DisposableEffect(shortItem.id, streamUrl) {
+                    onDispose {
+                        runCatching { exoPlayerRef?.release() }
+                        exoPlayerRef = null
+                        videoReady = false
+                    }
                 }
             }
         }
