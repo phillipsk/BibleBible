@@ -1,5 +1,6 @@
 package data.shorts
 
+import data.bible.currentLocalDateKey
 import data.bible.currentTimeMillis
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
@@ -7,6 +8,8 @@ import kotlin.random.Random
 
 internal const val SWIPE_HINT_MAX_PER_WEEK = 2
 internal const val SWIPE_HINT_COOLDOWN_MS = 7L * 24L * 60L * 60L * 1000L
+internal const val GESTURE_LEGEND_MAX_PER_DAY = 2
+internal const val SHORTS_AUTO_ADVANCE_AFTER_PLAYS = 2
 
 interface SeenWordsStore {
     fun getSeenIds(): Set<String>
@@ -127,12 +130,39 @@ internal object ShortsPlaybackLogic {
             (shownCount + 1) to windowStartMs
         }
     }
+
+    fun shouldShowGestureLegend(
+        shownCount: Int,
+        savedDayKey: String?,
+        todayKey: String,
+    ): Boolean {
+        if (savedDayKey.isNullOrBlank() || savedDayKey != todayKey) return true
+        return shownCount < GESTURE_LEGEND_MAX_PER_DAY
+    }
+
+    fun recordGestureLegendShown(
+        shownCount: Int,
+        savedDayKey: String?,
+        todayKey: String,
+    ): Pair<Int, String> {
+        return if (savedDayKey.isNullOrBlank() || savedDayKey != todayKey) {
+            1 to todayKey
+        } else {
+            (shownCount + 1) to todayKey
+        }
+    }
+
+    fun shouldAutoAdvanceAfterPlay(
+        completedPlays: Int,
+        autoAdvanceAfterPlays: Int = SHORTS_AUTO_ADVANCE_AFTER_PLAYS,
+    ): Boolean = completedPlays >= autoAdvanceAfterPlays
 }
 
 internal class ShortsProgressManager(
     private val backing: ShortsPrefsBacking = platformShortsPrefsBacking(),
     private val seenStore: SeenWordsStore = SqlDelightSeenWordsStore(),
     private val nowProvider: () -> Long = { currentTimeMillis() },
+    private val dayKeyProvider: () -> String = { currentLocalDateKey(nowProvider()) },
 ) {
     fun buildFreshSessionDeck(
         shorts: List<BiblicalShortDto>,
@@ -184,9 +214,28 @@ internal class ShortsProgressManager(
         backing.putLong(KEY_HINT_WINDOW_START, newStart)
     }
 
+    fun shouldShowGestureLegend(): Boolean =
+        ShortsPlaybackLogic.shouldShowGestureLegend(
+            shownCount = backing.getInt(KEY_GESTURE_LEGEND_COUNT, 0),
+            savedDayKey = backing.getString(KEY_GESTURE_LEGEND_DAY),
+            todayKey = dayKeyProvider(),
+        )
+
+    fun markGestureLegendShown() {
+        val (newCount, dayKey) = ShortsPlaybackLogic.recordGestureLegendShown(
+            shownCount = backing.getInt(KEY_GESTURE_LEGEND_COUNT, 0),
+            savedDayKey = backing.getString(KEY_GESTURE_LEGEND_DAY),
+            todayKey = dayKeyProvider(),
+        )
+        backing.putInt(KEY_GESTURE_LEGEND_COUNT, newCount)
+        backing.putString(KEY_GESTURE_LEGEND_DAY, dayKey)
+    }
+
     companion object {
         private const val KEY_TUTORIAL_SEEN = "tutorial_seen_v1"
         private const val KEY_HINT_COUNT = "swipe_hint_count"
         private const val KEY_HINT_WINDOW_START = "swipe_hint_window_start_ms"
+        private const val KEY_GESTURE_LEGEND_COUNT = "gesture_legend_count"
+        private const val KEY_GESTURE_LEGEND_DAY = "gesture_legend_day"
     }
 }

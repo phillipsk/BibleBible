@@ -10,15 +10,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
-import kotlinx.coroutines.launch
 
 @Composable
 internal fun ChapterTopBar(
@@ -40,6 +39,9 @@ internal fun ChapterTopBar(
         TopBarTitle(
             title = bookTitle,
             showHomePage = showHomePage,
+            titleColor = Color.White,
+            iconTint = Color.White,
+            titleFontSize = 23.sp,
             onClick = onBackClick,
             modifier = Modifier.weight(1f),
         )
@@ -74,7 +76,6 @@ fun BottomSheetToggle(showBottomSheet: () -> Unit) {
 
 @Composable
 private fun AISummaryTopBar() {
-    val scope = rememberCoroutineScope()
     AISummaryButton(
         generateAISummary = {
             if (!GeminiModel.showSummary) {
@@ -86,24 +87,17 @@ private fun AISummaryTopBar() {
                         "chapter" to (BibleState.bibleChapter?.chapterId?.toString() ?: ""),
                     ),
                 )
-                scope.launch {
-                    GeminiModel.showSummary = true
-                    GeminiModel.isLoading = true
-                    try {
-                        GeminiModel.generateAISummary()
-                    } finally {
-                        GeminiModel.isLoading = false
-                    }
-                }
+                GeminiModel.cancelPendingSummary(preserveShowSummary = false)
+                GeminiModel.showSummary = true
             } else {
                 AnalyticsTracker.trackAiSummary(
                     "ai_summary_toggled",
                     mapOf("visible" to "false"),
                 )
-                GeminiModel.showSummary = false
+                GeminiModel.cancelPendingSummary(preserveShowSummary = false)
             }
         },
-        isAISummarySuccessful = GeminiModel.isSuccessful,
+        isAISummarySuccessful = GeminiModel.isAiButtonHighlighted,
         showSummary = GeminiModel.showSummary
     )
 }

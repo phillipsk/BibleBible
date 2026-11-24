@@ -69,6 +69,8 @@ data class BibleChapter(
     val c: String? = null,
     val v: String? = null,
     val t: String? = null,
+    val p: Boolean = false,
+    val r: List<List<Int>> = emptyList(),
 )
 
 @Serializable
@@ -81,6 +83,7 @@ data class BibleChapterUIState(
     val text: String? = null,
     val chapterList: List<Long>? = null,
     val version: String? = null,
+    val verses: List<BibleChapter> = emptyList(),
 )
 
 data class ReadingHistoryUIState(

@@ -1,5 +1,6 @@
 package ui.configs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.BottomSheetState
+import androidx.compose.material.ChipDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
@@ -20,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,7 +76,20 @@ internal fun BibleMenu(
             items(validVersions, key = { it.abbreviation ?: it.uiAbbreviation }) { version ->
                 val abbr = version.abbreviation ?: return@items
                 val selected = selectedVersion.equals(abbr, ignoreCase = true)
+                val gold = Color(0xFFFBD38D)
                 FilterChip(
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (selected) gold else Color(0x22FFFFFF),
+                    ),
+                    colors = ChipDefaults.filterChipColors(
+                        backgroundColor = Color(0x14FFFFFF),
+                        selectedBackgroundColor = Color(0x2EFBD38D),
+                        contentColor = Color(0xFFE2E8F0),
+                        selectedContentColor = gold,
+                        leadingIconColor = gold,
+                        selectedLeadingIconColor = gold,
+                    ),
                     onClick = {
                         onInteraction()
                         val previousVersion = BibleState.selectedVersion

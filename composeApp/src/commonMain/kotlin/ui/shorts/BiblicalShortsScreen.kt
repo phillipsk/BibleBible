@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
+import data.bible.currentTimeMillis
 import data.shorts.BiblicalShortDto
 import data.shorts.ShortsPlaybackLogic
 import data.shorts.ShortsProgressManager
@@ -142,9 +143,20 @@ internal fun BiblicalShortsScreen(
     var isPaused by remember { mutableStateOf(false) }
     var isAppInForeground by remember { mutableStateOf(true) }
     var elapsedSeconds by remember { mutableStateOf(0) }
+    var completedPlaysOnCurrentShort by remember { mutableStateOf(0) }
+    var lastLoopEventMs by remember { mutableStateOf(0L) }
+    var lastUserInteractionMs by remember { mutableStateOf(currentTimeMillis()) }
+    var consecutiveAutoAdvances by remember { mutableStateOf(0) }
+    var pendingAutoAdvance by remember { mutableStateOf(false) }
+    val markUserInteraction: () -> Unit = {
+        lastUserInteractionMs = currentTimeMillis()
+        consecutiveAutoAdvances = 0
+    }
     var seekTargetSeconds by remember { mutableStateOf(0) }
     var seekRequestId by remember { mutableStateOf(0) }
     var showSwipeHint by remember { mutableStateOf(false) }
+    var showGestureLegend by remember { mutableStateOf(false) }
+    var lastLegendEvaluatedPage by remember { mutableStateOf(-1) }
     var showTutorialOverlay by remember { mutableStateOf(progressManager.shouldShowTutorial()) }
     var hintBounceOffsetPx by remember { mutableStateOf(0) }
     var soundToastLabel by remember { mutableStateOf<String?>(null) }
@@ -202,16 +214,30 @@ internal fun BiblicalShortsScreen(
     }
 
     LaunchedEffect(selectedCategory) {
+        markUserInteraction()
+        pendingAutoAdvance = false
         pagerState.scrollToPage(0)
         elapsedSeconds = 0
+        completedPlaysOnCurrentShort = 0
+        lastLoopEventMs = 0L
     }
 
     // Immediately cache each visible Biblical Word ID in SQLDelight so it won't repeat until all others are seen
     LaunchedEffect(pagerState.currentPage, activeShort?.id) {
+        val wasAutoAdvance = pendingAutoAdvance
+        pendingAutoAdvance = false
+        if (!wasAutoAdvance) {
+            markUserInteraction()
+        }
         elapsedSeconds = 0
+        completedPlaysOnCurrentShort = 0
+        lastLoopEventMs = 0L
         isPaused = false
         activeShort?.let { short ->
-            AnalyticsTracker.trackShortViewed(short)
+            AnalyticsTracker.trackShortViewed(
+                shortItem = short,
+                advanceSource = if (wasAutoAdvance) "auto" else "manual",
+            )
             if (!useDeterministicOrder) {
                 progressManager.markShortSeen(short.id)
             }
@@ -220,6 +246,14 @@ internal fun BiblicalShortsScreen(
         showSwipeHint = shouldHint
         if (shouldHint) {
             progressManager.markSwipeHintShown()
+        }
+        if (pagerState.currentPage != lastLegendEvaluatedPage) {
+            lastLegendEvaluatedPage = pagerState.currentPage
+            val shouldLegend = progressManager.shouldShowGestureLegend()
+            showGestureLegend = shouldLegend
+            if (shouldLegend) {
+                progressManager.markGestureLegendShown()
+            }
         }
     }
 
@@ -245,14 +279,59 @@ internal fun BiblicalShortsScreen(
         }
     }
 
-    LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused, isAppInForeground) {
-        if (!enablePlaybackTimer || activeShort == null || isPaused || !isAppInForeground) return@LaunchedEffect
+    val handlePlaybackLoopCompleted: () -> Unit = {
+        val currentItem = activeShort
+        val nowMs = currentTimeMillis()
+        if (currentItem != null &&
+            !isPaused &&
+            isAppInForeground &&
+            !showTutorialOverlay &&
+            (nowMs - lastLoopEventMs) >= 2000L
+        ) {
+            lastLoopEventMs = nowMs
+            completedPlaysOnCurrentShort += 1
+            elapsedSeconds = 0
+            if (ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(completedPlaysOnCurrentShort) &&
+                filteredShorts.size > 1
+            ) {
+                consecutiveAutoAdvances += 1
+                pendingAutoAdvance = true
+                val idleSeconds = ((nowMs - lastUserInteractionMs) / 1000L).coerceAtLeast(0L)
+                AnalyticsTracker.track(
+                    "short_auto_advanced",
+                    "biblical_shorts",
+                    mapOf(
+                        "fromShortId" to currentItem.id,
+                        "plays" to completedPlaysOnCurrentShort.toString(),
+                        "consecutiveAutoAdvances" to consecutiveAutoAdvances.toString(),
+                        "idleSeconds" to idleSeconds.toString(),
+                        "likelyIdle" to (consecutiveAutoAdvances >= 3).toString(),
+                    ),
+                )
+                val nextIndex = if (infiniteFeedEnabled) {
+                    pagerState.currentPage + 1
+                } else {
+                    (pagerState.currentPage + 1) % filteredShorts.size
+                }
+                scope.launch { pagerState.animateScrollToPage(nextIndex) }
+            }
+        }
+    }
+
+    LaunchedEffect(enablePlaybackTimer, activeShort?.id, isPaused, isAppInForeground, showTutorialOverlay) {
+        if (!enablePlaybackTimer || activeShort == null || isPaused || !isAppInForeground || showTutorialOverlay) {
+            return@LaunchedEffect
+        }
         val maxDuration = activeShort.effectiveInAppDurationSeconds()
         while (isActive) {
             withContext(Dispatchers.Default) {
                 delay(1000L)
             }
-            elapsedSeconds = (elapsedSeconds + 1) % maxDuration
+            if (elapsedSeconds + 1 >= maxDuration) {
+                handlePlaybackLoopCompleted()
+            } else {
+                elapsedSeconds += 1
+            }
         }
     }
 
@@ -285,11 +364,14 @@ internal fun BiblicalShortsScreen(
                         if (totalHorizontalDrag > threshold) {
                             // Swipe left-to-right -> return to Home
                             handled = true
+                            markUserInteraction()
                             AnalyticsTracker.track("short_swipe_back_home", "biblical_shorts")
                             onBack()
                         } else if (totalHorizontalDrag < -threshold && filteredShorts.isNotEmpty()) {
                             // Swipe right-to-left -> load next clip
                             handled = true
+                            markUserInteraction()
+                            pendingAutoAdvance = false
                             AnalyticsTracker.track("short_swipe_left_next", "biblical_shorts")
                             val nextIndex = if (infiniteFeedEnabled) {
                                 pagerState.currentPage + 1
@@ -321,11 +403,13 @@ internal fun BiblicalShortsScreen(
                     detectTapGestures(
                         onTap = {
                             if (isCurrentPage) {
+                                markUserInteraction()
                                 isPaused = !isPaused
                             }
                         },
                         onDoubleTap = {
                             if (isCurrentPage) {
+                                markUserInteraction()
                                 isMuted = !isMuted
                                 soundToastLabel = if (isMuted) "Sound Off" else "Sound On"
                                 AnalyticsTracker.track(
@@ -340,6 +424,7 @@ internal fun BiblicalShortsScreen(
 
                 val seekHandler: (Int) -> Unit = { targetSec ->
                     if (isCurrentPage) {
+                        markUserInteraction()
                         val clamped = targetSec.coerceIn(0, maxDuration)
                         elapsedSeconds = clamped
                         seekTargetSeconds = clamped
@@ -348,6 +433,7 @@ internal fun BiblicalShortsScreen(
                 }
 
                 val readChapterHandler: () -> Unit = {
+                    markUserInteraction()
                     AnalyticsTracker.track(
                         "short_read_chapter_clicked",
                         "biblical_shorts",
@@ -362,6 +448,8 @@ internal fun BiblicalShortsScreen(
                 }
 
                 val nextShortHandler: () -> Unit = {
+                    markUserInteraction()
+                    pendingAutoAdvance = false
                     AnalyticsTracker.track(
                         "short_next_clicked",
                         "biblical_shorts",
@@ -429,6 +517,7 @@ internal fun BiblicalShortsScreen(
                                         elapsedSeconds = pageElapsed,
                                         seekTargetSeconds = seekTargetSeconds,
                                         seekRequestId = seekRequestId,
+                                        onLoopCompleted = { if (isCurrentPage) handlePlaybackLoopCompleted() },
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 }
@@ -447,6 +536,7 @@ internal fun BiblicalShortsScreen(
                                     showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
                                     onReadNowClick = readChapterHandler,
                                     showSwipeHint = false,
+                                    showGestureLegend = showGestureLegend,
                                     hintOffsetPx = 0,
                                     onSwipeHintClick = null,
                                     pageElapsed = pageElapsed,
@@ -535,6 +625,7 @@ internal fun BiblicalShortsScreen(
                                             elapsedSeconds = pageElapsed,
                                             seekTargetSeconds = seekTargetSeconds,
                                             seekRequestId = seekRequestId,
+                                            onLoopCompleted = { if (isCurrentPage) handlePlaybackLoopCompleted() },
                                             modifier = Modifier.fillMaxSize(),
                                         )
                                     }
@@ -553,6 +644,7 @@ internal fun BiblicalShortsScreen(
                                         showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
                                         onReadNowClick = readChapterHandler,
                                         showSwipeHint = false,
+                                        showGestureLegend = showGestureLegend,
                                         hintOffsetPx = 0,
                                         onSwipeHintClick = null,
                                         pageElapsed = pageElapsed,
@@ -597,7 +689,8 @@ internal fun BiblicalShortsScreen(
                                 .weight(1f)
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .then(tapGestureModifier),
+                                .then(tapGestureModifier)
+                                .testTag("shorts_phone_video_frame"),
                         ) {
                             if (videoPreviewOverride != null) {
                                 videoPreviewOverride(shortItem, Modifier.fillMaxSize())
@@ -610,6 +703,7 @@ internal fun BiblicalShortsScreen(
                                     elapsedSeconds = pageElapsed,
                                     seekTargetSeconds = seekTargetSeconds,
                                     seekRequestId = seekRequestId,
+                                    onLoopCompleted = { if (isCurrentPage) handlePlaybackLoopCompleted() },
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
@@ -629,6 +723,7 @@ internal fun BiblicalShortsScreen(
                                 showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
                                 onReadNowClick = readChapterHandler,
                                 showSwipeHint = showSwipeHint,
+                                showGestureLegend = showGestureLegend,
                                 hintOffsetPx = hintBounceOffsetPx,
                                 onSwipeHintClick = nextShortHandler,
                                 pageElapsed = pageElapsed,
@@ -673,13 +768,13 @@ internal fun BiblicalShortsScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back to Home",
-                        tint = Color.White,
+                        tint = Color.White.copy(alpha = 0.68f),
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Biblical Words",
-                        color = Color.White,
+                        color = Color.White.copy(alpha = 0.68f),
                         fontWeight = FontWeight.Bold,
                         fontSize = headerTitleSize,
                         maxLines = 1,
@@ -687,7 +782,7 @@ internal fun BiblicalShortsScreen(
                     )
                     Text(
                         text = "Daily Scripture Moments",
-                        color = Color(0xFFCBD5E1),
+                        color = Color(0xFFCBD5E1).copy(alpha = 0.50f),
                         fontSize = headerSubSize,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -697,6 +792,7 @@ internal fun BiblicalShortsScreen(
 
             Surface(
                 onClick = {
+                    markUserInteraction()
                     isMuted = !isMuted
                     soundToastLabel = if (isMuted) "Sound Off" else "Sound On"
                     AnalyticsTracker.track(
@@ -706,8 +802,8 @@ internal fun BiblicalShortsScreen(
                     )
                 },
                 shape = CircleShape,
-                color = if (isMuted) Color(0x8809111E) else Color(0x33FBD38D),
-                border = BorderStroke(1.dp, if (isMuted) Color(0x44FFFFFF) else Color(0xFFFBD38D)),
+                color = if (isMuted) Color(0x4709111E) else Color(0x2EFBD38D),
+                border = BorderStroke(1.dp, if (isMuted) Color(0x33FFFFFF) else Color(0xB3FBD38D)),
                 elevation = 0.dp,
                 modifier = Modifier
                     .size(soundBtnSize)
@@ -717,7 +813,7 @@ internal fun BiblicalShortsScreen(
                 Box(contentAlignment = Alignment.Center) {
                     ShortsSpeakerIcon(
                         isMuted = isMuted,
-                        tint = if (isMuted) Color.White else Color(0xFFFBD38D),
+                        tint = if (isMuted) Color.White.copy(alpha = 0.72f) else Color(0xFFFBD38D).copy(alpha = 0.88f),
                         modifier = Modifier.size(if (headerIsLargeTablet) 21.dp else 18.dp),
                     )
                 }
@@ -737,6 +833,7 @@ internal fun BiblicalShortsScreen(
                     .fillMaxSize()
                     .background(Color(0xB8060C16))
                     .clickable {
+                        markUserInteraction()
                         showTutorialOverlay = false
                         progressManager.markTutorialDismissed()
                     }
@@ -781,6 +878,7 @@ internal fun BiblicalShortsScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Button(
                             onClick = {
+                                markUserInteraction()
                                 showTutorialOverlay = false
                                 progressManager.markTutorialDismissed()
                                 AnalyticsTracker.track("shorts_tutorial_dismissed", "biblical_shorts")
@@ -989,6 +1087,7 @@ private fun ShortsClipBottomOverlay(
     showReadNowButton: Boolean,
     onReadNowClick: () -> Unit,
     showSwipeHint: Boolean,
+    showGestureLegend: Boolean,
     hintOffsetPx: Int,
     onSwipeHintClick: (() -> Unit)?,
     pageElapsed: Int,
@@ -1029,10 +1128,16 @@ private fun ShortsClipBottomOverlay(
             isCompactLandscape = isCompactLandscape,
             onClick = onSwipeHintClick,
         )
-        ShortsGestureLegendRow(
-            isLargeTablet = isLargeTablet,
-            isCompactLandscape = isCompactLandscape,
-        )
+        AnimatedVisibility(
+            visible = isCurrentPage && showGestureLegend,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            ShortsGestureLegendRow(
+                isLargeTablet = isLargeTablet,
+                isCompactLandscape = isCompactLandscape,
+            )
+        }
         ShortsScrubberRow(
             pageElapsed = pageElapsed,
             maxDuration = maxDuration,

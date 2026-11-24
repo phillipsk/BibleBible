@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import data.bible.BibleBooksResponse
+import data.bible.BibleChapter
 import data.bible.BibleChapterUIState
 import data.bible.BibleState
 import data.bible.BibleVersions
@@ -244,5 +245,84 @@ class ReaderPolishAndDeepLinkUiTest {
             assertEquals("JHN.3", BibleState.selectedChapter)
             assertFalse(scaffoldState.bottomSheetState.isExpanded)
         }
+    }
+
+    @Test
+    fun literarySerifRendersParagraphsAndRedLetterWhenEnabledAndFallsBackWithoutParagraphs() = runComposeUiTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+        val john = books.data!!.first { it.bookId == "JHN" }
+        BibleState.updateSelectedBook(john)
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(
+                    readerLayoutStyle = "literary_serif",
+                    readerRedLetterEnabled = true,
+                )
+            )
+        )
+
+        val proseChapter = BibleChapterUIState(
+            bookId = 43,
+            chapterId = 3,
+            version = "KJV",
+            text = "[1] There was a man. [2] The same came. [3] Jesus answered, Verily I say.",
+            verses = listOf(
+                BibleChapter(id = "1", b = "43", c = "3", v = "1", t = "There was a man.", p = false),
+                BibleChapter(id = "2", b = "43", c = "3", v = "2", t = "The same came.", p = false),
+                BibleChapter(
+                    id = "3",
+                    b = "43",
+                    c = "3",
+                    v = "3",
+                    t = "Jesus answered, Verily I say.",
+                    p = true,
+                    r = listOf(listOf(16, 29)),
+                ),
+            ),
+        )
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(380.dp, 500.dp)) {
+                    BibleScriptures(
+                        chapters = proseChapter,
+                        scrollState = rememberScrollState(),
+                        selectedFontSize = 20f,
+                        onFontSizeChanged = {},
+                    )
+                }
+            }
+        }
+
+        waitForIdle()
+        val proseNode = onNodeWithTag("ScriptureText").fetchSemanticsNode()
+        val proseAnnotated = proseNode.config[SemanticsProperties.Text].first()
+        // Verses 1 and 2 share paragraph 1 (single space join), verse 3 starts paragraph 2 (\n\n break)
+        assertTrue(proseAnnotated.text.contains("1\u00A0There was a man. 2\u00A0The same came.\n\n3\u00A0Jesus answered, Verily I say."))
+        val redSpans = proseAnnotated.spanStyles.filter { it.item.color == Color(0xFFF48B8B) }
+        assertEquals(1, redSpans.size)
+        assertEquals("Verily I say.", proseAnnotated.text.substring(redSpans[0].start, redSpans[0].end))
+
+        // Chapter with no paragraph markers falls back to verse-per-line cleanly
+        val psalmFallback = buildScriptureContent(
+            chapters = BibleChapterUIState(
+                bookId = 19,
+                chapterId = 23,
+                version = "KJV",
+                verses = listOf(
+                    BibleChapter(id = "1", b = "19", c = "23", v = "1", t = "The LORD is my shepherd."),
+                    BibleChapter(id = "2", b = "19", c = "23", v = "2", t = "He maketh me to lie down."),
+                ),
+            ),
+            activeVersion = "KJV",
+            selectedFontSize = 22f,
+            layoutStyle = "literary_serif",
+            verseGapDp = 14,
+            redLetterEnabled = false,
+            highlightStart = null,
+            highlightEnd = null,
+        )!!
+        assertEquals("1\u00A0The LORD is my shepherd.\n2\u00A0He maketh me to lie down.", psalmFallback.text.text)
     }
 }

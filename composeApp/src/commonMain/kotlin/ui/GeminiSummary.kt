@@ -26,7 +26,6 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,47 +55,44 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
-    var content by remember { mutableStateOf(GeminiModel.geminiDataText) }
+    val summaryText = GeminiModel.geminiDataText
     val refreshScope = rememberCoroutineScope()
-    var refreshing by remember(content) { mutableStateOf(false) }
-
-    fun refresh(pullToRefresh: Boolean = false) = refreshScope.launch {
-        refreshing = true
-        if (pullToRefresh) {
-            AnalyticsTracker.trackAiSummary(
-                "ai_summary_pull_refresh",
-                mapOf(
-                    "bookName" to (BibleState.selectedBook.cleanedName ?: ""),
-                    "chapter" to (BibleState.bibleChapter?.chapterId?.toString() ?: ""),
-                ),
-            )
-            GeminiModel.generateAISummary(pullToRefresh = true)
+    var refreshing by remember { mutableStateOf(false) }
+    var lastNonBlankSummary by remember(BibleState.bibleChapter?.bookId, BibleState.bibleChapter?.chapterId) {
+        mutableStateOf(summaryText)
+    }
+    LaunchedEffect(summaryText) {
+        if (!summaryText.isNullOrBlank()) {
+            lastNonBlankSummary = summaryText
         }
-        withContext(Dispatchers.Main) {
-            if (GeminiModel.geminiDataText?.isEmpty() == false) {
-                content = GeminiModel.geminiDataText
-                scrollState.scrollTo(0)
-            } else {
-                BibleState.updateErrorSnackBar(
-                    GeminiModel.errorMessage ?: "Gemini returned no summary. Please try again."
-                )
-                GeminiModel.showSummary = false
+    }
+
+    fun refresh() = refreshScope.launch {
+        refreshing = true
+        AnalyticsTracker.trackAiSummary(
+            "ai_summary_pull_refresh",
+            mapOf(
+                "bookName" to (BibleState.selectedBook.cleanedName ?: ""),
+                "chapter" to (BibleState.bibleChapter?.chapterId?.toString() ?: ""),
+            ),
+        )
+        try {
+            GeminiModel.generateAISummary(pullToRefresh = true)
+            withContext(Dispatchers.Main) {
+                if (!GeminiModel.geminiDataText.isNullOrBlank()) {
+                    scrollState.scrollTo(0)
+                } else {
+                    val errorMsg = GeminiModel.errorMessage ?: "Gemini returned no summary. Please try again."
+                    BibleState.updateErrorSnackBar(errorMsg)
+                    GeminiModel.cancelPendingSummary(preserveShowSummary = false)
+                }
             }
+        } finally {
             refreshing = false
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            GeminiModel.showSummary = false
-        }
-    }
-
-    val state = rememberPullRefreshState(refreshing, { refresh(pullToRefresh = true) })
-    LaunchedEffect(true) {
-        Napier.d("GeminiSummary: LaunchedEffect", tag = "Gem7624")
-        refresh()
-    }
+    val state = rememberPullRefreshState(refreshing, { refresh() })
 
     val cardBrush = Brush.verticalGradient(
         colors = listOf(
@@ -112,11 +107,11 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
             .fillMaxSize()
             .pullRefresh(state)
     ) {
-        val summaryText = content
-        if (summaryText.isNullOrBlank() || GeminiModel.isLoading) {
+        val visibleSummaryText = summaryText ?: lastNonBlankSummary.takeIf { refreshing }
+        if (visibleSummaryText.isNullOrBlank() || (!refreshing && GeminiModel.isLoading)) {
             AiSummaryLoadingView()
         } else {
-            val blocks = remember(summaryText) { parseMarkdownSummaryBlocks(summaryText) }
+            val blocks = remember(visibleSummaryText) { parseMarkdownSummaryBlocks(visibleSummaryText) }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -229,32 +224,50 @@ fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
     }
 }
 
-private sealed interface SummaryBlock {
+internal sealed interface SummaryBlock {
     data class Heading(val text: String) : SummaryBlock
     data class Bullet(val text: String) : SummaryBlock
     data class Paragraph(val text: String) : SummaryBlock
 }
 
-private fun parseMarkdownSummaryBlocks(raw: String): List<SummaryBlock> {
+private val HORIZONTAL_RULE_REGEX = Regex("^\\s*([-*_])(?:\\s*\\1){2,}\\s*$")
+private val PUNCT_DASH_SEPARATOR_REGEX = Regex("([,:;!?])\\s*(?:—|-{2,})\\s*")
+private val LEADING_DASH_REGEX = Regex("^\\s*(?:—|-{2,})\\s*")
+private val TRAILING_DASH_REGEX = Regex("\\s*(?:—|-{2,})\\s*$")
+private val DASH_SEPARATOR_REGEX = Regex("\\s*(?:—|-{2,})\\s*")
+
+private fun sanitizeSummaryLine(line: String): String =
+    line
+        .replace(PUNCT_DASH_SEPARATOR_REGEX, "$1 ")
+        .replace(LEADING_DASH_REGEX, "")
+        .replace(TRAILING_DASH_REGEX, "")
+        .replace(DASH_SEPARATOR_REGEX, ", ")
+        .replace(Regex(",\\s*,+"), ",")
+        .trim()
+
+internal fun parseMarkdownSummaryBlocks(raw: String): List<SummaryBlock> {
     val result = mutableListOf<SummaryBlock>()
     val lines = raw.replace("\r\n", "\n").split("\n")
     for (line in lines) {
         val trimmed = line.trim()
-        if (trimmed.isEmpty()) continue
+        if (trimmed.isEmpty() || HORIZONTAL_RULE_REGEX.matches(trimmed)) continue
         when {
             trimmed.startsWith("#") -> {
-                val heading = trimmed.trimStart('#').trim()
+                val heading = sanitizeSummaryLine(trimmed.trimStart('#').trim())
                 if (heading.isNotEmpty()) result.add(SummaryBlock.Heading(heading))
             }
             trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("• ") -> {
-                result.add(SummaryBlock.Bullet(trimmed.drop(2).trim()))
+                val bullet = sanitizeSummaryLine(trimmed.drop(2).trim())
+                if (bullet.isNotEmpty()) result.add(SummaryBlock.Bullet(bullet))
             }
             trimmed.startsWith("**") && trimmed.endsWith("**") && trimmed.length > 4 &&
                 !trimmed.drop(2).dropLast(2).contains("**") -> {
-                result.add(SummaryBlock.Heading(trimmed.drop(2).dropLast(2).trim()))
+                val heading = sanitizeSummaryLine(trimmed.drop(2).dropLast(2).trim())
+                if (heading.isNotEmpty()) result.add(SummaryBlock.Heading(heading))
             }
             else -> {
-                result.add(SummaryBlock.Paragraph(trimmed))
+                val paragraph = sanitizeSummaryLine(trimmed)
+                if (paragraph.isNotEmpty()) result.add(SummaryBlock.Paragraph(paragraph))
             }
         }
     }

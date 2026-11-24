@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -23,6 +24,9 @@ import androidx.compose.ui.unit.sp
 internal fun TopBarTitle(
     title: String,
     showHomePage: Boolean = true,
+    titleColor: Color = Color.White,
+    iconTint: Color = Color.White,
+    titleFontSize: TextUnit = 20.sp,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -34,7 +38,7 @@ internal fun TopBarTitle(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White,
+                tint = iconTint,
                 modifier = Modifier
                     .padding(start = 2.dp, end = 4.dp)
                     .size(22.dp)
@@ -44,10 +48,10 @@ internal fun TopBarTitle(
             text = title,
             style = TextStyle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
-                fontSize = 20.sp,
+                fontSize = titleFontSize,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
-                color = Color.White,
+                color = titleColor,
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

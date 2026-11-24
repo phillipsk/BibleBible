@@ -290,7 +290,7 @@ object BibleState {
         listOf(16f, 18f, 20f, 22f, 24f, 26f, 28f, 30f)
     }
 
-    var selectedFontSize by mutableStateOf(20f)
+    var selectedFontSize by mutableStateOf(22f)
 
     var selectedBook by mutableStateOf(BookData())
         private set
@@ -324,6 +324,8 @@ object BibleState {
     }
 
     internal fun restoreReadingLocation(book: BookData, chapter: Int) {
+        // Explicit navigation jumps (home/history/deep links/Shorts Read Now) always start in scripture view
+        GeminiModel.cancelPendingSummary(preserveShowSummary = false)
         updateSelectedBook(book)
         updateSelectedChapter("${book.bookId}.$chapter")
         val bookId = getBookOrdinal(book.remoteKey)
@@ -375,6 +377,7 @@ object BibleState {
                     (1..count).toList()
                 },
                 version = version,
+                verses = cleanVerses,
             )
         }
     }

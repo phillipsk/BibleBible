@@ -74,8 +74,8 @@ data class CloudFeatureFlagsDto(
     val readerLayoutStyle: String = "literary_serif",
     val readerLineHeightMultiplier: Float = 1.68f,
     val readerVerseGapDp: Int = 14,
-    val readerDefaultFontSizeSp: Float = 20.0f,
-    val readerRedLetterEnabled: Boolean = false,
+    val readerDefaultFontSizeSp: Float = 22.0f,
+    val readerRedLetterEnabled: Boolean = true,
 )
 
 @Serializable
@@ -191,7 +191,7 @@ object CloudSessionManager {
         get() = featureFlags.readerDefaultFontSizeSp
             .takeIf { it.isFinite() }
             ?.coerceIn(14f, 32f)
-            ?: 20.0f
+            ?: 22.0f
 
     val readerRedLetterEnabled: Boolean
         get() = featureFlags.readerRedLetterEnabled

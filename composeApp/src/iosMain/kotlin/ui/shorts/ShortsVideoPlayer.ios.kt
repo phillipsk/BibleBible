@@ -15,13 +15,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
 import data.shorts.BiblicalShortDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive as coroutineIsActive
+import platform.AVFAudio.AVAudioSession
+import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.setActive
 import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
@@ -49,6 +54,7 @@ internal actual fun ShortsVideoPlayer(
     elapsedSeconds: Int,
     seekTargetSeconds: Int,
     seekRequestId: Int,
+    onLoopCompleted: () -> Unit,
     modifier: Modifier,
 ) {
     val streamUrl = shortItem.videoUrl.trim()
@@ -60,6 +66,9 @@ internal actual fun ShortsVideoPlayer(
         }
     }
     var videoReady by remember(shortItem.id, nsUrl) { mutableStateOf(false) }
+    val latestOnLoopCompleted by rememberUpdatedState(onLoopCompleted)
+    val latestIsActive by rememberUpdatedState(isActive)
+    val latestIsPaused by rememberUpdatedState(isPaused)
 
     Box(
         modifier = modifier
@@ -103,6 +112,7 @@ internal actual fun ShortsVideoPlayer(
                             playerLayer.frame = bounds
                         }
                     }.apply {
+                        userInteractionEnabled = false
                         clipsToBounds = true
                         backgroundColor = UIColor(
                             red = 9.0 / 255.0,
@@ -115,6 +125,9 @@ internal actual fun ShortsVideoPlayer(
                 },
                 update = { view ->
                     playerLayer.frame = view.bounds
+                    if (isActive && !isMuted) {
+                        activatePlaybackAudioSession()
+                    }
                     player.muted = isMuted
                     if (isActive && !isPaused) {
                         player.play()
@@ -122,9 +135,16 @@ internal actual fun ShortsVideoPlayer(
                         player.pause()
                     }
                 },
+                properties = UIKitInteropProperties(
+                    isInteractive = false,
+                    isNativeAccessibilityEnabled = false,
+                ),
             )
 
             LaunchedEffect(isActive, isPaused, isMuted) {
+                if (isActive && !isMuted) {
+                    activatePlaybackAudioSession()
+                }
                 player.muted = isMuted
                 if (isActive && !isPaused) {
                     player.play()
@@ -146,9 +166,11 @@ internal actual fun ShortsVideoPlayer(
                     val posSec = CMTimeGetSeconds(player.currentTime())
                     if (!posSec.isNaN() && posSec >= cutoffSec) {
                         player.seekToTime(CMTimeMake(value = 0L, timescale = 1))
-                        if (isActive && !isPaused) {
+                        if (latestIsActive && !latestIsPaused) {
                             player.play()
+                            latestOnLoopCompleted()
                         }
+                        delay(400L)
                     }
                     delay(120L)
                 }
@@ -161,8 +183,9 @@ internal actual fun ShortsVideoPlayer(
                     queue = NSOperationQueue.mainQueue,
                 ) { _ ->
                     player.seekToTime(CMTimeMake(value = 0L, timescale = 1))
-                    if (isActive && !isPaused) {
+                    if (latestIsActive && !latestIsPaused) {
                         player.play()
+                        latestOnLoopCompleted()
                     }
                 }
                 onDispose {
@@ -186,5 +209,13 @@ internal actual fun ShortsVideoPlayer(
                 modifier = Modifier.fillMaxSize(),
             )
         }
+    }
+}
+
+private fun activatePlaybackAudioSession() {
+    runCatching {
+        val session = AVAudioSession.sharedInstance()
+        session.setCategory(AVAudioSessionCategoryPlayback, error = null)
+        session.setActive(true, error = null)
     }
 }

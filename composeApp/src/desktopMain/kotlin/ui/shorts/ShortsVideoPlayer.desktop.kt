@@ -13,6 +13,7 @@ internal actual fun ShortsVideoPlayer(
     elapsedSeconds: Int,
     seekTargetSeconds: Int,
     seekRequestId: Int,
+    onLoopCompleted: () -> Unit,
     modifier: Modifier,
 ) {
     ShortsStoryboardBackdrop(

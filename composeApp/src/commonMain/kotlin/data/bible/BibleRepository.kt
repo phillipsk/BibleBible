@@ -1,5 +1,7 @@
 package data.bible
 
+import app.cash.sqldelight.db.QueryResult
+import app.cash.sqldelight.db.SqlDriver
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
@@ -19,10 +21,21 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 const val DATABASE_RETENTION = 30_000L
 const val DATABASE_RETENTION_READING_HISTORY = 500L
+
+@Serializable
+private data class VerseFormatMeta(
+    val v: String,
+    val p: Boolean = false,
+    val r: List<List<Int>> = emptyList(),
+)
+
+private val chapterFormatJson = Json { ignoreUnknownKeys = true }
 
 internal suspend fun loadBibleBooks() {
     if (BibleState.bibleBooks.data?.isNotEmpty() == true) {
@@ -66,13 +79,16 @@ internal suspend fun fetchBibleChapter(
     client: HttpClient = httpClientCloudGateway,
 ) {
     try {
-        GeminiModel.cancelPendingSummary()
         val bookId = BibleState.getBookOrdinal(book.remoteKey)
+        val isSameBook = BibleState.bibleChapter?.bookId == bookId
+        GeminiModel.cancelPendingSummary(preserveShowSummary = isSameBook)
         Napier.v("fetchBibleChapter: bookId: $bookId :: chapter $chapter", tag = "IQ093")
         val chapterVerses: List<BibleChapter>
         var chapterCount: ChapterCount?
 
-        val cachedData = loadVerseData(bookId, chapter, version)
+        val cachedEntry = loadVerseData(bookId, chapter, version)
+        val cachedData = cachedEntry?.first
+        val hasFormatMeta = cachedEntry?.second == true
 
         if (cachedData.isNullOrEmpty()) {
             withContext(Dispatchers.IO) {
@@ -97,6 +113,7 @@ internal suspend fun fetchBibleChapter(
                     BibleState.updateBibleChapter(chapterVerses, chapterCount, version)
                 }
                 insertBibleVerses(chapterVerses, version, chapterCount)
+                saveChapterFormatMeta(bookId, chapter, version, chapterVerses)
                 AnalyticsTracker.trackChapterLoaded(bookId, chapter, version, source = "remote")
             }
         } else {
@@ -106,6 +123,26 @@ internal suspend fun fetchBibleChapter(
             }
             updateTimestampBibleVerses(cachedData.firstOrNull(), version)
             AnalyticsTracker.trackChapterLoaded(bookId, chapter, version, source = "cache")
+            if (!hasFormatMeta) {
+                // Legacy cached chapter lacks paragraph/red-letter metadata; quietly refresh when online
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val refreshed = client.get(
+                            GetChapter(
+                                bookId = bookId,
+                                chapterId = chapter.toString(),
+                                versionId = version.lowercase(),
+                            )
+                        ).body<List<BibleChapter>>()
+                        if (refreshed.isNotEmpty()) {
+                            saveChapterFormatMeta(bookId, chapter, version, refreshed)
+                            withContext(Dispatchers.Main) {
+                                BibleState.updateBibleChapter(refreshed, chapterCount, version)
+                            }
+                        }
+                    }
+                }
+            }
         }
         if (updateReadingHistory) {
             insertReadingHistory(bookId, chapter)
@@ -262,27 +299,105 @@ private suspend fun updateTimestampBibleVerses(
     }
 }
 
+private fun chapterFormatKey(bookId: Int, chapter: Int, version: String): String =
+    "v2:$bookId:$chapter:${version.lowercase()}"
+
+private fun ensureChapterFormatMetaTable(driver: SqlDriver) {
+    driver.execute(
+        null,
+        "CREATE TABLE IF NOT EXISTS ChapterFormatMeta (chapterKey TEXT PRIMARY KEY, metaJson TEXT NOT NULL)",
+        0,
+    )
+}
+
+private suspend fun saveChapterFormatMeta(
+    bookId: Int,
+    chapter: Int,
+    version: String,
+    verses: List<BibleChapter>,
+) {
+    runCatching {
+        withContext(Dispatchers.IO) {
+            val driver = DriverFactory.createDriver() ?: return@withContext
+            ensureChapterFormatMetaTable(driver)
+            val entries = verses.mapNotNull { verse ->
+                val verseNum = verse.v ?: return@mapNotNull null
+                if (!verse.p && verse.r.isEmpty()) return@mapNotNull null
+                VerseFormatMeta(v = verseNum, p = verse.p, r = verse.r)
+            }
+            val jsonPayload = chapterFormatJson.encodeToString(entries)
+            val key = chapterFormatKey(bookId, chapter, version)
+            driver.execute(
+                null,
+                "INSERT OR REPLACE INTO ChapterFormatMeta (chapterKey, metaJson) VALUES (?, ?)",
+                2,
+            ) {
+                bindString(0, key)
+                bindString(1, jsonPayload)
+            }
+        }
+    }
+}
+
 private suspend fun loadVerseData(
     bookId: Int,
     chapter: Int,
     version: String,
-): List<BibleChapter>? {
+): Pair<List<BibleChapter>, Boolean>? {
     return try {
         withContext(Dispatchers.IO) {
-            DriverFactory.createDriver()?.let { BibleBibleDatabase(driver = it) }
-                ?.let { database ->
-                    val bibleQueries = database.bibleBibleDatabaseQueries
-                        .selectVersesByBookId(
-                            bookId.toString(),
-                            chapter.toString(),
-                            version.lowercase(),
-                        )
-                        .executeAsList()
+            DriverFactory.createDriver()?.let { driver ->
+                val database = BibleBibleDatabase(driver = driver)
+                val bibleQueries = database.bibleBibleDatabaseQueries
+                    .selectVersesByBookId(
+                        bookId.toString(),
+                        chapter.toString(),
+                        version.lowercase(),
+                    )
+                    .executeAsList()
 
-                    bibleQueries.map {
-                        BibleChapter(id = it.id, b = it.b, c = it.c, v = it.v, t = it.t)
-                    }
+                if (bibleQueries.isEmpty()) {
+                    return@let null
                 }
+
+                val metaJson = runCatching {
+                    ensureChapterFormatMetaTable(driver)
+                    val key = chapterFormatKey(bookId, chapter, version)
+                    driver.executeQuery(
+                        null,
+                        "SELECT metaJson FROM ChapterFormatMeta WHERE chapterKey = ?",
+                        { cursor ->
+                            QueryResult.Value(if (cursor.next().value) cursor.getString(0) else null)
+                        },
+                        1,
+                    ) {
+                        bindString(0, key)
+                    }.value
+                }.getOrNull()
+
+                val metaByVerse = if (metaJson != null) {
+                    runCatching {
+                        chapterFormatJson.decodeFromString<List<VerseFormatMeta>>(metaJson)
+                            .associateBy { it.v }
+                    }.getOrDefault(emptyMap())
+                } else {
+                    emptyMap()
+                }
+
+                val chapters = bibleQueries.map { row ->
+                    val meta = metaByVerse[row.v]
+                    BibleChapter(
+                        id = row.id,
+                        b = row.b,
+                        c = row.c,
+                        v = row.v,
+                        t = row.t,
+                        p = meta?.p ?: false,
+                        r = meta?.r ?: emptyList(),
+                    )
+                }
+                chapters to (metaJson != null)
+            }
         }
     } catch (e: Exception) {
         Napier.e("Error: ${e.message}", tag = "IQ093")

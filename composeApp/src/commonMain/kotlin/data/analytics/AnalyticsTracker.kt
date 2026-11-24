@@ -3,6 +3,7 @@ package data.analytics
 import data.config.CloudSessionManager
 import data.httpClientCloudGateway
 import data.shorts.BiblicalShortDto
+import data.shorts.platformShortsPrefsBacking
 import email.kevinphillips.biblebible.getPlatformName
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
@@ -35,6 +36,7 @@ internal data class AnalyticsEventDto(
     val category: String,
     val platform: String,
     val sessionId: String,
+    val deviceId: String = "",
     val timestamp: String,
     val properties: Map<String, String> = emptyMap(),
 )
@@ -56,9 +58,11 @@ internal data class AnalyticsAckResponseDto(
  * channel and batches uploads to the Google Cloud Run gateway `/v1/analytics/events`.
  */
 internal object AnalyticsTracker {
+    private const val KEY_DEVICE_ID = "analytics_device_id_v1"
     private val platformName: String = getPlatformName()
     private val sessionIdValue: String =
         "$platformName-${Clock.System.now().toEpochMilliseconds()}-${Random.nextInt(1000, 9999)}"
+    private var cachedDeviceId: String? = null
 
     private val mutex = Mutex()
     private val eventChannel = Channel<AnalyticsEventDto>(capacity = 512)
@@ -70,6 +74,31 @@ internal object AnalyticsTracker {
     private var workerStarted: Boolean = false
 
     val sessionId: String get() = sessionIdValue
+    val deviceId: String get() = resolveDeviceId()
+
+    private fun generateDeviceId(): String {
+        val partA = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
+        val partB = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
+        return "${platformName.lowercase()}-$partA$partB"
+    }
+
+    private fun resolveDeviceId(): String {
+        cachedDeviceId?.let { return it }
+        val persisted = runCatching {
+            val backing = platformShortsPrefsBacking()
+            val existing = backing.getString(KEY_DEVICE_ID)?.trim()
+            if (!existing.isNullOrEmpty()) {
+                existing
+            } else {
+                generateDeviceId().also { generated ->
+                    backing.putString(KEY_DEVICE_ID, generated)
+                }
+            }
+        }.getOrNull()
+        val resolved = persisted ?: generateDeviceId()
+        cachedDeviceId = resolved
+        return resolved
+    }
 
     private fun ensureWorkerStarted() {
         if (workerStarted || !remoteDispatchEnabled) return
@@ -127,6 +156,7 @@ internal object AnalyticsTracker {
             category = category.trim().lowercase().ifEmpty { "general" },
             platform = platformName,
             sessionId = sessionIdValue,
+            deviceId = resolveDeviceId(),
             timestamp = Clock.System.now().toString(),
             properties = properties,
         )
@@ -172,7 +202,7 @@ internal object AnalyticsTracker {
         )
     }
 
-    fun trackShortViewed(shortItem: BiblicalShortDto) {
+    fun trackShortViewed(shortItem: BiblicalShortDto, advanceSource: String = "manual") {
         track(
             name = "short_viewed",
             category = "biblical_shorts",
@@ -183,6 +213,29 @@ internal object AnalyticsTracker {
                 "category" to shortItem.category,
                 "bookUsfm" to shortItem.bookUsfm,
                 "chapter" to shortItem.chapter.toString(),
+                "advanceSource" to advanceSource,
+            ),
+        )
+    }
+
+    fun trackChapterReadingTime(
+        bookKey: String,
+        bookName: String,
+        chapter: Int,
+        version: String,
+        durationSeconds: Long,
+    ) {
+        val clampedSeconds = durationSeconds.coerceIn(0L, 7200L)
+        if (clampedSeconds < 2L) return
+        track(
+            name = "chapter_reading_time",
+            category = "reading",
+            properties = mapOf(
+                "bookKey" to bookKey,
+                "bookName" to bookName.ifBlank { bookKey },
+                "chapter" to chapter.toString(),
+                "version" to version.uppercase(),
+                "durationSeconds" to clampedSeconds.toString(),
             ),
         )
     }
@@ -250,6 +303,7 @@ internal object AnalyticsTracker {
                     expectSuccess = false
                     url(endpoint)
                     header("X-Client-Platform", platformName)
+                    header("X-Client-Device-Id", resolveDeviceId())
                     contentType(ContentType.Application.Json)
                     setBody(AnalyticsBatchRequestDto(batch))
                 }

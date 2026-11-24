@@ -4,6 +4,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -91,10 +93,35 @@ class BiblicalShortsUiTest {
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
 
-        // Swipe up to second short, scrub into Scene 2, and tap animated Read Now CTA
+        // Swipe up to second short (legend still visible for reel 2), then swipe to third short (legend disappears)
         val expectedSecond = sampleShorts[1]
         onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
         waitForIdle()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
+
+        // Single-tap pauses & resumes; double-tap toggles sound
+        onNodeWithTag("shorts_theater_video_frame", useUnmergedTree = true)
+            .performTouchInput { click(center) }
+        mainClock.advanceTimeBy(500)
+        waitForIdle()
+        onNodeWithTag("shorts_pause_overlay_badge", useUnmergedTree = true).assertIsDisplayed()
+
+        onNodeWithTag("shorts_theater_video_frame", useUnmergedTree = true)
+            .performTouchInput { click(center) }
+        mainClock.advanceTimeBy(500)
+        waitForIdle()
+        onNodeWithTag("shorts_pause_overlay_badge", useUnmergedTree = true).assertDoesNotExist()
+
+        onNodeWithTag("shorts_theater_video_frame", useUnmergedTree = true)
+            .performTouchInput { doubleClick(center) }
+        waitForIdle()
+        onNodeWithTag("shorts_mute_toggle").assertContentDescriptionEquals("Sound Off")
+
+        onNodeWithTag("shorts_theater_video_frame", useUnmergedTree = true)
+            .performTouchInput { doubleClick(center) }
+        waitForIdle()
+        onNodeWithTag("shorts_mute_toggle").assertContentDescriptionEquals("Sound On")
+
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
             SemanticsActions.SetProgress
         ) { setProgress ->
@@ -106,5 +133,11 @@ class BiblicalShortsUiTest {
             assertEquals(expectedSecond.bookId, openedChapter?.bookId)
             assertEquals(expectedSecond.chapter, openedChapter?.chapter)
         }
+
+        // Swipe up to reel 3: daily 2-reel gesture legend disappears
+        onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
+        mainClock.advanceTimeBy(400)
+        waitForIdle()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertDoesNotExist()
     }
 }

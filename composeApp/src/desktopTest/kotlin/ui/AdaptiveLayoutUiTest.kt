@@ -7,6 +7,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -91,6 +93,13 @@ class AdaptiveLayoutUiTest {
 
         onNodeWithTag("shorts_adaptive_dual_pane").assertDoesNotExist()
         onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_phone_video_frame", useUnmergedTree = true).performTouchInput { click(center) }
+        mainClock.advanceTimeBy(500)
+        waitForIdle()
+        onNodeWithTag("shorts_pause_overlay_badge", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_phone_video_frame", useUnmergedTree = true).performTouchInput { doubleClick(center) }
+        waitForIdle()
+        onNodeWithTag("shorts_mute_toggle").assertContentDescriptionEquals("Sound On")
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
             SemanticsActions.SetProgress

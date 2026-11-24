@@ -1,6 +1,7 @@
 package data.appPrefs
 
 import data.bible.BibleState
+import data.config.CloudSessionManager
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
@@ -53,8 +54,16 @@ internal suspend fun getUserPreferences() {
                 val data = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsList()
                 Napier.v("getUserPreferences :: data :: $data", tag = "AP8243")
                 if (data.isEmpty()) {
+                    val defaultFont = CloudSessionManager.readerDefaultFontSizeSp
                     database.bibleBibleDatabaseQueries.insertUserPrefs()
-                    Napier.v("init app load user prefs :: INSERT init load", tag = "AP8243")
+                    database.bibleBibleDatabaseQueries.updateUserPrefs(
+                        fontSize = defaultFont.toDouble(),
+                        bibleVersion = BibleState.selectedVersion,
+                    )
+                    withContext(Dispatchers.Main) {
+                        BibleState.selectedFontSize = defaultFont
+                    }
+                    Napier.v("init app load user prefs :: INSERT init load font=$defaultFont", tag = "AP8243")
                 } else {
                     withContext(Dispatchers.Main) {
                         BibleState.selectedFontSize = data[0].fontSize.toFloat()

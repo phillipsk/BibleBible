@@ -54,7 +54,7 @@ internal fun FontSizeSlider(
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             letterSpacing = 1.5.sp,
-            color = MaterialTheme.colors.onSurface,
+            color = Color(0xFFFBD38D),
         )
         Slider(
             modifier = Modifier.width(180.dp),
@@ -78,9 +78,9 @@ internal fun FontSizeSlider(
                 }
             },
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colors.surface,
-                activeTrackColor = Color.Gray,
-                inactiveTrackColor = Color.LightGray
+                thumbColor = Color(0xFFFBD38D),
+                activeTrackColor = Color(0xFFFBD38D),
+                inactiveTrackColor = Color(0x33FFFFFF),
             ),
             valueRange = fontSizes.first()..fontSizes.last(),
         )

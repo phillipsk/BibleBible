@@ -40,6 +40,7 @@ internal expect fun ShortsVideoPlayer(
     elapsedSeconds: Int,
     seekTargetSeconds: Int = 0,
     seekRequestId: Int = 0,
+    onLoopCompleted: () -> Unit = {},
     modifier: Modifier = Modifier,
 )
 

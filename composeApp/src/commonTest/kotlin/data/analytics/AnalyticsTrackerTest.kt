@@ -41,9 +41,18 @@ class AnalyticsTrackerTest {
         AnalyticsTracker.trackTranslationChanged("KJV", "BSB")
         AnalyticsTracker.trackFontSizeChanged(24f, source = "slider")
         AnalyticsTracker.trackAiSummary("ai_summary_generated", mapOf("model" to "gemini-3.5-flash"))
+        AnalyticsTracker.trackChapterReadingTime(
+            bookKey = "GEN",
+            bookName = "Genesis",
+            chapter = 23,
+            version = "KJV",
+            durationSeconds = 42L,
+        )
+        // Sub-2s noise is filtered out
+        AnalyticsTracker.trackChapterReadingTime("GEN", "Genesis", 24, "KJV", 1L)
 
         val recorded = AnalyticsTracker.snapshotEvents()
-        assertEquals(8, recorded.size)
+        assertEquals(9, recorded.size)
         assertEquals(
             listOf(
                 "app_launch",
@@ -54,19 +63,23 @@ class AnalyticsTrackerTest {
                 "translation_changed",
                 "font_size_changed",
                 "ai_summary_generated",
+                "chapter_reading_time",
             ),
             recorded.map { it.name },
         )
         assertTrue(recorded.all { it.sessionId == AnalyticsTracker.sessionId })
+        assertTrue(recorded.all { it.deviceId.isNotBlank() && it.deviceId == AnalyticsTracker.deviceId })
 
         var capturedPayload = ""
+        var capturedDeviceHeader = ""
         val mockClient = createHttpClient(
             AppHttpClientConfig(baseUrl = CloudSessionManager.gatewayHost),
             engine = MockEngine { request ->
                 assertEquals("/v1/analytics/events", request.url.encodedPath)
+                capturedDeviceHeader = request.headers["X-Client-Device-Id"] ?: ""
                 capturedPayload = request.body.toByteArray().decodeToString()
                 respond(
-                    """{"status":"accepted","ingested":8,"totalEvents":8}""",
+                    """{"status":"accepted","ingested":9,"totalEvents":9}""",
                     HttpStatusCode.Accepted,
                     headersOf(HttpHeaders.ContentType, "application/json"),
                 )
@@ -75,11 +88,14 @@ class AnalyticsTrackerTest {
 
         try {
             val flushedCount = AnalyticsTracker.flushNow(mockClient)
-            assertEquals(8, flushedCount)
+            assertEquals(9, flushedCount)
+            assertEquals(AnalyticsTracker.deviceId, capturedDeviceHeader)
             val decoded = Json.decodeFromString<AnalyticsBatchRequestDto>(capturedPayload)
-            assertEquals(8, decoded.events.size)
+            assertEquals(9, decoded.events.size)
             assertEquals("Genesis", decoded.events[2].properties["bookName"])
             assertEquals(sampleShort.id, decoded.events[4].properties["shortId"])
+            assertEquals("42", decoded.events[8].properties["durationSeconds"])
+            assertEquals("23", decoded.events[8].properties["chapter"])
             // Queue should now be empty on second flush
             assertEquals(0, AnalyticsTracker.flushNow(mockClient))
         } finally {

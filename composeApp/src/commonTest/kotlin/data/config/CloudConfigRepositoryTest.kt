@@ -128,8 +128,8 @@ class CloudConfigRepositoryTest {
         assertEquals("literary_serif", CloudSessionManager.readerLayoutStyle)
         assertEquals(1.68f, CloudSessionManager.readerLineHeightMultiplier)
         assertEquals(14, CloudSessionManager.readerVerseGapDp)
-        assertEquals(20.0f, CloudSessionManager.readerDefaultFontSizeSp)
-        assertFalse(CloudSessionManager.readerRedLetterEnabled)
+        assertEquals(22.0f, CloudSessionManager.readerDefaultFontSizeSp)
+        assertTrue(CloudSessionManager.readerRedLetterEnabled)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
@@ -146,8 +146,8 @@ class CloudConfigRepositoryTest {
                     readerLayoutStyle = "VERSE_PER_LINE",
                     readerLineHeightMultiplier = 1.85f,
                     readerVerseGapDp = 18,
-                    readerDefaultFontSizeSp = 22f,
-                    readerRedLetterEnabled = true,
+                    readerDefaultFontSizeSp = 24f,
+                    readerRedLetterEnabled = false,
                 )
             )
         )
@@ -163,8 +163,8 @@ class CloudConfigRepositoryTest {
         assertEquals("verse_per_line", CloudSessionManager.readerLayoutStyle)
         assertEquals(1.85f, CloudSessionManager.readerLineHeightMultiplier)
         assertEquals(18, CloudSessionManager.readerVerseGapDp)
-        assertEquals(22f, CloudSessionManager.readerDefaultFontSizeSp)
-        assertTrue(CloudSessionManager.readerRedLetterEnabled)
+        assertEquals(24f, CloudSessionManager.readerDefaultFontSizeSp)
+        assertFalse(CloudSessionManager.readerRedLetterEnabled)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(

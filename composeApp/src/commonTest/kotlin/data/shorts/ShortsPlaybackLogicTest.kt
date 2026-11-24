@@ -79,4 +79,43 @@ class ShortsPlaybackLogicTest {
         nowMs += SWIPE_HINT_COOLDOWN_MS + 1000L
         assertTrue(manager.shouldShowSwipeHint(pageIndex = 0))
     }
+
+    @Test
+    fun gestureLegendShowsForTwoReelsPerDayThenResetsNextDay() {
+        var currentDay = "2026-11-24"
+        val backing = InMemoryShortsPrefsBacking()
+        val manager = ShortsProgressManager(
+            backing = backing,
+            seenStore = InMemorySeenWordsStore(),
+            dayKeyProvider = { currentDay },
+        )
+
+        // Reel 1 today
+        assertTrue(manager.shouldShowGestureLegend())
+        manager.markGestureLegendShown()
+
+        // Reel 2 today
+        assertTrue(manager.shouldShowGestureLegend())
+        manager.markGestureLegendShown()
+
+        // Reel 3+ today -> hidden
+        assertFalse(manager.shouldShowGestureLegend())
+        assertFalse(manager.shouldShowGestureLegend())
+
+        // Next day -> reappears for 2 reels again
+        currentDay = "2026-11-25"
+        assertTrue(manager.shouldShowGestureLegend())
+        manager.markGestureLegendShown()
+        assertTrue(manager.shouldShowGestureLegend())
+        manager.markGestureLegendShown()
+        assertFalse(manager.shouldShowGestureLegend())
+    }
+
+    @Test
+    fun autoAdvanceTriggersAfterTwoCompletedPlays() {
+        assertFalse(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(0))
+        assertFalse(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(1))
+        assertTrue(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(2))
+        assertTrue(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(3))
+    }
 }

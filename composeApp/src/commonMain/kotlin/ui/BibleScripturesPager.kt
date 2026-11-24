@@ -41,12 +41,17 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.appPrefs.ReadingSession
 import data.appPrefs.canonicalBookKey
 import data.bible.BibleChapterUIState
 import data.bible.BibleState
 import data.bible.BookData
+import data.bible.currentTimeMillis
 import data.bible.fetchBibleChapter
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
@@ -67,7 +72,6 @@ internal fun BibleScripturesPager(
     val bookId = BibleState.getBookOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
-    val summaryScrollState = rememberScrollState()
 
     key(selectedBook.bookId, bibleVersion) {
         val scope = rememberCoroutineScope()
@@ -116,6 +120,37 @@ internal fun BibleScripturesPager(
             }
         }
 
+        // Keep AI summary mode sticky as the user swipes chapters within the same book.
+        LaunchedEffect(
+            selectedBook.bookId,
+            chapters.chapterId,
+            bibleVersion,
+            showAISummary,
+            pagerState.settledPage,
+        ) {
+            val settledChapter = pagerState.settledPage + 1
+            if (
+                showAISummary &&
+                sameBook &&
+                chapters.chapterId == settledChapter &&
+                chapters.text != null &&
+                GeminiModel.geminiDataText.isNullOrBlank() &&
+                !GeminiModel.isLoading
+            ) {
+                GeminiModel.isLoading = true
+                try {
+                    GeminiModel.generateAISummary()
+                } finally {
+                    GeminiModel.isLoading = false
+                }
+                if (GeminiModel.showSummary && GeminiModel.geminiDataText.isNullOrBlank()) {
+                    val errorMsg = GeminiModel.errorMessage ?: "Gemini returned no summary. Please try again."
+                    BibleState.updateErrorSnackBar(errorMsg)
+                    GeminiModel.cancelPendingSummary(preserveShowSummary = false)
+                }
+            }
+        }
+
         Column(Modifier.fillMaxSize()) {
             if (sameBook && !chapters.chapterList.isNullOrEmpty()) {
                 val chapterListState = rememberLazyListState()
@@ -152,7 +187,7 @@ internal fun BibleScripturesPager(
                                     .clip(CircleShape)
                                     .then(
                                         if (isSelected) {
-                                            Modifier.border(2.dp, MaterialTheme.colors.primary, CircleShape)
+                                            Modifier.border(2.dp, Color(0xFFFBD38D), CircleShape)
                                         } else {
                                             Modifier
                                         }
@@ -171,7 +206,7 @@ internal fun BibleScripturesPager(
                             ) {
                                 Text(
                                     text = chapter.toString(),
-                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.78f),
+                                    color = if (isSelected) Color(0xFFFBD38D) else Color.White.copy(alpha = 0.78f),
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
@@ -185,7 +220,62 @@ internal fun BibleScripturesPager(
                 )
             }
 
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(
+                lifecycleOwner,
+                selectedBook.bookId,
+                chapters.chapterId,
+                bibleVersion,
+                sameBook,
+                chapters.text != null,
+            ) {
+                val activeChapter = chapters.chapterId
+                if (!sameBook || chapters.text == null || activeChapter == null) {
+                    onDispose { }
+                } else {
+                    var activeSegmentStartMs: Long? = currentTimeMillis()
+                    var accumulatedMs = 0L
+
+                    fun flushReadingTime() {
+                        activeSegmentStartMs?.let { start ->
+                            accumulatedMs += (currentTimeMillis() - start).coerceAtLeast(0L)
+                            activeSegmentStartMs = null
+                        }
+                        if (accumulatedMs >= 2000L) {
+                            AnalyticsTracker.trackChapterReadingTime(
+                                bookKey = canonicalBookKey(selectedBook),
+                                bookName = selectedBook.name ?: canonicalBookKey(selectedBook),
+                                chapter = activeChapter,
+                                version = bibleVersion,
+                                durationSeconds = accumulatedMs / 1000L,
+                            )
+                            accumulatedMs = 0L
+                        }
+                    }
+
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> flushReadingTime()
+                            Lifecycle.Event.ON_RESUME -> {
+                                if (activeSegmentStartMs == null) {
+                                    activeSegmentStartMs = currentTimeMillis()
+                                }
+                            }
+                            else -> Unit
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                        flushReadingTime()
+                    }
+                }
+            }
+
             val scriptureScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                rememberScrollState()
+            }
+            val summaryScrollState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
                 rememberScrollState()
             }
             val readingState = key(chapters.bookId, chapters.chapterId, bibleVersion) {
@@ -244,7 +334,9 @@ internal fun BibleScripturesPager(
                     when (mode) {
                         "loading" -> ScriptureShimmerLoading()
                         "summary_loading" -> AiSummaryLoadingView()
-                        "summary" -> GeminiSummary(summaryScrollState, BibleState.selectedFontSize)
+                        "summary" -> key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                            GeminiSummary(summaryScrollState, BibleState.selectedFontSize)
+                        }
                         else -> BibleScriptures(
                             chapters,
                             scriptureScrollState,

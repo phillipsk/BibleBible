@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,12 +57,16 @@ internal actual fun ShortsVideoPlayer(
     elapsedSeconds: Int,
     seekTargetSeconds: Int,
     seekRequestId: Int,
+    onLoopCompleted: () -> Unit,
     modifier: Modifier,
 ) {
     val streamUrl = shortItem.videoUrl.trim()
     val hasValidStream = streamUrl.startsWith("http://") || streamUrl.startsWith("https://")
     var videoReady by remember(shortItem.id, streamUrl) { mutableStateOf(false) }
     var exoPlayerRef by remember(shortItem.id, streamUrl) { mutableStateOf<ExoPlayer?>(null) }
+    val latestOnLoopCompleted by rememberUpdatedState(onLoopCompleted)
+    val latestIsActive by rememberUpdatedState(isActive)
+    val latestIsPaused by rememberUpdatedState(isPaused)
 
     LaunchedEffect(seekRequestId, isActive) {
         if (seekRequestId > 0 && isActive && videoReady) {
@@ -82,6 +87,8 @@ internal actual fun ShortsVideoPlayer(
                 }.getOrDefault(-1L)
                 if (posMs >= cutoffMs) {
                     runCatching { player.seekTo(0L) }
+                    latestOnLoopCompleted()
+                    delay(400L)
                 }
             }
             delay(120L)
@@ -115,6 +122,9 @@ internal actual fun ShortsVideoPlayer(
                                 FrameLayout.LayoutParams.MATCH_PARENT,
                             )
                             isOpaque = false
+                            isClickable = false
+                            isFocusable = false
+                            isLongClickable = false
                         }
 
                         fun applyCenterCropTransform() {
@@ -199,6 +209,19 @@ internal actual fun ShortsVideoPlayer(
                                             videoReady = true
                                         }
 
+                                        override fun onPositionDiscontinuity(
+                                            oldPosition: Player.PositionInfo,
+                                            newPosition: Player.PositionInfo,
+                                            reason: Int,
+                                        ) {
+                                            if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION &&
+                                                latestIsActive &&
+                                                !latestIsPaused
+                                            ) {
+                                                latestOnLoopCompleted()
+                                            }
+                                        }
+
                                         override fun onPlayerError(error: PlaybackException) {
                                             Napier.w(
                                                 "ExoPlayer error: ${error.message} url=$streamUrl",
@@ -219,6 +242,9 @@ internal actual fun ShortsVideoPlayer(
                         FrameLayout(context).apply {
                             clipChildren = true
                             clipToOutline = true
+                            isClickable = false
+                            isFocusable = false
+                            isLongClickable = false
                             addView(textureView)
                         }
                     },
