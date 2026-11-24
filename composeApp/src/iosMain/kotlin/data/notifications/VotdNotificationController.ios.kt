@@ -24,6 +24,8 @@ private const val KEY_IOS_PROMPT_DISMISSED = "email.kevinphillips.biblebible.vot
 private const val KEY_IOS_REMINDER_HOUR = "email.kevinphillips.biblebible.votd_reminder_hour"
 private const val KEY_IOS_REMINDER_MINUTE = "email.kevinphillips.biblebible.votd_reminder_minute"
 
+private const val KEY_IOS_AVAILABLE = "email.kevinphillips.biblebible.votd_reminders_available"
+
 private class IosNotificationBridge : NotificationPlatformBridge {
     private val defaults = NSUserDefaults.standardUserDefaults
 
@@ -62,8 +64,17 @@ private class IosNotificationBridge : NotificationPlatformBridge {
         defaults.setInteger(minute.coerceIn(0, 59).toLong(), forKey = KEY_IOS_REMINDER_MINUTE)
     }
 
+    override fun remindersAvailable(): Boolean =
+        defaults.objectForKey(KEY_IOS_AVAILABLE) == null || defaults.boolForKey(KEY_IOS_AVAILABLE)
+
+    override fun setRemindersAvailable(available: Boolean) {
+        if (remindersAvailable() == available) return
+        defaults.setBool(available, forKey = KEY_IOS_AVAILABLE)
+        if (available) rescheduleIfEnabled() else cancelIosDailyVotdNotifications()
+    }
+
     override fun rescheduleIfEnabled() {
-        if (isUserEnabled()) {
+        if (remindersAvailable() && isUserEnabled()) {
             val (h, m) = getReminderTime()
             scheduleIosDailyVotdNotifications(h, m)
         }
@@ -89,8 +100,7 @@ private class IosNotificationBridge : NotificationPlatformBridge {
                     setPromptDismissed(true)
                 }
                 if (mapped == NotificationPermissionStatus.GRANTED && isUserEnabled()) {
-                    val (h, m) = getReminderTime()
-                    scheduleIosDailyVotdNotifications(h, m)
+                    rescheduleIfEnabled()
                 }
                 onResult(mapped)
             }
@@ -106,8 +116,7 @@ private class IosNotificationBridge : NotificationPlatformBridge {
                 if (granted) {
                     setUserEnabled(true)
                     setPromptDismissed(true)
-                    val (h, m) = getReminderTime()
-                    scheduleIosDailyVotdNotifications(h, m)
+                    rescheduleIfEnabled()
                     onResult(NotificationPermissionStatus.GRANTED)
                 } else {
                     setUserEnabled(false)

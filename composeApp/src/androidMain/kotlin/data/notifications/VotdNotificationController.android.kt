@@ -124,6 +124,14 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         VotdNotificationReceiver.setReminderTime(ctx, hour, minute)
     }
 
+    override fun remindersAvailable(): Boolean =
+        context?.let { VotdNotificationReceiver.remindersAvailable(it) } ?: true
+
+    override fun setRemindersAvailable(available: Boolean) {
+        val ctx = context ?: return
+        VotdNotificationReceiver.setRemindersAvailable(ctx, available)
+    }
+
     override fun rescheduleIfEnabled() {
         val ctx = context ?: return
         if (isUserEnabled()) {

@@ -3,19 +3,28 @@ package ui
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.rememberBottomSheetScaffoldState
 import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import data.bible.BibleBooksResponse
@@ -25,6 +34,9 @@ import data.bible.BibleState
 import data.bible.BibleVersions
 import data.bible.BookData
 import data.bible.Chapter
+import data.bible.DailyVerse
+import data.bible.DailyVerseData
+import data.bible.DailyVerseRepository
 import data.bible.ReadingHistoryUIState
 import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
 import data.config.CloudFeatureFlagsDto
@@ -38,6 +50,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ui.configs.ChapterTopBar
 import ui.configs.DRAWER_AUTO_DISMISS_MS
@@ -430,4 +444,192 @@ class ReaderPolishAndDeepLinkUiTest {
         runOnIdle { assertEquals(1, dismissedCount) }
         onNodeWithTag("reader_gesture_tutorial_card").assertDoesNotExist()
     }
+    @Test
+    fun firstChapterBackSwipeRevealsHomeAndCommitsOnlyAfterRelease() = runComposeUiTest {
+        lateinit var backSwipe: SwipeTransition
+        var backCount = 0
+        setContent {
+            val scope = rememberCoroutineScope()
+            backSwipe = remember(scope) { SwipeTransition(scope) }
+            Box(
+                Modifier.size(400.dp, 400.dp)
+                    .onSizeChanged { backSwipe.extent = it.width }
+                    .readerRightBackSwipe(
+                        canStart = { true },
+                        onDrag = backSwipe::drag,
+                        onFinish = { backSwipe.finish(it) { backCount++ } },
+                    )
+                    .testTag("reader_back_swipe"),
+            )
+        }
+
+        val reader = onNodeWithTag("reader_back_swipe")
+        reader.performTouchInput { swipe(center, Offset(width * 0.25f, centerY)) }
+        runOnIdle { assertEquals(0, backCount) }
+        reader.performTouchInput { swipe(center, Offset(width * 0.6f, centerY)) }
+        runOnIdle {
+            assertEquals(0, backCount)
+            assertEquals(0f, backSwipe.offset)
+        }
+        reader.performTouchInput {
+            down(Offset(width * 0.2f, centerY))
+            moveTo(Offset(width * 0.65f, centerY))
+        }
+        runOnIdle {
+            assertTrue(backSwipe.offset > 0f)
+            assertEquals(0, backCount)
+        }
+        reader.performTouchInput { up() }
+        runOnIdle { assertEquals(1, backCount) }
+    }
+
+    @Test
+    fun edgeNavigationPreviewsOnTheFirstSwipeAndCancelsShortReleases() = runComposeUiTest {
+        var atGridEnd = false
+        var wordsOpened = 0
+        var chaptersOpened = 0
+        var homeOpened = 0
+        lateinit var transition: SwipeTransition
+        setContent {
+            val scope = rememberCoroutineScope()
+            transition = remember(scope) { SwipeTransition(scope) }
+            Box(
+                Modifier.size(400.dp, 400.dp)
+                    .onSizeChanged { transition.extent = it.height }
+                    .homeSwipeToWords { wordsOpened++ }
+                    .verticalEdgeTurns(
+                        upward = {
+                            if (atGridEnd) EdgeTurn(transition, onCommit = { chaptersOpened++ }) else null
+                        },
+                        downward = { EdgeTurn(transition, onCommit = { homeOpened++ }) },
+                    )
+                    .testTag("edge_navigation_gestures"),
+            )
+        }
+        val reader = onNodeWithTag("edge_navigation_gestures")
+        reader.performTouchInput { swipe(centerRight - Offset(12f, 0f), centerLeft + Offset(12f, 0f)) }
+        runOnIdle { assertEquals(1, wordsOpened) }
+        reader.performTouchInput { swipe(bottomCenter - Offset(0f, 12f), topCenter + Offset(0f, 12f)) }
+        runOnIdle {
+            assertEquals(0, chaptersOpened)
+            atGridEnd = true
+        }
+
+        reader.performTouchInput {
+            down(center)
+            moveTo(center - Offset(0f, height * 0.1f))
+        }
+        runOnIdle {
+            assertTrue(transition.progress > 0f)
+            assertEquals(0, chaptersOpened)
+        }
+        reader.performTouchInput { up() }
+        runOnIdle {
+            assertEquals(0f, transition.progress)
+            assertEquals(0, chaptersOpened)
+        }
+        reader.performTouchInput { swipe(bottomCenter - Offset(0f, 12f), topCenter + Offset(0f, 12f)) }
+        runOnIdle { assertEquals(1, chaptersOpened) }
+        reader.performTouchInput { swipe(topCenter + Offset(0f, 12f), bottomCenter - Offset(0f, 12f)) }
+        runOnIdle { assertEquals(1, homeOpened) }
+    }
+
+    @Test
+    fun readerBottomSwipeLoadsTheNextChapterOnlyAfterCommit() = runComposeUiTest {
+        val book = BookData(id = "JAS", name = "James")
+        BibleState.updateSelectedBook(book)
+        BibleState.updateSelectedChapter("JAS.1")
+        val requestedChapters = mutableListOf<Int>()
+        setContent {
+            val scope = rememberCoroutineScope()
+            val transition = remember(scope) { SwipeTransition(scope) }
+            BibleBibleTheme {
+                Box(Modifier.size(400.dp, 760.dp).onSizeChanged { transition.extent = it.height }) {
+                    BibleScripturesPager(
+                        chapters = BibleChapterUIState(
+                            bookId = 59,
+                            chapterId = 1,
+                            chapterList = listOf(1, 2, 3, 4, 5),
+                            version = "KJV",
+                            text = "[1] James, a servant of God.",
+                            verses = listOf(BibleChapter(id = "1", v = "1", t = "James, a servant of God.")),
+                        ),
+                        bibleVersion = "KJV",
+                        selectedBook = book,
+                        isAISummaryLoading = false,
+                        showAISummary = false,
+                        bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
+                        ),
+                        loadChapter = { _, chapter, _, _ -> requestedChapters.add(chapter) },
+                        initialShowGestureTutorial = false,
+                        chapterTurn = { _, _, open -> EdgeTurn(transition, onCommit = open) },
+                    )
+                }
+            }
+        }
+        val pager = onNodeWithTag("reader_chapter_pager")
+        pager.performTouchInput { swipe(center, center - Offset(0f, 40f)) }
+        runOnIdle { assertTrue(requestedChapters.isEmpty()) }
+        pager.performTouchInput { swipe(center, center - Offset(0f, height * 0.4f)) }
+        runOnIdle { assertEquals(listOf(2), requestedChapters) }
+    }
+
+    @Test
+    fun canonicalSuccessorUsesKjvOrderRegardlessOfHomeSort() {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON).data.orEmpty()
+            .sortedBy { it.name }
+        val malachi = books.first { it.bookId == "MAL" }
+        val revelation = books.first { it.bookId == "REV" }
+        assertEquals("MAT", nextCanonicalBook(malachi, books)?.bookId)
+        assertNull(nextCanonicalBook(revelation, books))
+    }
+
+    @Test
+    fun homeAppBarBecomesFloatingOnTheFirstScrollAndKeepsSortAccessible() = runComposeUiTest {
+        BibleState.updateBooks(Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON))
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(
+                    biblicalShortsEnabled = false,
+                    bookShimmerStyle = "none",
+                ),
+            ),
+        )
+        val repository = DailyVerseRepository(
+            fetch = { DailyVerse(it, "2026-11-24", DailyVerseData(23, 40, 31, "Daily verse", "ISA")) },
+        )
+        lateinit var grid: LazyGridState
+        lateinit var scope: CoroutineScope
+        setContent {
+            grid = rememberLazyGridState()
+            scope = rememberCoroutineScope()
+            BibleBibleTheme {
+                Box(Modifier.size(400.dp, 760.dp)) { BibleHomeContent(grid, verseRepository = repository) }
+            }
+        }
+
+        onNodeWithTag("floating_home_top_bar").assertIsDisplayed()
+        onNodeWithText("Daily verse").assertIsDisplayed()
+        runOnIdle {
+            assertEquals(0f, homeBarGlassProgress(grid, 48f))
+            scope.launch { grid.scrollToItem(0, scrollOffset = 8) }
+        }
+        waitForIdle()
+        runOnIdle {
+            assertEquals(0, grid.firstVisibleItemIndex)
+            assertTrue(homeBarGlassProgress(grid, 48f) > 0f)
+            scope.launch { grid.scrollToItem(12) }
+        }
+        waitForIdle()
+        runOnIdle { assertEquals(1f, homeBarGlassProgress(grid, 48f)) }
+        onNodeWithText("A-Z").assertIsDisplayed().performClick()
+        runOnIdle {
+            assertTrue(BibleState.sortAZ)
+            scope.launch { grid.scrollToItem(0) }
+        }
+        waitForIdle()
+        runOnIdle { assertEquals(0f, homeBarGlassProgress(grid, 48f)) }
+    }
+
 }

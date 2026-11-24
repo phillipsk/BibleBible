@@ -1,12 +1,30 @@
 package ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.unit.dp
+import data.bible.BibleBooksResponse
+import data.bible.BibleState
 import androidx.compose.ui.test.runComposeUiTest
 import data.bible.DailyVerse
 import data.bible.DailyVerseData
+import data.bible.DailyVerseRepository
+import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
+import data.config.CloudFeatureFlagsDto
+import data.config.CloudRuntimeConfigDto
+import data.config.CloudSessionManager
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -66,4 +84,49 @@ class VerseOfTheDayCardTest {
             assertEquals(3, clicked?.data?.chapter)
         }
     }
+    @Test
+    fun pullingHomeRefreshesTheVerseAndAnUnsuccessfulRetryKeepsItReadable() = runComposeUiTest {
+        var refreshes = 0
+        val day = "2026-11-24"
+        val repository = DailyVerseRepository(
+            fetch = { DailyVerse(it, day, DailyVerseData(23, 40, 31, "Initial verse", "ISA")) },
+            today = { day },
+            refreshFetch = { version, after ->
+                refreshes++
+                assertEquals(if (refreshes == 1) 31 else 30, after?.verse)
+                if (refreshes == 2) error("Offline")
+                DailyVerse(version, day, DailyVerseData(23, 40, 30, "Refreshed verse", "ISA"))
+            },
+        )
+        CloudSessionManager.applyRuntimeConfig(
+            CloudRuntimeConfigDto(
+                features = CloudFeatureFlagsDto(biblicalShortsEnabled = false, bookShimmerStyle = "none"),
+            ),
+        )
+        try {
+            BibleState.updateBooks(Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON))
+            setContent {
+                BibleBibleTheme {
+                    Box(Modifier.size(412.dp, 800.dp).testTag("daily_verse_home")) {
+                        BibleHomeContent(rememberLazyGridState(), verseRepository = repository)
+                    }
+                }
+            }
+            onNodeWithText("Initial verse").assertIsDisplayed()
+            fun pullHome() {
+                onNodeWithTag("daily_verse_home").performTouchInput {
+                    swipe(Offset(centerX, height * 0.21f), Offset(centerX, height * 0.72f))
+                }
+            }
+            pullHome()
+            onNodeWithText("Refreshed verse").assertIsDisplayed()
+            pullHome()
+            onNodeWithText("Pull to refresh").assertDoesNotExist()
+            onNodeWithText("Refreshed verse").assertIsDisplayed()
+            runOnIdle { assertEquals(2, refreshes) }
+        } finally {
+            CloudSessionManager.resetForTesting()
+        }
+    }
+
 }

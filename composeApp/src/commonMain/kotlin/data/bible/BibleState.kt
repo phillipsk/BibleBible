@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import data.config.CloudSessionManager
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.appPrefs.ReadingSession
@@ -213,6 +214,7 @@ object BibleState {
     }
 
     fun openBiblicalShorts(category: String = "All") {
+        if (!CloudSessionManager.biblicalShortsEnabled) return
         selectedShortsCategory = category
         showBiblicalShorts = true
         AnalyticsTracker.track(
@@ -313,6 +315,7 @@ object BibleState {
 
     fun updateSelectedBook(newBook: BookData) {
         if (newBook.bookId != selectedBook.bookId) {
+            dailyVerseSwipeOrigin = null
             GeminiModel.cancelPendingSummary()
             if (highlightedVerseBookId != null &&
                 !highlightedVerseBookId.equals(newBook.bookId, ignoreCase = true)
@@ -323,10 +326,23 @@ object BibleState {
         selectedBook = newBook
     }
 
-    internal fun restoreReadingLocation(book: BookData, chapter: Int) {
+    private var dailyVerseSwipeOrigin by mutableStateOf<Pair<String, Int>?>(null)
+    internal val hasDailyVerseSwipeOrigin: Boolean get() = dailyVerseSwipeOrigin != null
+
+    internal fun returnsHomeFromDailyVerse(book: BookData, chapter: Int): Boolean =
+        dailyVerseSwipeOrigin == (book.bookId to chapter)
+
+    internal fun clearDailyVerseSwipeOriginIfMoved(book: BookData, chapter: Int) {
+        if (hasDailyVerseSwipeOrigin && !returnsHomeFromDailyVerse(book, chapter)) {
+            dailyVerseSwipeOrigin = null
+        }
+    }
+
+    internal fun restoreReadingLocation(book: BookData, chapter: Int, fromHomeDailyVerse: Boolean = false) {
         // Explicit navigation jumps (home/history/deep links/Shorts Read Now) always start in scripture view
         GeminiModel.cancelPendingSummary(preserveShowSummary = false)
         updateSelectedBook(book)
+        dailyVerseSwipeOrigin = if (fromHomeDailyVerse) book.bookId to chapter else null
         updateSelectedChapter("${book.bookId}.$chapter")
         val bookId = getBookOrdinal(book.remoteKey)
         val loaded = bibleChapter
@@ -418,6 +434,7 @@ object BibleState {
     var resumeShortIdOnReturn by mutableStateOf<String?>(null)
 
     val onHomeClick: () -> Unit = {
+        dailyVerseSwipeOrigin = null
         GeminiModel.cancelPendingSummary()
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")

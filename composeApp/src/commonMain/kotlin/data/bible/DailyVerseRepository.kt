@@ -4,6 +4,8 @@ import data.httpClientCloudGateway
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -41,30 +43,44 @@ internal fun utcToday(): String =
 internal class DailyVerseRepository(
     private val fetch: suspend (String) -> DailyVerse,
     private val today: () -> String = ::utcToday,
+    private val refreshFetch: suspend (String, DailyVerseData?) -> DailyVerse = { version, _ -> fetch(version) },
 ) {
     private val mutex = Mutex()
     private val cache = mutableMapOf<String, DailyVerse>()
 
-    suspend fun get(version: String): DailyVerse = mutex.withLock {
+    suspend fun get(version: String, refresh: Boolean = false): DailyVerse = mutex.withLock {
         val selected = normalizedTranslation(version)
         val date = today()
         cache.entries.removeAll { it.value.date != date }
-        cache[selected]?.let { return@withLock it }
-        fetch(selected).also { daily ->
+        if (!refresh) cache[selected]?.let { return@withLock it }
+        val previous = cache[selected]
+        val loaded = if (refresh) refreshFetch(selected, previous?.data) else fetch(selected)
+        loaded.also { daily ->
             check(daily.data.text.isNotBlank() && daily.data.chapter > 0 && daily.data.verse > 0) {
                 "Daily verse unavailable."
+            }
+            if (refresh && previous != null) {
+                check(daily.data.reference != previous.data.reference || daily.date != previous.date) {
+                    "The gateway did not return a different verse."
+                }
             }
             cache[selected] = daily
         }
     }
 }
 
+private val DailyVerseData.reference: String
+    get() = "$bookNumber.$chapter.$verse"
+
 internal suspend fun fetchDailyVerse(
     version: String,
     client: HttpClient = httpClientCloudGateway,
+    after: DailyVerseData? = null,
 ): DailyVerse {
     val selected = normalizedTranslation(version)
-    val response = client.get(GetVerseOfTheDay(versionId = selected.lowercase()))
+    val response = client.get(GetVerseOfTheDay(versionId = selected.lowercase(), after = after?.reference)) {
+        if (after != null) header(HttpHeaders.CacheControl, "no-cache")
+    }
     check(response.status.isSuccess()) {
         "Bible service unavailable (${response.status.value}). Please try again."
     }
@@ -72,5 +88,8 @@ internal suspend fun fetchDailyVerse(
 }
 
 internal val dailyVerseRepository by lazy {
-    DailyVerseRepository(fetch = { version -> fetchDailyVerse(version) })
+    DailyVerseRepository(
+        fetch = { version -> fetchDailyVerse(version) },
+        refreshFetch = { version, after -> fetchDailyVerse(version, after = after) },
+    )
 }

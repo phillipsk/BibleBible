@@ -2,6 +2,7 @@ package data.gemini
 
 import data.GeminiModel
 import data.appPrefs.ReaderTutorialPrefs
+import data.appPrefs.TutorialReminderPrefs
 import data.bible.BibleState
 import data.bible.BookData
 import data.bible.Chapter
@@ -205,4 +206,35 @@ class GeminiNavigationTest {
         ReaderTutorialPrefs.markDismissed(backing)
         assertFalse(ReaderTutorialPrefs.shouldShow(backing))
     }
+    @Test
+    fun tutorialReminderHonorsTheIntervalAndStopsAfterTheSecondDismissal() {
+        val day = 86_400_000L
+        var now = day
+        val backing = InMemoryShortsPrefsBacking()
+        val prefs = TutorialReminderPrefs(backing, "tutorial") { now }
+        assertFalse(prefs.shouldShow(enabled = false, reminderDays = 30))
+        assertTrue(prefs.shouldShow(enabled = true, reminderDays = 0))
+        prefs.markDismissed()
+        now += 29 * day
+        assertFalse(prefs.shouldShow(enabled = true, reminderDays = 30))
+        now += day
+        assertFalse(prefs.shouldShow(enabled = true, reminderDays = 0))
+        assertTrue(prefs.shouldShow(enabled = true, reminderDays = 30))
+        prefs.markDismissed()
+        now += 60 * day
+        assertFalse(prefs.shouldShow(enabled = true, reminderDays = 30))
+    }
+
+    @Test
+    fun legacyTutorialDismissalStartsItsReminderIntervalAtMigration() {
+        val day = 86_400_000L
+        var now = day
+        val backing = InMemoryShortsPrefsBacking()
+        backing.putInt("tutorial", 1)
+        val prefs = TutorialReminderPrefs(backing, "tutorial") { now }
+        assertFalse(prefs.shouldShow(enabled = true, reminderDays = 30))
+        now += 30 * day
+        assertTrue(prefs.shouldShow(enabled = true, reminderDays = 30))
+    }
+
 }

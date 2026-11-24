@@ -18,6 +18,7 @@ class GetChapterCount(val bookId: Int)
 @Resource("/GetVerseOfTheDay")
 class GetVerseOfTheDay(
     val versionId: String = BibleState.selectedVersion.lowercase(),
+    val after: String? = null,
 )
 
 @Resource("/GetBiblicalShorts")

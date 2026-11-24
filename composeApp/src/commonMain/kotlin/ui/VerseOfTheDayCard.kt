@@ -24,7 +24,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
 import data.bible.DailyVerse
+import data.bible.DailyVerseRepository
 import data.bible.bibleBooksFull
 import data.bible.dailyVerseRepository
 import data.bible.utcToday
@@ -52,13 +52,27 @@ internal sealed interface DailyVerseState {
     data object Unavailable : DailyVerseState
 }
 
+internal class DailyVersePresentation {
+    var state by mutableStateOf<DailyVerseState>(DailyVerseState.Loading)
+        internal set
+    var refreshing by mutableStateOf(false)
+        internal set
+    var refreshRequest by mutableStateOf(0)
+        private set
+
+    fun refresh() {
+        if (refreshing || state == DailyVerseState.Loading) return
+        refreshing = true
+        refreshRequest++
+    }
+}
+
 @Composable
-internal fun VerseOfTheDay(
+internal fun rememberDailyVerse(
     version: String,
-    modifier: Modifier = Modifier,
-    onVerseClick: (DailyVerse) -> Unit = {},
-) {
-    var retry by remember { mutableStateOf(0) }
+    repository: DailyVerseRepository = dailyVerseRepository,
+): DailyVersePresentation {
+    val presentation = remember(version, repository) { DailyVersePresentation() }
     var date by remember { mutableStateOf(utcToday()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -66,10 +80,14 @@ internal fun VerseOfTheDay(
             date = utcToday()
         }
     }
-    val state by produceState<DailyVerseState>(DailyVerseState.Loading, version, date, retry) {
-        value = DailyVerseState.Loading
-        value = try {
-            val loaded = dailyVerseRepository.get(version)
+    LaunchedEffect(presentation, date, presentation.refreshRequest) {
+        val refreshing = presentation.refreshing
+        val previous = presentation.state as? DailyVerseState.Ready
+        if (!refreshing) {
+            presentation.state = DailyVerseState.Loading
+        }
+        try {
+            val loaded = repository.get(version, refresh = refreshing)
             AnalyticsTracker.track(
                 name = "votd_loaded",
                 category = "verse_of_the_day",
@@ -80,28 +98,33 @@ internal fun VerseOfTheDay(
                     "verse" to loaded.data.verse.toString(),
                 ),
             )
-            DailyVerseState.Ready(loaded)
+            presentation.state = DailyVerseState.Ready(loaded)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             AnalyticsTracker.track(
                 name = "votd_load_failed",
                 category = "verse_of_the_day",
-                properties = mapOf(
-                    "version" to version,
-                    "reason" to (e::class.simpleName ?: "exception"),
-                ),
+                properties = mapOf("version" to version, "reason" to (e::class.simpleName ?: "exception")),
             )
-            DailyVerseState.Unavailable
+            presentation.state = previous?.takeIf { refreshing } ?: DailyVerseState.Unavailable
         }
+        presentation.refreshing = false
     }
+    return presentation
+}
+
+@Composable
+internal fun VerseOfTheDay(
+    presentation: DailyVersePresentation,
+    version: String,
+    modifier: Modifier = Modifier,
+    onVerseClick: (DailyVerse) -> Unit = {},
+) {
     VerseOfTheDayCard(
-        state = state,
+        state = presentation.state,
         version = version,
-        onRetry = {
-            AnalyticsTracker.track("votd_retry_clicked", "verse_of_the_day", mapOf("version" to version))
-            retry++
-        },
+        onRetry = presentation::refresh,
         onVerseClick = onVerseClick,
         modifier = modifier,
     )

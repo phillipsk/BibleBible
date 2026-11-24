@@ -149,4 +149,24 @@ class BibleStateTest {
         assertTrue(BibleState.showHomePage)
         assertNull(BibleState.resumeShortIdOnReturn)
     }
+    @Test
+    fun homeDailyVerseOnlyChangesBackSwipeForItsOriginalChapter() {
+        val isaiah = BookData(id = "ISA", name = "Isaiah")
+        try {
+            BibleState.restoreReadingLocation(isaiah, 40, fromHomeDailyVerse = true)
+            BibleState.clearDailyVerseSwipeOriginIfMoved(isaiah, 40)
+            assertTrue(BibleState.returnsHomeFromDailyVerse(isaiah, 40))
+            assertFalse(BibleState.returnsHomeFromDailyVerse(isaiah, 39))
+
+            BibleState.clearDailyVerseSwipeOriginIfMoved(isaiah, 41)
+            assertFalse(BibleState.returnsHomeFromDailyVerse(isaiah, 40))
+
+            BibleState.restoreReadingLocation(isaiah, 40, fromHomeDailyVerse = true)
+            BibleState.restoreReadingLocation(isaiah, 40)
+            assertFalse(BibleState.hasDailyVerseSwipeOrigin)
+        } finally {
+            BibleState.onHomeClick()
+        }
+    }
+
 }

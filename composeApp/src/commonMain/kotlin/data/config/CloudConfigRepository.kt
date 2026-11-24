@@ -3,6 +3,8 @@ package data.config
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import data.notifications.VotdNotificationController
+import data.appPrefs.DEFAULT_TUTORIAL_REMINDER_DAYS
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
 import data.bible.BibleVersion
@@ -76,6 +78,15 @@ data class CloudFeatureFlagsDto(
     val readerVerseGapDp: Int = 14,
     val readerDefaultFontSizeSp: Float = 22.0f,
     val readerRedLetterEnabled: Boolean = true,
+    val homeSwipePreviewEnabled: Boolean = true,
+    val homeSwipeToShortsEnabled: Boolean = true,
+    val homeScrollToGenesisEnabled: Boolean = true,
+    val shortsAutoAdvanceEnabled: Boolean = true,
+    val votdNotificationsEnabled: Boolean = true,
+    val readerTutorialEnabled: Boolean = true,
+    val readerTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    val biblicalShortsTutorialEnabled: Boolean = true,
+    val biblicalShortsTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
 )
 
 @Serializable
@@ -242,6 +253,7 @@ object CloudSessionManager {
             }
             val config = response.body<CloudRuntimeConfigDto>()
             applyRuntimeConfig(config)
+            VotdNotificationController.applyRemindersAvailability(config.features.votdNotificationsEnabled)
             AnalyticsTracker.track(
                 "cloud_config_loaded",
                 "lifecycle",

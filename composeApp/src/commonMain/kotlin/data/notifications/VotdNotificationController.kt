@@ -54,6 +54,8 @@ interface NotificationPlatformBridge {
     fun getReminderTime(): Pair<Int, Int> = 6 to 0
     fun setReminderTime(hour: Int, minute: Int) {}
     fun rescheduleIfEnabled() {}
+    fun remindersAvailable(): Boolean = true
+    fun setRemindersAvailable(available: Boolean) {}
     fun queryOsPermissionStatus(onResult: (NotificationPermissionStatus) -> Unit)
     fun requestEnable(onResult: (NotificationPermissionStatus) -> Unit)
     fun disableAndCancel()
@@ -90,8 +92,15 @@ object VotdNotificationController {
     val formattedReminderTime: String
         get() = formatReminderTime12Hour(reminderHour, reminderMinute)
 
+    private var remindersAvailable by mutableStateOf(defaultBridge.remindersAvailable())
+
     val isSupported: Boolean
-        get() = bridge.isSupported
+        get() = bridge.isSupported && remindersAvailable
+
+    internal fun applyRemindersAvailability(available: Boolean) {
+        bridge.setRemindersAvailable(available)
+        remindersAvailable = available
+    }
 
     val effectivelyEnabled: Boolean
         get() = isSupported && userEnabled && permissionStatus == NotificationPermissionStatus.GRANTED
@@ -134,7 +143,7 @@ object VotdNotificationController {
 
     fun onEnableRequested() {
         val currentBridge = bridge
-        if (!currentBridge.isSupported) return
+        if (!isSupported) return
         promptDismissed = true
         currentBridge.setPromptDismissed(true)
 
@@ -172,6 +181,7 @@ object VotdNotificationController {
 
     internal fun resetForTesting() {
         overrideBridge = null
+        remindersAvailable = defaultBridge.remindersAvailable()
         userEnabled = false
         permissionStatus = NotificationPermissionStatus.NOT_DETERMINED
         promptDismissed = false

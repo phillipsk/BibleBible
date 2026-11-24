@@ -1,5 +1,7 @@
 package data.shorts
 
+import data.appPrefs.DEFAULT_TUTORIAL_REMINDER_DAYS
+import data.appPrefs.TutorialReminderPrefs
 import data.bible.currentLocalDateKey
 import data.bible.currentTimeMillis
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -190,11 +192,14 @@ internal class ShortsProgressManager(
 
     fun getSeenIds(): Set<String> = seenStore.getSeenIds()
 
-    fun shouldShowTutorial(): Boolean = backing.getInt(KEY_TUTORIAL_SEEN, 0) == 0
+    private val tutorialPrefs = TutorialReminderPrefs(backing, KEY_TUTORIAL_SEEN, nowProvider)
 
-    fun markTutorialDismissed() {
-        backing.putInt(KEY_TUTORIAL_SEEN, 1)
-    }
+    fun shouldShowTutorial(
+        enabled: Boolean = true,
+        reminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    ): Boolean = tutorialPrefs.shouldShow(enabled, reminderDays)
+
+    fun markTutorialDismissed() = tutorialPrefs.markDismissed()
 
     fun shouldShowSwipeHint(pageIndex: Int): Boolean =
         ShortsPlaybackLogic.shouldShowSwipeHint(

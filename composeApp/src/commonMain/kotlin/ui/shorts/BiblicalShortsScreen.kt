@@ -94,6 +94,7 @@ import androidx.compose.ui.unit.sp
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
 import data.bible.currentTimeMillis
+import data.config.CloudSessionManager
 import data.shorts.BiblicalShortDto
 import data.shorts.ShortsPlaybackLogic
 import data.shorts.ShortsProgressManager
@@ -122,6 +123,8 @@ internal fun BiblicalShortsScreen(
     enablePlaybackTimer: Boolean = true,
     resumeShortId: String? = null,
     progressManager: ShortsProgressManager = remember { ShortsProgressManager() },
+    onBackSwipeDrag: (Float) -> Unit = {},
+    onBackSwipeFinish: ((Boolean) -> Unit)? = null,
     videoPreviewOverride: (@Composable (BiblicalShortDto, Modifier) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -157,7 +160,13 @@ internal fun BiblicalShortsScreen(
     var showSwipeHint by remember { mutableStateOf(false) }
     var showGestureLegend by remember { mutableStateOf(false) }
     var lastLegendEvaluatedPage by remember { mutableStateOf(-1) }
-    var showTutorialOverlay by remember { mutableStateOf(progressManager.shouldShowTutorial()) }
+    val tutorialEnabled = CloudSessionManager.featureFlags.biblicalShortsTutorialEnabled
+    val reminderDays = CloudSessionManager.featureFlags.biblicalShortsTutorialReminderDays
+    var tutorialDismissed by remember { mutableStateOf(false) }
+    val tutorialEligible = remember(progressManager, tutorialEnabled, reminderDays) {
+        progressManager.shouldShowTutorial(tutorialEnabled, reminderDays)
+    }
+    val showTutorialOverlay = tutorialEligible && !tutorialDismissed
     var hintBounceOffsetPx by remember { mutableStateOf(0) }
     var soundToastLabel by remember { mutableStateOf<String?>(null) }
     var hasLoadedRemoteCatalog by remember { mutableStateOf(false) }
@@ -291,7 +300,8 @@ internal fun BiblicalShortsScreen(
             lastLoopEventMs = nowMs
             completedPlaysOnCurrentShort += 1
             elapsedSeconds = 0
-            if (ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(completedPlaysOnCurrentShort) &&
+            if (CloudSessionManager.featureFlags.shortsAutoAdvanceEnabled &&
+                ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(completedPlaysOnCurrentShort) &&
                 filteredShorts.size > 1
             ) {
                 consecutiveAutoAdvances += 1
@@ -349,26 +359,34 @@ internal fun BiblicalShortsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF09111E))
-            .pointerInput(filteredShorts.size, infiniteFeedEnabled) {
+            .pointerInput(filteredShorts.size, infiniteFeedEnabled, onBackSwipeFinish != null) {
                 var totalHorizontalDrag = 0f
                 var handled = false
                 detectHorizontalDragGestures(
                     onDragStart = {
                         totalHorizontalDrag = 0f
                         handled = false
+                        markUserInteraction()
                     },
-                    onHorizontalDrag = { _, dragAmount ->
-                        if (handled) return@detectHorizontalDragGestures
-                        totalHorizontalDrag += dragAmount
-                        val threshold = 72.dp.toPx()
-                        if (totalHorizontalDrag > threshold) {
-                            // Swipe left-to-right -> return to Home
-                            handled = true
-                            markUserInteraction()
+                    onDragEnd = {
+                        if (onBackSwipeFinish != null) {
+                            onBackSwipeFinish(false)
+                        } else if (totalHorizontalDrag > 72.dp.toPx()) {
                             AnalyticsTracker.track("short_swipe_back_home", "biblical_shorts")
                             onBack()
-                        } else if (totalHorizontalDrag < -threshold && filteredShorts.isNotEmpty()) {
+                        }
+                    },
+                    onDragCancel = { onBackSwipeFinish?.invoke(true) },
+                    onHorizontalDrag = { _, dragAmount ->
+                        if (handled) return@detectHorizontalDragGestures
+                        val previousReveal = totalHorizontalDrag.coerceAtLeast(0f)
+                        totalHorizontalDrag += dragAmount
+                        val threshold = 72.dp.toPx()
+                        val revealDelta = totalHorizontalDrag.coerceAtLeast(0f) - previousReveal
+                        if (revealDelta != 0f) onBackSwipeDrag(revealDelta)
+                        if (totalHorizontalDrag < -threshold && filteredShorts.isNotEmpty()) {
                             // Swipe right-to-left -> load next clip
+                            onBackSwipeFinish?.invoke(true)
                             handled = true
                             markUserInteraction()
                             pendingAutoAdvance = false
@@ -834,7 +852,7 @@ internal fun BiblicalShortsScreen(
                     .background(Color(0xB8060C16))
                     .clickable {
                         markUserInteraction()
-                        showTutorialOverlay = false
+                        tutorialDismissed = true
                         progressManager.markTutorialDismissed()
                     }
                     .padding(horizontal = 28.dp)
@@ -879,7 +897,7 @@ internal fun BiblicalShortsScreen(
                         Button(
                             onClick = {
                                 markUserInteraction()
-                                showTutorialOverlay = false
+                                tutorialDismissed = true
                                 progressManager.markTutorialDismissed()
                                 AnalyticsTracker.track("shorts_tutorial_dismissed", "biblical_shorts")
                             },

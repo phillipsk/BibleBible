@@ -71,6 +71,9 @@ import data.bible.BibleState
 import data.bible.BookData
 import data.bible.currentTimeMillis
 import data.bible.fetchBibleChapter
+import data.config.CloudSessionManager
+import data.notifications.bookNumberForUsfm
+import data.notifications.usfmForBookNumber
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
 
@@ -97,17 +100,31 @@ internal fun BibleScripturesPager(
     loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
         fetchBibleChapter(book, chapter, version, history)
     },
-    initialShowGestureTutorial: Boolean = ReaderTutorialPrefs.shouldShow(),
+    homeBackSwipe: SwipeTransition? = null,
+    animateHomeRightSwipe: Boolean = true,
+    onSwipeHome: () -> Unit = {},
+    verticalHomeTurn: EdgeTurn? = null,
+    chapterTurn: ((BookData, Int, () -> Unit) -> EdgeTurn)? = null,
+    initialShowGestureTutorial: Boolean? = null,
     onDismissGestureTutorial: () -> Unit = { ReaderTutorialPrefs.markDismissed() },
 ) {
     val bookId = BibleState.getBookOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
-    var showGestureTutorial by remember { mutableStateOf(initialShowGestureTutorial) }
+    val tutorialEnabled = CloudSessionManager.featureFlags.readerTutorialEnabled
+    val reminderDays = CloudSessionManager.featureFlags.readerTutorialReminderDays
+    var tutorialDismissed by remember { mutableStateOf(false) }
+    val tutorialEligible = remember(initialShowGestureTutorial, tutorialEnabled, reminderDays) {
+        initialShowGestureTutorial ?: ReaderTutorialPrefs.shouldShow(
+            enabled = tutorialEnabled,
+            reminderDays = reminderDays,
+        )
+    }
+    val showGestureTutorial = tutorialEligible && !tutorialDismissed
 
     fun dismissGestureTutorial(method: String) {
         if (showGestureTutorial) {
-            showGestureTutorial = false
+            tutorialDismissed = true
             onDismissGestureTutorial()
             AnalyticsTracker.track("reader_tutorial_dismissed", "reading", mapOf("method" to method))
         }
@@ -135,6 +152,7 @@ internal fun BibleScripturesPager(
         // (rotation, foregrounding) must not reload chapter 1 or add history.
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
             val chapter = pagerState.settledPage + 1
+            BibleState.clearDailyVerseSwipeOriginIfMoved(selectedBook, chapter)
             ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
             AnalyticsTracker.track(
                 name = "chapter_page_changed",
@@ -146,7 +164,7 @@ internal fun BibleScripturesPager(
                     "version" to bibleVersion,
                 ),
             )
-            val loaded = sameBook && chapters.chapterId == chapter &&
+            val loaded = sameBook && chapters.chapterId == chapter && chapters.text != null &&
                 chapters.version.equals(bibleVersion, ignoreCase = true)
             if (!loaded) {
                 val newLocation = !sameBook || chapters.chapterId != chapter
@@ -359,7 +377,60 @@ internal fun BibleScripturesPager(
             ) {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().testTag("reader_chapter_pager").then(
+                        if (homeBackSwipe != null && !isDesktopPlatform()) {
+                            Modifier.readerRightBackSwipe(
+                                canStart = {
+                                    !pagerState.isScrollInProgress &&
+                                        ((animateHomeRightSwipe && pagerState.settledPage == 0) ||
+                                            BibleState.returnsHomeFromDailyVerse(selectedBook, pagerState.settledPage + 1))
+                                },
+                                onDrag = homeBackSwipe::drag,
+                                onFinish = { cancelled ->
+                                    if (!animateHomeRightSwipe && !cancelled && homeBackSwipe.progress >= 0.24f) {
+                                        homeBackSwipe.dragTo(0f)
+                                        onSwipeHome()
+                                    } else {
+                                        homeBackSwipe.finish(cancelled, onSwipeHome)
+                                    }
+                                },
+                            )
+                        } else {
+                            Modifier
+                        }
+                    ).verticalEdgeTurns(
+                        upward = {
+                            if (showAISummary || !sameBook || chapters.text == null ||
+                                chapters.chapterId != pagerState.settledPage + 1 || pagerState.isScrollInProgress ||
+                                scriptureScrollState.maxValue == Int.MAX_VALUE || scriptureScrollState.canScrollForward
+                            ) {
+                                null
+                            } else {
+                                val nextPage = pagerState.settledPage + 1
+                                if (nextPage < chapterCount) {
+                                    chapterTurn?.invoke(selectedBook, nextPage + 1) {
+                                        scope.launch { pagerState.scrollToPage(nextPage) }
+                                    }
+                                } else if (chapters.chapterList.isNullOrEmpty()) {
+                                    null
+                                } else {
+                                    nextCanonicalBook(selectedBook, BibleState.uiBooks.data.orEmpty())?.let { nextBook ->
+                                        chapterTurn?.invoke(nextBook, 1) {
+                                            BibleState.returnToShortsOnBack = false
+                                            BibleState.restoreReadingLocation(nextBook, 1)
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        downward = {
+                            verticalHomeTurn.takeIf {
+                                !showAISummary && sameBook && chapters.text != null &&
+                                    chapters.chapterId == pagerState.settledPage + 1 &&
+                                    !pagerState.isScrollInProgress && !scriptureScrollState.canScrollBackward
+                            }
+                        },
+                    ),
                     verticalAlignment = Alignment.Top,
                     userScrollEnabled = !isDesktopPlatform()
                 ) { page ->
@@ -417,6 +488,12 @@ internal fun BibleScripturesPager(
             }
         }
     }
+}
+
+internal fun nextCanonicalBook(book: BookData, books: List<BookData>): BookData? {
+    val ordinal = bookNumberForUsfm(book.bookId) ?: return null
+    val nextUsfm = usfmForBookNumber(ordinal + 1) ?: return null
+    return books.firstOrNull { it.bookId.equals(nextUsfm, ignoreCase = true) }
 }
 
 @Composable

@@ -131,6 +131,23 @@ class VotdNotificationReceiverTest {
     }
 
     @Test
+    fun releaseSwitchPausesAlarmsWithoutClearingTheUsersPreference() {
+        val app = RuntimeEnvironment.getApplication()
+        val alarms = Shadows.shadowOf(app.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
+        VotdNotificationReceiver.scheduleDailyVotd(app)
+        assertTrue(alarms.scheduledAlarms.isNotEmpty())
+
+        VotdNotificationReceiver.setRemindersAvailable(app, false)
+        VotdNotificationReceiver().onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
+        assertTrue(alarms.scheduledAlarms.isEmpty())
+        assertTrue(VotdNotificationReceiver.isUserNotificationsEnabled(app))
+
+        VotdNotificationReceiver.setRemindersAvailable(app, true)
+        assertTrue(alarms.scheduledAlarms.isNotEmpty())
+    }
+
+    @Test
     fun postedNotificationIncludesBookChapterVerseAndVersionOnPendingIntent() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE

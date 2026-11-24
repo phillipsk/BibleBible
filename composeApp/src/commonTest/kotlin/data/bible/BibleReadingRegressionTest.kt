@@ -100,4 +100,25 @@ class BibleReadingRegressionTest {
         assertEquals("2026-11-18", nextDay.date)
         assertTrue(calls == 3)
     }
+    @Test
+    fun dailyVerseRefreshRevalidatesAndKeepsTheCachedVerseAfterFailure() = runTest {
+        val day = "2026-11-24"
+        var refreshCalls = 0
+        val repo = DailyVerseRepository(
+            fetch = { DailyVerse(it, day, DailyVerseData(23, 40, 31, "Original verse", "ISA")) },
+            today = { day },
+            refreshFetch = { version, after ->
+                refreshCalls++
+                assertEquals(if (refreshCalls == 1) 31 else 30, after?.verse)
+                if (refreshCalls == 2) error("Offline")
+                DailyVerse(version, day, DailyVerseData(23, 40, 30, "Updated verse", "ISA"))
+            },
+        )
+        assertEquals("Original verse", repo.get("KJV").data.text)
+        assertEquals("Updated verse", repo.get("KJV", refresh = true).data.text)
+        assertFailsWith<IllegalStateException> { repo.get("KJV", refresh = true) }
+        assertEquals("Updated verse", repo.get("KJV").data.text)
+        assertEquals(2, refreshCalls)
+    }
+
 }

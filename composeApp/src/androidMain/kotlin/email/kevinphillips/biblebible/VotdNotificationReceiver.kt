@@ -23,7 +23,7 @@ import kotlin.concurrent.thread
 class VotdNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action
-        if (!isUserNotificationsEnabled(context.applicationContext)) {
+        if (!remindersAvailable(context) || !isUserNotificationsEnabled(context.applicationContext)) {
             cancelAllVotd(context.applicationContext)
             return
         }
@@ -214,6 +214,17 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             Intent.ACTION_TIMEZONE_CHANGED,
         )
 
+        internal fun remindersAvailable(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean("votd_reminders_available", true)
+
+        internal fun setRemindersAvailable(context: Context, available: Boolean) {
+            if (remindersAvailable(context) == available) return
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean("votd_reminders_available", available).apply()
+            if (available) scheduleDailyVotd(context) else cancelAllVotd(context)
+        }
+
         fun isUserNotificationsEnabled(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return prefs.getBoolean(KEY_USER_ENABLED, false)
@@ -286,7 +297,7 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             dailyMinLeadMillis: Long = 0L,
             debugEveningMinLeadMillis: Long = 0L,
         ) {
-            if (!isUserNotificationsEnabled(context)) {
+            if (!remindersAvailable(context) || !isUserNotificationsEnabled(context)) {
                 cancelAllVotd(context)
                 return
             }
