@@ -43,7 +43,7 @@ class VerseOfTheDayCardTest {
                 )
             }
         }
-        onNodeWithText("Verse of the day").assertIsDisplayed()
+        onNodeWithText("Verse of the Day").assertIsDisplayed()
         onNodeWithText("Daily passage").assertIsDisplayed()
         onNodeWithText("3:16 · BSB", substring = true).assertIsDisplayed()
         onNodeWithText("Try again").assertDoesNotExist()

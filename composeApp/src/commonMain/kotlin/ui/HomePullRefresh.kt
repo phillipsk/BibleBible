@@ -163,6 +163,8 @@ private fun HomePullIndicator(
             androidx.compose.runtime.withFrameNanos { spin = it / 1_000_000L }
         }
     }
+    // Nothing is composed (or exposed to accessibility) while the indicator is hidden.
+    if (visible <= 0f) return
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -210,9 +212,9 @@ private fun HomePullIndicator(
         }
         Text(
             text = when {
-                refreshing -> "Finding next verse"
+                refreshing -> "Refreshing"
                 state.armed -> "Release to refresh"
-                else -> "Pull to refresh verse"
+                else -> "Pull to refresh"
             },
             style = MaterialTheme.typography.caption.copy(
                 color = PullGold,

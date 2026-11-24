@@ -16,7 +16,7 @@ android {
         applicationId = "email.kevinphillips.biblebible"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 23
+        versionCode = 24
         versionName = "3.1"
     }
     packaging {

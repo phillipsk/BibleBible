@@ -50,6 +50,12 @@ import data.bible.dailyVerseRepository
 import data.bible.utcToday
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TimeSource
+
+// Minimum time the refresh animation stays visible after an explicit pull.
+internal var DailyVerseRefreshMinimum: Duration = 1600.milliseconds
 
 internal sealed interface DailyVerseState {
     data object Loading : DailyVerseState
@@ -91,8 +97,17 @@ internal fun rememberDailyVerse(
         if (!refreshing) {
             presentation.state = DailyVerseState.Loading
         }
+        val startedAt = TimeSource.Monotonic.markNow()
+        // Hold the loading animation for a minimum time so a fast connection
+        // still shows the stretch, glass, and arc instead of an instant swap.
+        suspend fun holdMinimum() {
+            if (!refreshing) return
+            val remaining = DailyVerseRefreshMinimum - startedAt.elapsedNow()
+            if (remaining.isPositive()) delay(remaining)
+        }
         try {
             val loaded = repository.get(version, refresh = refreshing)
+            holdMinimum()
             AnalyticsTracker.track(
                 name = "votd_loaded",
                 category = "verse_of_the_day",
@@ -112,6 +127,11 @@ internal fun rememberDailyVerse(
                 category = "verse_of_the_day",
                 properties = mapOf("version" to version, "reason" to (e::class.simpleName ?: "exception")),
             )
+            try {
+                holdMinimum()
+            } catch (c: CancellationException) {
+                throw c
+            }
             presentation.state = previous?.takeIf { refreshing } ?: DailyVerseState.Unavailable
         }
         presentation.refreshing = false
@@ -153,6 +173,17 @@ internal fun VerseOfTheDayCard(
         )
     )
     val readyVerse = (state as? DailyVerseState.Ready)?.verse
+    // After a refresh finishes, sweep the glass across the fresh verse a couple more times.
+    var freshPasses by remember { mutableStateOf(false) }
+    var wasRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(refreshing) {
+        if (!refreshing && wasRefreshing && readyVerse != null) {
+            freshPasses = true
+            delay(FreshSheenPasses * FreshSheenPassMillis)
+            freshPasses = false
+        }
+        wasRefreshing = refreshing
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -185,7 +216,7 @@ internal fun VerseOfTheDayCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(cardBrush)
-                .refreshSheen(refreshing)
+                .refreshSheen(active = refreshing || freshPasses, loading = refreshing)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -195,7 +226,7 @@ internal fun VerseOfTheDayCard(
                 elevation = 0.dp,
             ) {
                 Text(
-                    text = "Verse of the day",
+                    text = "Verse of the Day",
                     style = MaterialTheme.typography.subtitle2.copy(
                         color = Color(0xFFFBD38D),
                         fontWeight = FontWeight.Bold,
@@ -274,17 +305,25 @@ internal fun VerseOfTheDayCard(
 
 // Frosted gold sheen that sweeps across the card while the next verse loads.
 // Driven by the wall clock so it still moves when Android animation scales are 0.
-private fun Modifier.refreshSheen(active: Boolean): Modifier = if (!active) this else composed {
+private const val FreshSheenPasses = 2L
+private const val FreshSheenPassMillis = 1600L
+
+private fun Modifier.refreshSheen(active: Boolean, loading: Boolean): Modifier = if (!active) this else composed {
     var time by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) {
+    var start by remember(loading) { mutableLongStateOf(-1L) }
+    val period = if (loading) 1200L else FreshSheenPassMillis
+    LaunchedEffect(loading) {
         while (true) {
-            withFrameNanos { time = it / 1_000_000L }
+            withFrameNanos {
+                time = it / 1_000_000L
+                if (start < 0L) start = time
+            }
         }
     }
-    graphicsLayer { alpha = 0.72f }
+    graphicsLayer { alpha = if (loading) 0.72f else 1f }
         .drawWithContent {
             drawContent()
-            val phase = (time % 1200L) / 1200f
+            val phase = (((time - maxOf(start, 0L)) % period).coerceAtLeast(0L)) / period.toFloat()
             val x = size.width * (-0.4f + 1.8f * phase)
             drawRect(Color(0x14FBD38D))
             drawRect(
