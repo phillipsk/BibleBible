@@ -312,6 +312,7 @@ private fun Modifier.refreshSheen(active: Boolean, loading: Boolean): Modifier =
     var time by remember { mutableLongStateOf(0L) }
     var start by remember(loading) { mutableLongStateOf(-1L) }
     val period = if (loading) 1200L else FreshSheenPassMillis
+    val totalDuration = FreshSheenPasses * FreshSheenPassMillis
     LaunchedEffect(loading) {
         while (true) {
             withFrameNanos {
@@ -320,12 +321,30 @@ private fun Modifier.refreshSheen(active: Boolean, loading: Boolean): Modifier =
             }
         }
     }
-    graphicsLayer { alpha = if (loading) 0.72f else 1f }
+    graphicsLayer {
+        alpha = if (loading) {
+            0.72f
+        } else {
+            val elapsed = if (start >= 0L) (time - start).coerceAtLeast(0L) else 0L
+            val alphaProgress = (elapsed / 350f).coerceIn(0f, 1f)
+            0.72f + 0.28f * alphaProgress
+        }
+    }
         .drawWithContent {
             drawContent()
-            val phase = (((time - maxOf(start, 0L)) % period).coerceAtLeast(0L)) / period.toFloat()
+            val elapsed = if (start >= 0L) (time - start).coerceAtLeast(0L) else 0L
+            if (!loading && elapsed >= totalDuration) return@drawWithContent
+            val phase = (elapsed % period) / period.toFloat()
             val x = size.width * (-0.4f + 1.8f * phase)
-            drawRect(Color(0x14FBD38D))
+            val tintAlpha = if (loading) {
+                0x14 / 255f
+            } else {
+                val totalProgress = (elapsed.toFloat() / totalDuration).coerceIn(0f, 1f)
+                (0x14 / 255f) * (1f - totalProgress) * (1f - totalProgress)
+            }
+            if (tintAlpha > 0f) {
+                drawRect(Color(0xFFFBD38D).copy(alpha = tintAlpha))
+            }
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(Color.Transparent, Color(0x48FBD38D), Color.Transparent),
