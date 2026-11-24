@@ -15,10 +15,10 @@ When completing a significant milestone or preparing to switch conversations:
 4. Never overwrite unrelated decisions or existing documentation.
 
 ## 2. Architecture & Coding Conventions
-- **Stack**: Kotlin Multiplatform (`2.1.21`), Compose Multiplatform (`1.7.3`), Ktor (`2.3.12`), SQLDelight (`2.3.2`), Kotlinx Serialization, Napier logging.
+- **Stack**: Kotlin Multiplatform, Compose Multiplatform, Ktor, SQLDelight, Kotlinx Serialization, Napier logging (canonical versions pinned in `gradle/libs.versions.toml`).
 - **Targets**: `androidMain`, `iosMain`, `desktopMain`, and native SwiftUI wrapper `/iosApp` (Debug builds use `email.kevinphillips.biblebible.debug` so they install side-by-side without overwriting Release installs).
-- **State Management**: Shared `@ThreadLocal` state objects (`BibleState`, `GeminiModel`, `CloudSessionManager`, `AnalyticsTracker`) paired with repository helpers (`BibleRepository`, `DailyVerseRepository`, `BiblicalShortsRepository`, `AppPrefsRepository`).
-- **Database Schema**: Keep `BibleBibleDatabase` SQLDelight schema version at `8L` unless a deliberate migration is required; store supplemental metadata such as paragraph/red-letter formatting in side tables (`ChapterFormatMeta`).
+- **State Management**: Shared `@ThreadLocal` state objects (`BibleState`, `GeminiModel`, `CloudSessionManager`, `AnalyticsTracker`) paired with repository helpers (`BibleRepository`, `DailyVerseRepository`, `BiblicalShortsRepository`, `SearchRepository`, `ReadingPlanRepository`, `AppPrefsRepository`).
+- **Database Schema**: Whenever adding tables or columns in `BibleBibleDatabase.sq`, add a numbered SQLDelight migration `<n>.sqm` in `composeApp/src/commonMain/sqldelight/email/kevinphillips/biblebible/db/` and verify upgrades in `ReadingSessionDatabaseTest`.
 - **Platform Hardware & Gesture Integration**:
   - Keep shared UI in `commonMain` and isolate platform hardware/SDK boundaries behind `expect`/`actual` declarations (`DriverFactory`, `SetSystemBarColor`, `ShortsVideoPlayer`).
   - On iOS `UIKitView` overlays (`ShortsVideoPlayer.ios.kt`), keep `UIKitInteropProperties(isInteractive = false, isNativeAccessibilityEnabled = false)` and `userInteractionEnabled = false` so Compose gestures handle taps/swipes, and configure `AVAudioSessionCategoryPlayback` so video audio plays cleanly on physical devices.
@@ -28,7 +28,7 @@ When completing a significant milestone or preparing to switch conversations:
 
 ## 3. Security & Repository Boundaries
 - **Zero Client Secrets**: Never embed or commit API keys, tokens, keystores, or `local.properties` values into Git or client `BuildKonfig`. Run `python3 tools/verify_no_client_secrets.py` before pushing.
-- **Backend Separation**: `backend/` is intentionally listed in `.gitignore` and deployed directly to Google Cloud Run (`biblebible-api`). Do not remove `backend/` from `.gitignore` or commit cloud credentials.
+- **Backend Separation**: `backend/` is intentionally listed in `.gitignore` of this public mobile repository and maintained in a separate private backend repository. Do not remove `backend/` from `.gitignore` or commit cloud credentials here.
 - **Public-Domain Content**: The first-party Bible API and Biblical Shorts catalog use only public-domain translations (`KJV`, `BSB`, `WEB`, `BBE`, `RV1909`, `SVD`) and original devotional summaries/lessons.
 
 ## 4. Verification & Release Workflow
