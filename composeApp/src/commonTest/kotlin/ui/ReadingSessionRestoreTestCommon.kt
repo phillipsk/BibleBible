@@ -6,10 +6,10 @@ import androidx.compose.material.rememberBottomSheetScaffoldState
 import androidx.compose.material.rememberBottomSheetState
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import data.apiBible.BookData
-import data.apiBible.Chapter
 import data.appPrefs.ReadingSession
-import data.bibleIQ.BibleChapterUIState
+import data.bible.BibleChapterUIState
+import data.bible.BookData
+import data.bible.Chapter
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class, ExperimentalMaterialApi::class)

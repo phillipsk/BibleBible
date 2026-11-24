@@ -11,6 +11,8 @@ actual fun isDesktopPlatform(): Boolean {
     return false
 }
 
+actual fun getPlatformName(): String = "android"
+
 @Composable
 actual fun SetSystemBarColor(darkColor: Color) {
     val activity = LocalContext.current as Activity

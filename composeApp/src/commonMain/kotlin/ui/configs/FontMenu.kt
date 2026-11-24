@@ -23,21 +23,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-internal fun FontSizeSlider(bottomSheetState: BottomSheetState) {
-    val fontSizes = BibleIQDataModel.fontSizeOptions
-    var sliderPosition by remember { mutableStateOf(BibleIQDataModel.selectedFontSize) }
+internal fun FontSizeSlider(
+    bottomSheetState: BottomSheetState,
+    onInteraction: () -> Unit = {},
+) {
+    val fontSizes = BibleState.fontSizeOptions
+    var sliderPosition by remember { mutableStateOf(BibleState.selectedFontSize) }
     val coroutineScope = rememberCoroutineScope()
     var isSliding by remember { mutableStateOf(false) }
 
-    LaunchedEffect(BibleIQDataModel.selectedFontSize) {
-        sliderPosition = BibleIQDataModel.selectedFontSize
+    LaunchedEffect(BibleState.selectedFontSize) {
+        sliderPosition = BibleState.selectedFontSize
     }
 
     Row(
@@ -50,30 +54,33 @@ internal fun FontSizeSlider(bottomSheetState: BottomSheetState) {
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
             letterSpacing = 1.5.sp,
-            color = MaterialTheme.colors.onSurface,
+            color = Color(0xFFFBD38D),
         )
         Slider(
             modifier = Modifier.width(180.dp),
             value = sliderPosition,
             onValueChange = {
+                onInteraction()
                 sliderPosition = it
-                BibleIQDataModel.selectedFontSize = it
+                BibleState.selectedFontSize = it
                 isSliding = true
             },
             onValueChangeFinished = {
+                onInteraction()
                 isSliding = false
+                AnalyticsTracker.trackFontSizeChanged(sliderPosition, source = "slider")
                 coroutineScope.launch {
                     delay(2000)
                     if (!isSliding) {
-                        updateUserPreferences(sliderPosition, BibleIQDataModel.selectedVersion)
+                        updateUserPreferences(sliderPosition, BibleState.selectedVersion)
                         bottomSheetState.collapse()
                     }
                 }
             },
             colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colors.surface,
-                activeTrackColor = Color.Gray,
-                inactiveTrackColor = Color.LightGray
+                thumbColor = Color(0xFFFBD38D),
+                activeTrackColor = Color(0xFFFBD38D),
+                inactiveTrackColor = Color(0x33FFFFFF),
             ),
             valueRange = fontSizes.first()..fontSizes.last(),
         )

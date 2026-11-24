@@ -2,6 +2,7 @@ package ui.configs
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.ChipDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FilterChip
 import androidx.compose.material.Icon
@@ -28,13 +29,36 @@ fun AISummaryButton(
 ) {
     val scope = rememberCoroutineScope()
 
+    val goldAccent = Color(0xFFFBD38D)
+    val enabled = GeminiModel.isAvailable && (!GeminiModel.isLoading || showSummary)
+    val isLoadedActive = isAISummarySuccessful
+    val contentTint = when {
+        !enabled -> Color.White.copy(alpha = 0.45f)
+        isLoadedActive -> goldAccent
+        else -> Color.White
+    }
+    val borderColor = when {
+        !enabled -> Color(0x28FFFFFF)
+        isLoadedActive -> goldAccent
+        else -> Color(0x66FFFFFF)
+    }
     Napier.d("GeminiModel.showSummary ${GeminiModel.showSummary}", tag = "Gemini")
     FilterChip(
-        enabled = GeminiModel.isAvailable && !GeminiModel.isLoading,
-        border = if (!isAISummarySuccessful) BorderStroke(
-            2.dp,
-            MaterialTheme.colors.primary
-        ) else null,
+        enabled = enabled,
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = borderColor,
+        ),
+        colors = ChipDefaults.filterChipColors(
+            backgroundColor = Color(0x16FFFFFF),
+            selectedBackgroundColor = if (isLoadedActive) Color(0x2AFBD38D) else Color(0x2EFFFFFF),
+            contentColor = contentTint,
+            selectedContentColor = contentTint,
+            leadingIconColor = contentTint,
+            selectedLeadingIconColor = contentTint,
+            disabledBackgroundColor = Color(0x0AFFFFFF),
+            disabledContentColor = Color.White.copy(alpha = 0.45f),
+        ),
         onClick = {
             scope.launch {
                 generateAISummary()
@@ -46,6 +70,7 @@ fun AISummaryButton(
                 Icon(
                     imageVector = Icons.Filled.Done,
                     contentDescription = "Done icon",
+                    tint = contentTint,
                     modifier = Modifier.size(12.dp)
                 )
             }
@@ -55,7 +80,10 @@ fun AISummaryButton(
     ) {
         Text(
             text = "AI",
-            style = MaterialTheme.typography.subtitle1.copy(fontSize = 12.sp, color = Color.White)
+            style = MaterialTheme.typography.subtitle1.copy(
+                fontSize = 12.sp,
+                color = contentTint,
+            )
         )
     }
 }

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibleBible Release 3.1 — Architectural Strategy, Privacy & Platform Report</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #0ea5e9;
+      --code-bg: #090d16;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .badge-primary { background: rgba(99, 102, 241, 0.2); color: var(--primary-light); border: 1px solid var(--primary); }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-info { background: rgba(14, 165, 233, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0.5rem 0 0.75rem 0;
+      letter-spacing: -0.025em;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .meta-bar {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .meta-bar strong { color: var(--text); }
+    section {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 0.75rem;
+    }
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin: 1.5rem 0 0.75rem 0;
+    }
+    p { margin-bottom: 1rem; color: #cbd5e1; }
+    ul, ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1.25rem;
+      color: #cbd5e1;
+    }
+    li { margin-bottom: 0.4rem; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.25rem 0;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .pr-card {
+      border-left: 4px solid var(--primary);
+      margin-bottom: 1rem;
+      padding: 1.25rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0 8px 8px 0;
+    }
+    .pr-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .pr-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin: 0.35rem 0 0.75rem 0;
+    }
+    .table-container {
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      background: rgba(15, 23, 42, 0.8);
+      color: #fff;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-bottom: 2px solid var(--card-border);
+    }
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--card-border);
+      color: #cbd5e1;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: rgba(14, 165, 233, 0.1);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.25rem 0;
+    }
+    .callout-warning {
+      border-left-color: var(--warning);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .callout-success {
+      border-left-color: var(--success);
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .callout-danger {
+      border-left-color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-light);
+    }
+    .btn-outline {
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary-light);
+    }
+    footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--card-border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <span class="badge badge-primary">Release 3.1 Pipeline</span>
+        <span class="badge badge-success">Backend Live: Cloud Run</span>
+        <span class="badge badge-info">Budget Enforced: $100/mo Cap</span>
+      </div>
+      <h1>BibleBible Release 3.1 Strategy & Architecture Report</h1>
+      <p class="subtitle">Comprehensive Analysis on PR Topology, Privacy & App Store Compliance, Token/API Abuse Protection, and Version Control Strategy</p>
+      <div class="meta-bar">
+        <div><strong>Date:</strong> November 19, 2026</div>
+        <div><strong>Target Branch:</strong> <code>release/3.1</code></div>
+        <div><strong>Baseline:</strong> <code>release/3.0</code> / <code>v3.0</code> (<code>c944478</code>)</div>
+        <div><strong>Cloud Service:</strong> <code>biblebible-api-00004-m7f</code> (us-central1)</div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: PR TOPOLOGY -->
+    <section>
+      <h2>1. Pull Request Topology & Release 3.1 Pipeline</h2>
+      <p>
+        In accordance with the release cadence following Release 3.0 (which consolidated PR #60 for Cloud Gateway & Token bootstrap), a clean release target branch <strong><code>release/3.1</code></strong> has been created and published on GitHub. Both major feature developments have been staged and opened as official Pull Requests.
+      </p>
+
+      <div class="pr-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <span class="badge badge-primary">PR #61</span>
+            <span class="pr-title">feat(shorts): Biblical Shorts video reels, Google Cloud streaming, and KMP video player</span>
+          </div>
+          <a href="https://github.com/phillipsk/BibleBible/pull/61" target="_blank" class="btn btn-primary">View PR #61 &rarr;</a>
+        </div>
+        <div class="pr-meta">
+          <strong>Branch:</strong> <code>feature/biblical-shorts</code> &rarr; <strong>Base:</strong> <code>release/3.1</code> | <strong>Commits:</strong> <code>e397b34</code>, <code>9158e62</code>
+        </div>
+        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+          Delivers the complete Biblical Shorts feature: 50 curated &lt;30s video narratives (Old Testament, Gospels, Epistles, Wisdom), Google Cloud Storage bucket (<code>gs://gen-lang-client-0150678391-biblebible-shorts/shorts/</code>), HTTP 206 Partial Content streaming via Cloud Run, animated swipe arrow entry card below Verse of the Day, full-screen reels pager, and native KMP video player (<code>TextureView</code> on Android, <code>AVPlayer</code> on iOS).
+        </p>
+      </div>
+
+      <div class="pr-card" style="border-left-color: var(--accent);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <span class="badge badge-info">PR #62</span>
+            <span class="pr-title">feat(analytics): full-sweep KMP telemetry, Cloud Run collector, and live web dashboard</span>
+          </div>
+          <a href="https://github.com/phillipsk/BibleBible/pull/62" target="_blank" class="btn btn-primary">View PR #62 &rarr;</a>
+        </div>
+        <div class="pr-meta">
+          <strong>Branch:</strong> <code>feature/analytics</code> &rarr; <strong>Base:</strong> <code>release/3.1</code> | <strong>Commits:</strong> <code>eb431dc</code>
+        </div>
+        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+          Delivers full-sweep first-party privacy-preserving telemetry: <code>AnalyticsTracker</code> engine across 22 client files (reader, search, audio, AI summaries, shorts reels), Cloud Run batch ingestion endpoint (<code>POST /v1/analytics/events</code>), JSON summary (<code>GET /v1/analytics/summary</code>), structured Cloud Logging, and real-time operational HTML dashboard (<code>GET /analytics</code>).
+        </p>
+      </div>
+
+      <div class="callout callout-success">
+        <strong>Review & Merge Sequencing Recommendation:</strong><br>
+        1. Merge <strong>PR #61</strong> into <code>release/3.1</code> first.<br>
+        2. Once PR #61 is merged, the diff on <strong>PR #62</strong> will automatically collapse to strictly show the analytics engine and instrumentation commits without duplicating shorts code.<br>
+        3. Merge <strong>PR #62</strong> into <code>release/3.1</code>.<br>
+        4. Cut the final release tag <code>v3.1.0</code> for mobile app store builds.
+      </div>
+    </section>
+
+    <!-- SECTION 2: PRIVACY & STORE COMPLIANCE -->
+    <section>
+      <h2>2. Privacy Policy & App Store Compliance Analysis</h2>
+      <p>
+        The addition of operational telemetry and AI summarization requires an audit of our legal posture and app store declarations. The prior policy (dated March 2024) claimed absolute zero data collection. While our new telemetry is 100% first-party, non-PII, and privacy-preserving, the app store guidelines require transparent disclosure of all collected data types.
+      </p>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🍎 Apple App Store (Privacy Nutrition Labels)</div>
+          <p style="font-size: 0.85rem; color: #94a3b8;">Configured under App Store Connect &rarr; App Privacy:</p>
+          <ul style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+            <li><strong>Data Used to Track You:</strong> <span style="color: var(--success); font-weight: bold;">NO (0%)</span>. Zero cross-app or cross-site tracking.</li>
+            <li><strong>Data Linked to You:</strong> <span style="color: var(--success); font-weight: bold;">NO</span>. No user accounts, phone numbers, or emails.</li>
+            <li><strong>Data Collected (Not Linked to You):</strong>
+              <ul>
+                <li><strong>Usage Data &rarr; Product Interaction:</strong> App launches, scripture navigation, reels viewed, search events.</li>
+                <li><strong>Diagnostics &rarr; Performance Data:</strong> AI summary latency, network errors, player buffer failures.</li>
+              </ul>
+            </li>
+            <li><strong>App Tracking Transparency (ATT):</strong> <span style="color: var(--success); font-weight: bold;">NOT REQUIRED</span>. Apple only mandates ATT when tracking users across third-party apps or accessing the device <code>IDFA</code>. BibleBible does neither.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🤖 Google Play Store (Data Safety Declaration)</div>
+          <p style="font-size: 0.85rem; color: #94a3b8;">Configured under Google Play Console &rarr; Data Safety:</p>
+          <ul style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+            <li><strong>Data Collected:</strong>
+              <ul>
+                <li><strong>App Activity &rarr; App Interactions:</strong> Feature usage, reels watched, search queries.</li>
+                <li><strong>App Info and Performance &rarr; Diagnostics:</strong> Crash logs, latency, error telemetry.</li>
+              </ul>
+            </li>
+            <li><strong>Data Shared:</strong> <span style="color: var(--success); font-weight: bold;">NO</span>. Never shared with third parties or advertisers.</li>
+            <li><strong>Data Handling Practices:</strong>
+              <ul>
+                <li><strong>Encrypted in transit:</strong> Yes (HTTPS / TLS 1.3).</li>
+                <li><strong>Account creation:</strong> Not required.</li>
+                <li><strong>Data deletion:</strong> Ephemeral session data automatically ages out; no persistent user profile exists.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>In-App Consent Modal vs. Settings Drawer: Best Practice Recommendation</h3>
+      <p>
+        Should we show an intrusive modal popup when the user opens the app?
+      </p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Approach</th>
+              <th>UX Impact</th>
+              <th>Legal Requirement</th>
+              <th>Recommendation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Blocking Pop-up Modal on Launch</strong></td>
+              <td>High friction; interrupts scripture reading flow; increases initial drop-off.</td>
+              <td><strong>Not legally required</strong> under GDPR/ePrivacy because BibleBible does not use third-party cookies, advertising SDKs (AdMob, Adjust, AppsFlyer), or cross-app fingerprinting.</td>
+              <td><span style="color: var(--danger); font-weight: bold;">Not Recommended</span></td>
+            </tr>
+            <tr>
+              <td><strong>Settings Drawer Privacy Toggle + Disclosure</strong></td>
+              <td>Zero friction; respectful and transparent; accessible anytime in app preferences.</td>
+              <td>Exceeds regulatory expectations for first-party operational diagnostics and maintains high user trust.</td>
+              <td><span style="color: var(--success); font-weight: bold;">Strongly Recommended</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout-info">
+        <strong>Implementation Plan for In-App Privacy:</strong><br>
+        1. Keep the launch flow clean and instantaneous (no blocking popups).<br>
+        2. In the existing <code>Settings / Information Drawer</code>, add a <strong>Privacy & Diagnostics</strong> section.<br>
+        3. Include a simple toggle: <code>"Send Anonymous App Diagnostics"</code> (Enabled by default). When toggled off, <code>AnalyticsTracker.setEnabled(false)</code> immediately discards all outbound batches.<br>
+        4. Provide a direct link to the newly updated <a href="file:///Users/phillipsk7461/Documents/BibleBibleAntigravity/biblebible-shorts/PrivacyPolicy.md" style="color: var(--accent);">PrivacyPolicy.md</a>.
+      </div>
+    </section>
+
+    <!-- SECTION 3: AUTHENTICATION & TOKEN ECONOMICS -->
+    <section>
+      <h2>3. Authentication, Token Economics & Abuse Prevention</h2>
+      <p>
+        The user expressed valid concerns: <em>"What do you think about concerns about token costs and credit usage right now where there's no real login? Are we exposing ourselves to excessive costs as well?"</em>
+      </p>
+
+      <h3>Current Architecture & Vulnerability Exposure</h3>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="color: var(--accent);">Current Protective Safeguards</div>
+          <ul style="font-size: 0.85rem;">
+            <li><strong>HMAC Bootstrap (<code>/v1/config</code>):</strong> Issues short-lived (1-hour) signed JWTs.</li>
+            <li><strong>Rate Limiting:</strong> 20 RPM per IP sliding window on Cloud Run.</li>
+            <li><strong>Daily Quota:</strong> 500 Gemini requests/day max across the entire cluster.</li>
+            <li><strong>Summary Caching:</strong> In-memory LRU cache on Cloud Run avoids re-querying Gemini for identical chapters.</li>
+            <li><strong>Hard Billing Cap:</strong> GCP Cloud Billing Budget strictly caps monthly account spend at $100.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title" style="color: var(--warning);">Vulnerabilities Without User Authentication</div>
+          <ul style="font-size: 0.85rem;">
+            <li><strong>Scripting / Reverse Engineering:</strong> A malicious actor could extract the client secret from the APK/IPA and script requests directly to <code>/v1/config</code>.</li>
+            <li><strong>IP Rotation & Quota Denial:</strong> By using proxies or VPNs, an attacker could bypass the 20 RPM per-IP limit and deplete the 500 daily Gemini requests in minutes, denying service to real users.</li>
+            <li><strong>GCS Video Egress Spikes:</strong> Automated download loops could generate unnecessary egress traffic ($0.12/GB), burning budget toward the $100 cap.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Token Cost Realities: Gemini 1.5 Flash vs. Pro</h3>
+      <p>
+        Understanding the exact token pricing dispels fear of runaway costs during normal usage:
+      </p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Input Price (per 1M tokens)</th>
+              <th>Output Price (per 1M tokens)</th>
+              <th>Avg Chapter Cost (~2k in, 250 out)</th>
+              <th>Cost for 500 Daily Requests</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Gemini 1.5 Flash</strong> (Recommended)</td>
+              <td>$0.075</td>
+              <td>$0.30</td>
+              <td><strong>$0.000225</strong></td>
+              <td><strong>$0.11 / day ($3.37 / month)</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Gemini 1.5 Pro</strong></td>
+              <td>$1.25</td>
+              <td>$5.00</td>
+              <td><strong>$0.003750</strong></td>
+              <td><strong>$1.87 / day ($56.25 / month)</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted);">
+        *With our server-side caching (which caches summaries across all users for common books like John, Psalms, Romans), repeated hits cost $0.00 in Gemini API tokens.
+      </p>
+
+      <h3>Recommended Multi-Tier Security Roadmap</h3>
+      <div class="grid-3">
+        <div class="card" style="border-top: 3px solid var(--success);">
+          <div class="card-title">Phase 1: Firebase App Check</div>
+          <span class="badge badge-success">Zero Friction</span>
+          <p style="font-size: 0.85rem;">
+            Integrate <strong>DeviceCheck / App Attest</strong> (iOS) and <strong>Play Integrity</strong> (Android). Validates that API calls originate from genuine, unmodified app binaries on genuine hardware. Blocks 99.9% of headless bots and scripts without forcing users to log in.
+          </p>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent);">
+          <div class="card-title">Phase 2: Firebase Anonymous Auth</div>
+          <span class="badge badge-info">Zero Friction</span>
+          <p style="font-size: 0.85rem;">
+            Issue a silent, cryptographic device UID stored in Keychain/EncryptedSharedPreferences. Cloud Run applies rate limits per UID (e.g. max 15 AI summaries/day per device). If one device misbehaves, only that UID is throttled, leaving other users unaffected.
+          </p>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--primary);">
+          <div class="card-title">Phase 3: Optional Social Login</div>
+          <span class="badge badge-primary">High Value</span>
+          <p style="font-size: 0.85rem;">
+            Provide <strong>Sign in with Google</strong> and <strong>Sign in with Apple</strong> for users who want cross-device sync of bookmarks, notes, and reading plans. Signed-in accounts can receive higher AI summary allowances (e.g. 50/day).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: VERSION CONTROL STRATEGY -->
+    <section>
+      <h2>4. Version Control Strategy: GitHub vs. Google Cloud Ecosystem</h2>
+      <p>
+        The user asked: <em>"going forward, since a lot of our tech stack is Google-related, I was wondering if GitHub is an ideal option for us or if there's other options to consider with our tech stack and how we're doing development? Also, the separate task I had to follow up was whether GitHub was still a good option for version control because I know we're using a lot of Google products and have a tech stack like that. It's really agentic, I was wondering what the best approach would be."</em>
+      </p>
+
+      <div class="callout callout-warning">
+        <strong>CRITICAL INDUSTRY UPDATE: Google Cloud Source Repositories Deprecation</strong><br>
+        Google officially <strong>deprecated new project creation for Google Cloud Source Repositories (CSR) in June 2024</strong>. Google Cloud documentation explicitly recommends that all teams use <strong>GitHub</strong> or <strong>GitLab</strong> as their source code repository. Attempting to use CSR for a new project is now unsupported.
+      </div>
+
+      <h3>Comparison of Version Control Options</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Agentic AI Tooling (Antigravity, Codex, Copilot)</th>
+              <th>Mobile & KMP CI/CD (macOS / Android)</th>
+              <th>Google Cloud Integration</th>
+              <th>Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>GitHub (Current)</strong></td>
+              <td><span style="color: var(--success); font-weight: bold;">Industry Benchmark</span>. Native CLI (<code>gh</code>), PR reviews, Copilot, Antigravity git worktree support.</td>
+              <td><span style="color: var(--success); font-weight: bold;">First-Class</span>. Native macOS runners for iOS Simulator/XCFramework builds, <code>setup-java</code>, Android SDK caching.</td>
+              <td><span style="color: var(--success); font-weight: bold;">Seamless</span> via GCP Workload Identity Federation (keyless OIDC). Direct deployment to Cloud Run and GCS.</td>
+              <td><span style="color: var(--success); font-weight: bold;">Strongly Recommended (Keep)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Google Cloud Source Repositories (CSR)</strong></td>
+              <td>Poor. No PR review platform, no agentic tooling hooks.</td>
+              <td>None. Requires external CI orchestration via Cloud Build triggers.</td>
+              <td>Native GCP, but <strong>DEPRECATED</strong> by Google in 2024.</td>
+              <td><span style="color: var(--danger); font-weight: bold;">Unviable (Deprecated)</span></td>
+            </tr>
+            <tr>
+              <td><strong>GitLab (Cloud / Self-Hosted)</strong></td>
+              <td>Good, but secondary to GitHub for AI agent tools and community extensions.</td>
+              <td>Requires self-hosted macOS runners for iOS builds.</td>
+              <td>Supports OIDC and GCP integrations.</td>
+              <td><span style="color: var(--warning); font-weight: bold;">Viable, but unnecessary migration overhead</span></td>
+            </tr>
+            <tr>
+              <td><strong>Gerrit / Piper (Google Internal)</strong></td>
+              <td>High friction; designed for monorepos with dedicated infrastructure teams.</td>
+              <td>Complex setup; no native mobile CI runners.</td>
+              <td>Custom tooling required.</td>
+              <td><span style="color: var(--danger); font-weight: bold;">Not Suited for Mobile Apps</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The Modern Best-Practice Architecture: "Best of Both Worlds"</h3>
+      <p>
+        The gold-standard enterprise architecture for teams building on Google Cloud is to pair <strong>GitHub</strong> for source control and agentic development with <strong>Google Cloud</strong> for serverless execution:
+      </p>
+
+      <div class="code-block">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           DEVELOPMENT & AGENT LAYER                             │
+│  Antigravity IDE / Agents ──▶ Local Git Worktree ──▶ GitHub Repository (PRs)    │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         │ Push to release/3.1
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                GITHUB ACTIONS CI                                │
+│  • KMP Unit & Desktop Tests (:desktopTest, :testAndroidHostTest)                │
+│  • iOS Simulator Arm64 Compile & Validation                                     │
+│  • Zero-Secret Verification (tools/verify_no_client_secrets.py)                 │
+└────────────────────────────────────────┬────────────────────────────────────────┘
+                                         │ OIDC Keyless Auth (Workload Identity)
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              GOOGLE CLOUD RUNTIME                               │
+│  • Cloud Run (biblebible-api: Express, Rate Limiter, Ingestion, Dashboard)     │
+│  • Cloud Storage (gs://biblebible-shorts: 50 MP4 Reels with Range Streaming)    │
+│  • Cloud Secret Manager (API Keys & Cryptographic HMAC Salts)                   │
+│  • Gemini 1.5 Flash API (Objective Theological Chapter Summarization)           │
+│  • Cloud Logging & Cloud Billing Budget ($100/mo Hard Stop Alert)               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+      </div>
+
+      <div class="callout callout-success">
+        <strong>Strategic Conclusion:</strong><br>
+        <strong>Stay on GitHub.</strong> GitHub is unmatched for Kotlin Multiplatform mobile workflows, agentic AI iteration, and PR collaboration. Connecting GitHub Actions to Google Cloud via <strong>Workload Identity Federation</strong> gives you zero-secret keyless deployments directly into Cloud Run and Cloud Storage, achieving maximum security and productivity.
+      </div>
+    </section>
+
+    <!-- SECTION 5: ACTION PLAN & NEXT STEPS -->
+    <section>
+      <h2>5. Actionable Implementation Roadmap</h2>
+      <ol>
+        <li>
+          <strong>Review & Merge PR #61 (Biblical Shorts):</strong>
+          Review PR #61 targeting <code>release/3.1</code>. Test videos and "Read Chapter" navigation. Merge into <code>release/3.1</code>.
+        </li>
+        <li>
+          <strong>Review & Merge PR #62 (Full-Sweep Analytics):</strong>
+          Review PR #62. Verify the live web dashboard at <code>https://biblebible-api-687901748717.us-central1.run.app/analytics</code>. Merge into <code>release/3.1</code>.
+        </li>
+        <li>
+          <strong>Publish Updated Privacy Policy:</strong>
+          The updated policy in <code>PrivacyPolicy.md</code> is ready to be hosted at <code>https://biblebible.app/privacy</code> or linked in App Store Connect and Google Play Console.
+        </li>
+        <li>
+          <strong>Prepare App Store Submissions:</strong>
+          Use the specifications in Section 2 for Apple Privacy Nutrition Labels and Google Play Data Safety declarations.
+        </li>
+        <li>
+          <strong>Next Sprint Feature: Firebase App Check & Auth:</strong>
+          Introduce Firebase App Check to bind API requests to real app binaries, eliminating bot scraping risks while keeping the reader 100% login-free for users.
+        </li>
+      </ol>
+    </section>
+
+    <footer>
+      BibleBible Engineering & Architecture • Generated for Antigravity Session • November 2026
+    </footer>
+  </div>
+</body>
+</html>

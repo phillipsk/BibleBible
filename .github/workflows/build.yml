@@ -3,7 +3,7 @@ name: Build and test
 on:
   pull_request:
   push:
-    branches: [main, build/refresh-stable-2026, "validation/**"]
+    branches: [main, build/refresh-stable-2026, "release/**", "validation/**"]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +21,8 @@ jobs:
       SKIKO_RENDER_API: SOFTWARE
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Verify zero client secrets
+        run: python3 tools/verify_no_client_secrets.py
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -58,6 +60,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Verify zero client secrets
+        run: python3 tools/verify_no_client_secrets.py
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin

@@ -1,8 +1,8 @@
 package data.appPrefs
 
-import data.apiBible.BookData
-import data.apiBible.Chapter
-import data.bibleIQ.BibleIQVersion
+import data.bible.BibleVersion
+import data.bible.BookData
+import data.bible.Chapter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,7 +14,7 @@ class ReadingSessionTest {
     private val now = 1_800_000_000_000L
     private val genesis = book("GEN", "Genesis", 50)
     private val exodus = book("EXO", "Exodus", 40)
-    private val versions = listOf(BibleIQVersion(abbreviation = "KJV"), BibleIQVersion(abbreviation = "ASV"))
+    private val versions = listOf(BibleVersion(abbreviation = "KJV"), BibleVersion(abbreviation = "ASV"))
     private val reading = SavedReadingSession("GEN", 12, "KJV", 1456, 0.25f, lastActiveMillis = now)
 
     @Test

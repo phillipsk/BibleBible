@@ -39,8 +39,9 @@ class ReadingSessionDatabaseTest {
         try {
             JdbcSqliteDriver("jdbc:sqlite:$path").use { driver ->
                 BibleBibleDatabase.Schema.create(driver)
-                // The released schema contains the same existing tables but no session table.
+                // The released schema contains the same existing tables but no session or seen-words tables.
                 driver.execute(null, "DROP TABLE SavedReadingPosition", 0)
+                driver.execute(null, "DROP TABLE SeenBiblicalWords", 0)
                 driver.execute(null, "PRAGMA user_version = 6", 0)
                 val database = BibleBibleDatabase(driver)
                 database.bibleBibleDatabaseQueries.insertUserPrefs()
@@ -48,7 +49,7 @@ class ReadingSessionDatabaseTest {
                 database.bibleBibleDatabaseQueries.insertReadingHistory("2026-10-28 12:00:00", "19", "119")
             }
             openDesktopDatabase(path).use { driver ->
-                assertEquals(7L, BibleBibleDatabase.Schema.version)
+                assertEquals(8L, BibleBibleDatabase.Schema.version)
                 val database = BibleBibleDatabase(driver)
                 val preferences = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsOne()
                 assertEquals(30.0, preferences.fontSize)
@@ -58,6 +59,8 @@ class ReadingSessionDatabaseTest {
                 assertNull(store.read())
                 store.write(reading)
                 assertEquals(reading, store.read())
+                database.bibleBibleDatabaseQueries.insertSeenBiblicalWord("short-01", 1_800_000_000_000L)
+                assertEquals(listOf("short-01"), database.bibleBibleDatabaseQueries.selectSeenBiblicalWordIds().executeAsList())
             }
         } finally {
             Files.deleteIfExists(path)

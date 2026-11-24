@@ -8,8 +8,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.ComposeUiTest
-import data.apiBible.BookData
-import data.bibleIQ.BibleChapterUIState
+import data.bible.BibleChapterUIState
+import data.bible.BookData
 
 @OptIn(ExperimentalTestApi::class, ExperimentalMaterialApi::class)
 fun ComposeUiTest.runBibleScripturesPagerTest() {

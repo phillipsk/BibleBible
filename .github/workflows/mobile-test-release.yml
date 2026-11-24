@@ -149,8 +149,18 @@ jobs:
           set -o pipefail
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 --stacktrace 2>&1 | tee "$RUNNER_TEMP/kotlin-release.log"
       - name: Install App Store provisioning profile
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_APPSTORE_MOBILEPROVISION_BASE64 }}
         run: |
           PROFILE_SOURCE="iosApp/Configuration/BibleBible_AppStore.mobileprovision"
+          if [[ -n "${IOS_PROVISIONING_PROFILE_BASE64:-}" ]]; then
+            PROFILE_SOURCE="$RUNNER_TEMP/BibleBible_AppStore.mobileprovision"
+            python3 - <<'PY'
+          import base64, os, pathlib
+          data = base64.b64decode(os.environ['IOS_PROVISIONING_PROFILE_BASE64'])
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'BibleBible_AppStore.mobileprovision').write_bytes(data)
+          PY
+          fi
           PROFILE_PLIST="$RUNNER_TEMP/BibleBible-AppStore.plist"
           security cms -D -i "$PROFILE_SOURCE" > "$PROFILE_PLIST"
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")

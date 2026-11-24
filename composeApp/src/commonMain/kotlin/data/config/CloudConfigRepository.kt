@@ -3,9 +3,12 @@ package data.config
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersion
-import data.bibleIQ.BibleIQVersions
+import data.notifications.VotdNotificationController
+import data.appPrefs.DEFAULT_TUTORIAL_REMINDER_DAYS
+import data.analytics.AnalyticsTracker
+import data.bible.BibleState
+import data.bible.BibleVersion
+import data.bible.BibleVersions
 import data.gemini.GEMINI_MODEL
 import data.httpClientCloudGateway
 import email.kevinphillips.biblebible.BuildKonfig
@@ -26,18 +29,79 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.native.concurrent.ThreadLocal
 
+private val validBookShimmerStyles = setOf(
+    "soft_gold_sheen",
+    "candle_breathe",
+    "row_wave",
+    "horizon_pulse",
+    "electric",
+    "none",
+)
+
+private val validTabletBookLayouts = setOf(
+    "split_testaments",
+    "testament_divider",
+    "mobile_breaks",
+)
+
+private val validReaderLayoutStyles = setOf(
+    "literary_serif",
+    "verse_per_line",
+    "classic_inline",
+)
+
+private fun parseUsfmSet(rawCsv: String, fallback: Set<String>): Set<String> {
+    val parsed = rawCsv.split(",")
+        .map { it.trim().uppercase() }
+        .filter { it.isNotEmpty() }
+        .toSet()
+    return parsed.ifEmpty { fallback }
+}
+
+private val defaultMobileSectionBreaks = setOf("JOS", "JOB", "DAN", "MAL", "ROM", "PHM")
+private val defaultTabletSectionBreaks = setOf("MAL")
+
+@Serializable
+data class CloudFeatureFlagsDto(
+    val biblicalShortsEnabled: Boolean = true,
+    val verseOfTheDayEnabled: Boolean = true,
+    val inHouseWordsEnabled: Boolean = true,
+    val bookShimmerStyle: String = "soft_gold_sheen",
+    val bookShimmerPace: Float = 1.0f,
+    val bookShimmerIntensity: Float = 1.0f,
+    val bookSectionPaddingDp: Int = 10,
+    val bookGridTabletLayout: String = "split_testaments",
+    val bookSectionBreaksMobile: String = "JOS,JOB,DAN,MAL,ROM,PHM",
+    val bookSectionBreaksTablet: String = "MAL",
+    val readerLayoutStyle: String = "literary_serif",
+    val readerLineHeightMultiplier: Float = 1.68f,
+    val readerVerseGapDp: Int = 14,
+    val readerDefaultFontSizeSp: Float = 22.0f,
+    val readerRedLetterEnabled: Boolean = true,
+    val homeSwipePreviewEnabled: Boolean = true,
+    val homeSwipeToShortsEnabled: Boolean = true,
+    val homeScrollToGenesisEnabled: Boolean = true,
+    val shortsAutoAdvanceEnabled: Boolean = true,
+    val votdNotificationsEnabled: Boolean = true,
+    val readerTutorialEnabled: Boolean = true,
+    val readerTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    val biblicalShortsTutorialEnabled: Boolean = true,
+    val biblicalShortsTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+)
+
 @Serializable
 data class CloudRuntimeConfigDto(
     val schemaVersion: Int = 1,
     val aiSummariesEnabled: Boolean = true,
     val geminiModel: String = GEMINI_MODEL,
     val defaultVersion: String = "KJV",
-    val supportedVersions: List<BibleIQVersion> = emptyList(),
+    val supportedVersions: List<BibleVersion> = emptyList(),
     val sessionToken: String = "",
     val tokenExpiresInSeconds: Long = 3600L,
+    val features: CloudFeatureFlagsDto = CloudFeatureFlagsDto(),
 ) {
     override fun toString(): String =
-        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, sessionToken=[redacted])"
+        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, features=$features, sessionToken=[redacted])"
 }
 
 @Serializable
@@ -74,6 +138,75 @@ object CloudSessionManager {
     var geminiModel: String by mutableStateOf(GEMINI_MODEL)
         internal set
 
+    var featureFlags: CloudFeatureFlagsDto by mutableStateOf(CloudFeatureFlagsDto())
+        internal set
+
+    val biblicalShortsEnabled: Boolean
+        get() = featureFlags.biblicalShortsEnabled
+
+    val verseOfTheDayEnabled: Boolean
+        get() = featureFlags.verseOfTheDayEnabled
+
+    val bookShimmerStyle: String
+        get() = featureFlags.bookShimmerStyle
+            .trim()
+            .lowercase()
+            .takeIf { it in validBookShimmerStyles }
+            ?: "soft_gold_sheen"
+
+    val bookShimmerPace: Float
+        get() = featureFlags.bookShimmerPace
+            .takeIf { it.isFinite() }
+            ?.coerceIn(0.25f, 3.0f)
+            ?: 1.0f
+
+    val bookShimmerIntensity: Float
+        get() = featureFlags.bookShimmerIntensity
+            .takeIf { it.isFinite() }
+            ?.coerceIn(0f, 2.0f)
+            ?: 1.0f
+
+    val bookSectionPaddingDp: Int
+        get() = featureFlags.bookSectionPaddingDp.coerceIn(0, 48)
+
+    val bookGridTabletLayout: String
+        get() = featureFlags.bookGridTabletLayout
+            .trim()
+            .lowercase()
+            .takeIf { it in validTabletBookLayouts }
+            ?: "split_testaments"
+
+    val bookSectionBreaksMobile: Set<String>
+        get() = parseUsfmSet(featureFlags.bookSectionBreaksMobile, defaultMobileSectionBreaks)
+
+    val bookSectionBreaksTablet: Set<String>
+        get() = parseUsfmSet(featureFlags.bookSectionBreaksTablet, defaultTabletSectionBreaks)
+
+    val readerLayoutStyle: String
+        get() = featureFlags.readerLayoutStyle
+            .trim()
+            .lowercase()
+            .takeIf { it in validReaderLayoutStyles }
+            ?: "literary_serif"
+
+    val readerLineHeightMultiplier: Float
+        get() = featureFlags.readerLineHeightMultiplier
+            .takeIf { it.isFinite() }
+            ?.coerceIn(1.2f, 2.2f)
+            ?: 1.68f
+
+    val readerVerseGapDp: Int
+        get() = featureFlags.readerVerseGapDp.coerceIn(0, 32)
+
+    val readerDefaultFontSizeSp: Float
+        get() = featureFlags.readerDefaultFontSizeSp
+            .takeIf { it.isFinite() }
+            ?.coerceIn(14f, 32f)
+            ?: 22.0f
+
+    val readerRedLetterEnabled: Boolean
+        get() = featureFlags.readerRedLetterEnabled
+
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url
     }
@@ -83,6 +216,7 @@ object CloudSessionManager {
         sessionToken = ""
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED
         geminiModel = GEMINI_MODEL
+        featureFlags = CloudFeatureFlagsDto()
     }
 
     internal fun parseSecureGatewayUrl(rawUrl: String): Url? {
@@ -110,15 +244,35 @@ object CloudSessionManager {
             }
             if (!response.status.isSuccess()) {
                 Napier.w("Cloud startup config returned HTTP ${response.status.value}", tag = "CloudConfig")
+                AnalyticsTracker.track(
+                    "cloud_config_fallback",
+                    "lifecycle",
+                    mapOf("httpStatus" to response.status.value.toString()),
+                )
                 return null
             }
             val config = response.body<CloudRuntimeConfigDto>()
             applyRuntimeConfig(config)
+            VotdNotificationController.applyRemindersAvailability(config.features.votdNotificationsEnabled)
+            AnalyticsTracker.track(
+                "cloud_config_loaded",
+                "lifecycle",
+                mapOf(
+                    "aiSummariesEnabled" to config.aiSummariesEnabled.toString(),
+                    "geminiModel" to config.geminiModel,
+                    "defaultVersion" to config.defaultVersion,
+                ),
+            )
             config
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Napier.w("Cloud startup config unavailable (${e::class.simpleName}); using local defaults", tag = "CloudConfig")
+            AnalyticsTracker.track(
+                "cloud_config_fallback",
+                "lifecycle",
+                mapOf("reason" to (e::class.simpleName ?: "exception")),
+            )
             null
         }
     }
@@ -155,11 +309,12 @@ object CloudSessionManager {
             sessionToken = config.sessionToken
         }
         aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED && config.aiSummariesEnabled
+        featureFlags = config.features
         if (config.geminiModel.isNotBlank()) {
             geminiModel = config.geminiModel
         }
         if (config.supportedVersions.isNotEmpty()) {
-            BibleIQDataModel.updateBibleVersions(BibleIQVersions(config.supportedVersions))
+            BibleState.updateBibleVersions(BibleVersions(config.supportedVersions))
         }
     }
 }

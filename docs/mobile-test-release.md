@@ -28,12 +28,13 @@ secrets, or local shell values. The workflow requires these names:
 - `API_BIBLE_KEY`
 
 The repository includes the public App Store provisioning profile used for
-manual distribution signing. The workflow's App Store Connect API key may use
-the **Developer** role for authenticated TestFlight uploads. Renewing or
-replacing the provisioning profile requires an **Admin** role key; a Developer
-key cannot create profiles through the App Store Connect API. Releases display
-a warning when the profile has fewer than 30 days remaining, but continue
-until Apple considers the profile expired.
+manual distribution signing. Use an **Admin** role App Store Connect API key
+for all App Store Connect automation: TestFlight uploads, provisioning profile
+renewal, creating App Store versions, configuring manual release, and
+submitting for App Review. A Developer-only key can upload builds to TestFlight
+but returns `403 Forbidden` on profile creation and App Store version/review
+submission. Releases display a warning when the profile has fewer than 30 days
+remaining, but continue until Apple considers the profile expired.
 
 Maintainers with GitHub CLI repository-secret permission can install all of
 them without exposing values in command arguments or logs:

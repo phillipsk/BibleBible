@@ -4,10 +4,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
-import data.apiBible.BibleAPIBook
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.json.JSON_BOOKS_API_BIBLE
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleBooksResponse
+import data.bible.BibleState
+import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,28 +16,26 @@ import kotlin.test.assertFalse
 class BookNavigationTest {
     @Test
     fun selectingBookOpensItsFirstChapter() = runComposeUiTest {
-        val previousBooks = BibleAPIDataModel.bibleBooks
-        val previousBook = BibleIQDataModel.selectedBook
-        val previousApiBook = BibleAPIDataModel.selectedBookData
-        val previousChapter = BibleAPIDataModel.selectedChapter
-        val previousHome = BibleIQDataModel.showHomePage
+        val previousBooks = BibleState.bibleBooks
+        val previousBook = BibleState.selectedBook
+        val previousChapter = BibleState.selectedChapter
+        val previousHome = BibleState.showHomePage
         try {
-            val books = Json.decodeFromString<BibleAPIBook>(JSON_BOOKS_API_BIBLE)
-            BibleAPIDataModel.updateBooks(books)
-            BibleIQDataModel.showHomePage = true
+            val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+            BibleState.updateBooks(books)
+            BibleState.showHomePage = true
             setContent { BibleBookList(books.data) }
             onNodeWithText("Exodus").performClick()
             runOnIdle {
-                assertEquals("Exodus", BibleIQDataModel.selectedBook.name)
-                assertEquals("EXO.1", BibleAPIDataModel.selectedChapter)
-                assertFalse(BibleIQDataModel.showHomePage)
+                assertEquals("Exodus", BibleState.selectedBook.name)
+                assertEquals("EXO.1", BibleState.selectedChapter)
+                assertFalse(BibleState.showHomePage)
             }
         } finally {
-            BibleAPIDataModel.updateBooks(previousBooks)
-            BibleAPIDataModel.updateBookData(previousApiBook)
-            BibleAPIDataModel.updateSelectedChapter(previousChapter)
-            BibleIQDataModel.updateSelectedBook(previousBook)
-            BibleIQDataModel.showHomePage = previousHome
+            BibleState.updateBooks(previousBooks)
+            BibleState.updateSelectedChapter(previousChapter)
+            BibleState.updateSelectedBook(previousBook)
+            BibleState.showHomePage = previousHome
         }
     }
 }

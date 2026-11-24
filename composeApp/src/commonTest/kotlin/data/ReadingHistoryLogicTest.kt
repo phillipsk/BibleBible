@@ -1,6 +1,6 @@
 package data
 
-import data.apiBible.BibleAPIDataModel
+import data.bible.BibleState
 import email.kevinphillips.biblebible.db.SelectReadingHistory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,7 +9,7 @@ class ReadingHistoryLogicTest {
 
     @Test
     fun testReadingHistoryFiltering() {
-        // Mocking the logic found in BibleAPIRepository.kt
+        // Exercises the reading history filtering rule from BibleRepository.kt
         
         val readingHistory = listOf(
             SelectReadingHistory(DATE = "2023-10-01", b = "1", c = "2"),
@@ -19,9 +19,9 @@ class ReadingHistoryLogicTest {
             SelectReadingHistory(DATE = "2023-10-04", b = "4", c = "1")  // Should be kept
         )
 
-        // The logic from BibleAPIRepository:
+        // The filtering rule from BibleRepository:
         val filteredReadingHistory = readingHistory.filterIndexed { index, currentRecord ->
-            if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleAPIDataModel.singleChapterBooksOrdinal) {
+            if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleState.singleChapterBooksOrdinal) {
                 val previousRecord = readingHistory[index - 1]
                 currentRecord.b == previousRecord.b && previousRecord.c == "2"
             } else {
@@ -35,7 +35,7 @@ class ReadingHistoryLogicTest {
         // Index 2: (b=2, c=1) -> index > 0 and c == 1. Previous (index 1) is b=1, c=1. No match (b 2 != 1). -> false
         
         // Wait, let's re-read the logic in the code:
-        // if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleAPIDataModel.singleChapterBooksOrdinal) {
+        // if (currentRecord.c == "1" && index > 0 && currentRecord.b !in BibleState.singleChapterBooksOrdinal) {
         //     val previousRecord = readingHistory[index - 1]
         //     currentRecord.b == previousRecord.b && previousRecord.c == "2"
         // } else { true }

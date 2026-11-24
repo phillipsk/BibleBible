@@ -23,16 +23,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
-import data.apiBible.BookData
-import data.bibleIQ.BibleIQDataModel
+import data.analytics.AnalyticsTracker
+import data.bible.BibleState
+import data.bible.BookData
 import io.github.aakira.napier.Napier
 
 @Composable
 internal fun BookMenu(bookDataList: List<BookData>?) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedBookData by remember(BibleIQDataModel.selectedBook.abbreviation) {
+    var selectedBookData by remember(BibleState.selectedBook.abbreviation) {
         mutableStateOf(
-            BibleIQDataModel.selectedBook
+            BibleState.selectedBook
         )
     }
     val rotationAngle by animateFloatAsState(
@@ -41,7 +42,7 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
     )
     Napier.v("BookMenu: selectedBookData: ${selectedBookData.abbreviation}", tag = "IQ2455")
     Napier.v(
-        "BookMenu: BibleIQDataModel selectedBookData: ${BibleIQDataModel.selectedBook.abbreviation}",
+        "BookMenu: BibleState selectedBookData: ${BibleState.selectedBook.abbreviation}",
         tag = "IQ2455"
     )
     Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -64,9 +65,12 @@ internal fun BookMenu(bookDataList: List<BookData>?) {
             bookDataList?.forEach {
                 DropdownMenuItem(onClick = {
                     expanded = false
-                    BibleIQDataModel.run {
-                        updateSelectedBook(it)
-                    }
+                    AnalyticsTracker.trackBookSelected(
+                        bookId = it.bookId,
+                        bookName = it.name ?: it.abbreviation ?: it.bookId,
+                        source = "book_dropdown",
+                    )
+                    BibleState.updateSelectedBook(it)
                     selectedBookData = it
                 }) {
                     Text("${it.abbreviation} ")

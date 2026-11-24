@@ -3,7 +3,7 @@ package data
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.bibleIQ.BibleIQDataModel
+import data.bible.BibleState
 import data.config.CloudSessionManager
 import data.gemini.GeminiResponseDto
 import data.gemini.generateContent
@@ -13,16 +13,20 @@ import kotlinx.coroutines.currentCoroutineContext
 object GeminiModel {
     private var pendingSummary: Job? = null
 
-    internal fun cancelPendingSummary() {
+    internal fun cancelPendingSummary(preserveShowSummary: Boolean = false) {
         pendingSummary?.cancel()
         pendingSummary = null
-        showSummary = false
+        if (!preserveShowSummary) {
+            showSummary = false
+            aiModeLocked = false
+        }
         isLoading = false
         updateGeminiData(GeminiResponseDto())
         geminiFullResponse = ""
     }
 
     internal var showSummary by mutableStateOf(false)
+    internal var aiModeLocked by mutableStateOf(false)
     internal var isLoading by mutableStateOf(false)
     internal val isAvailable: Boolean
         get() = CloudSessionManager.aiSummariesEnabled && CloudSessionManager.isGatewayConfigured
@@ -34,15 +38,23 @@ object GeminiModel {
     internal fun updateGeminiData(data: GeminiResponseDto) {
         geminiData = data
         errorMessage = null
+        val hasText = !data.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text.isNullOrBlank()
+        if (showSummary && hasText) {
+            aiModeLocked = true
+        }
     }
 
     internal fun updateGeminiError(message: String) {
         geminiData = GeminiResponseDto()
         errorMessage = message
+        aiModeLocked = false
     }
     internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
 
     val isSuccessful get() = !isLoading && showSummary && !geminiDataText.isNullOrBlank()
+
+    val isAiButtonHighlighted: Boolean
+        get() = isSuccessful || (showSummary && aiModeLocked)
 
     internal var geminiFullResponse by mutableStateOf("")
         private set
@@ -53,8 +65,8 @@ object GeminiModel {
 
     private val geminiQuery
         get() = "Generate a summary of the bible chapter " +
-                BibleIQDataModel.selectedBook.cleanedName + " " +
-                BibleIQDataModel.bibleChapter?.chapterId
+                BibleState.selectedBook.cleanedName + " " +
+                BibleState.bibleChapter?.chapterId
 
     internal suspend fun generateAISummary(
         pullToRefresh: Boolean = false,

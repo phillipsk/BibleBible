@@ -3,11 +3,11 @@ package data.appPrefs
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.apiBible.BibleAPIDataModel
-import data.apiBible.BookData
-import data.apiBible.currentTimeMillis
-import data.bibleIQ.BibleIQDataModel
-import data.bibleIQ.BibleIQVersion
+import data.analytics.AnalyticsTracker
+import data.bible.BibleState
+import data.bible.BibleVersion
+import data.bible.BookData
+import data.bible.currentTimeMillis
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import io.github.aakira.napier.Napier
@@ -43,7 +43,7 @@ internal fun canonicalBookKey(book: BookData): String = book.bookId.substringBef
 internal fun validatedReadingSession(
     session: SavedReadingSession?,
     books: List<BookData>,
-    versions: List<BibleIQVersion>,
+    versions: List<BibleVersion>,
     nowMillis: Long,
 ): SavedReadingSession? {
     session ?: return null
@@ -120,25 +120,35 @@ internal object ReadingSession {
             }
             val restored = validatedReadingSession(
                 previous,
-                BibleAPIDataModel.bibleBooks.data.orEmpty(),
-                BibleIQDataModel.bibleVersions.data,
+                BibleState.bibleBooks.data.orEmpty(),
+                BibleState.bibleVersions.data,
                 currentTimeMillis(),
             )
             current = restored
             initialized = true
             if (previous != null && restored == null) persist(null)
             if (restored == null || restored.isHome) {
-                BibleIQDataModel.discardReadingLocation()
+                BibleState.discardReadingLocation()
                 return
             }
-            val book = BibleAPIDataModel.bibleBooks.data.orEmpty().first { canonicalBookKey(it) == restored.bookKey }
-            BibleIQDataModel.updateSelectedVersion(restored.version)
-            BibleIQDataModel.restoreReadingLocation(book, restored.chapter)
+            val book = BibleState.bibleBooks.data.orEmpty().first { canonicalBookKey(it) == restored.bookKey }
+            BibleState.updateSelectedVersion(restored.version)
+            BibleState.restoreReadingLocation(book, restored.chapter)
+            AnalyticsTracker.track(
+                "reading_session_restored",
+                "reading",
+                mapOf(
+                    "bookKey" to restored.bookKey,
+                    "bookName" to (book.name ?: restored.bookKey),
+                    "chapter" to restored.chapter.toString(),
+                    "version" to restored.version,
+                ),
+            )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             Napier.e("Unable to restore reading position", error, tag = "ReadingSession")
-            BibleIQDataModel.showHomePage = true
+            BibleState.showHomePage = true
         }
     }
 
@@ -171,11 +181,11 @@ internal object ReadingSession {
     }
 
     fun goHome() {
-        current = (current ?: SavedReadingSession("", 1, BibleIQDataModel.selectedVersion, lastActiveMillis = 1))
+        current = (current ?: SavedReadingSession("", 1, BibleState.selectedVersion, lastActiveMillis = 1))
             .copy(isHome = true, lastActiveMillis = currentTimeMillis())
         initialized = true
         persist(current)
-        BibleIQDataModel.discardReadingLocation()
+        BibleState.discardReadingLocation()
     }
 
     fun onBackground(nowMillis: Long = currentTimeMillis()) {
@@ -190,7 +200,7 @@ internal object ReadingSession {
         // Do not touch lastActive here: time spent in the background must count.
         if (!session.isFresh(nowMillis)) {
             current = null
-            BibleIQDataModel.discardReadingLocation()
+            BibleState.discardReadingLocation()
             persist(null)
         }
     }
