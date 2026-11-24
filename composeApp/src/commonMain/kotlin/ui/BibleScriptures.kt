@@ -23,11 +23,15 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,8 +39,11 @@ import data.analytics.AnalyticsTracker
 import data.appPrefs.updateUserPreferences
 import data.bible.BibleChapterUIState
 import data.bible.BibleState
+import data.config.CloudSessionManager
 import data.notifications.findVerseCharacterOffset
+import data.notifications.findVerseCharacterRange
 import email.kevinphillips.biblebible.isDesktopPlatform
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -55,7 +62,7 @@ internal fun BibleScriptures(
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val currentFontSize by rememberUpdatedState(selectedFontSize)
     val changeFontSize by rememberUpdatedState(onFontSizeChanged)
-    readingState.contentInset = with(LocalDensity.current) { 4.dp.roundToPx() }
+    readingState.contentInset = with(LocalDensity.current) { 12.dp.roundToPx() }
 
     LaunchedEffect(scrollState, readingState) {
         var interactionActive = false
@@ -73,6 +80,12 @@ internal fun BibleScriptures(
     // Keep our own restoration out of the capture flow to avoid cumulative drift.
     LaunchedEffect(textLayout, viewportSize, selectedFontSize, readingState.zoomReleaseGeneration, readingState) {
         val layout = textLayout ?: return@LaunchedEffect
+        if (BibleState.pendingTargetVerse != null &&
+            BibleState.pendingTargetBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
+            BibleState.pendingTargetChapter == chapters.chapterId
+        ) {
+            return@LaunchedEffect
+        }
         // A release can arrive before the final font change has been measured.
         // Only the effect for that measured font may unlock anchor capture.
         if (layout.layoutInput.style.fontSize != selectedFontSize.sp) return@LaunchedEffect
@@ -94,6 +107,7 @@ internal fun BibleScriptures(
 
     LaunchedEffect(
         textLayout,
+        viewportSize,
         chapters.text,
         BibleState.pendingTargetVerse,
         BibleState.pendingTargetBookId,
@@ -103,6 +117,7 @@ internal fun BibleScriptures(
         val targetBookId = BibleState.pendingTargetBookId ?: return@LaunchedEffect
         val targetChapter = BibleState.pendingTargetChapter ?: return@LaunchedEffect
         val layout = textLayout ?: return@LaunchedEffect
+        if (viewportSize.height <= 0) return@LaunchedEffect
         val chapterText = chapters.text ?: return@LaunchedEffect
         if (chapterText.isBlank()) return@LaunchedEffect
         if (!BibleState.selectedBook.bookId.equals(targetBookId, ignoreCase = true) ||
@@ -111,17 +126,36 @@ internal fun BibleScriptures(
             return@LaunchedEffect
         }
 
-        val charOffset = findVerseCharacterOffset(
+        val activeVersion = chapters.version ?: BibleState.selectedVersion
+        val verseEnd = BibleState.highlightedVerseEnd?.coerceAtLeast(targetVerse) ?: targetVerse
+        val verseRange = findVerseCharacterRange(
+            chapterText = chapterText,
+            verseStart = targetVerse,
+            verseEnd = verseEnd,
+            version = activeVersion,
+        ) ?: findVerseCharacterOffset(
             chapterText = chapterText,
             verseNumber = targetVerse,
-            version = chapters.version ?: BibleState.selectedVersion,
-        )
-        if (charOffset != null) {
-            readingState.jumpToOffset(charOffset)
+            version = activeVersion,
+        )?.let { it..it } ?: if (targetVerse == 1) 0..0 else null
+
+        if (verseRange != null) {
+            val startIdx = verseRange.first.coerceIn(0, (chapterText.length - 1).coerceAtLeast(0))
+            val endIdx = verseRange.last.coerceIn(startIdx, (chapterText.length - 1).coerceAtLeast(0))
+            val startLine = layout.getLineForOffset(startIdx)
+            val endLine = layout.getLineForOffset(endIdx)
+            val verseMidY = (layout.getLineTop(startLine) + layout.getLineBottom(endLine)) / 2f +
+                readingState.contentInset
+            readingState.jumpToOffset(startIdx)
             withFrameNanos { }
-            scrollState.scrollTo(readingState.scrollOffset(layout))
-            readingState.restoredScrollOffset = scrollState.value
+            val centeredScroll = (verseMidY - viewportSize.height / 2f)
+                .roundToInt()
+                .coerceIn(0, scrollState.maxValue)
+            scrollState.scrollTo(centeredScroll)
             readingState.restoring = false
+            readingState.restoredScrollOffset = null
+            readingState.capture(scrollState.value)
+            readingState.restoredScrollOffset = scrollState.value
         }
         BibleState.clearPendingTargetVerse()
     }
@@ -152,7 +186,7 @@ internal fun BibleScriptures(
                 }
                 .verticalScroll(scrollState)
                 .navigationBarsPadding()
-                .padding(start = 8.dp, end = 8.dp, top = 6.dp, bottom = 120.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 120.dp)
                 .pointerInput(Unit) {
                     try {
                         awaitPointerEventScope {
@@ -204,9 +238,41 @@ internal fun BibleScriptures(
                 }
         ) {
             chapters.text?.let { text ->
+                val isHighlightedChapter =
+                    BibleState.highlightedVerseBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
+                        BibleState.highlightedVerseChapter == chapters.chapterId
+                val highlightStart = if (isHighlightedChapter) BibleState.highlightedVerseStart else null
+                val highlightEnd = if (isHighlightedChapter) BibleState.highlightedVerseEnd else null
+                val activeVersion = chapters.version ?: BibleState.selectedVersion
+                val renderedText = remember(text, highlightStart, highlightEnd, activeVersion) {
+                    buildAnnotatedString {
+                        append(text)
+                        if (highlightStart != null && highlightEnd != null) {
+                            val range = findVerseCharacterRange(
+                                chapterText = text,
+                                verseStart = highlightStart,
+                                verseEnd = highlightEnd,
+                                version = activeVersion,
+                            )
+                            if (range != null) {
+                                val start = range.first.coerceIn(0, text.length)
+                                val end = (range.last + 1).coerceIn(start, text.length)
+                                addStyle(
+                                    style = SpanStyle(
+                                        color = Color(0xFFFBD38D),
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                                    start = start,
+                                    end = end,
+                                )
+                            }
+                        }
+                    }
+                }
                 Text(
-                    text = text,
+                    text = renderedText,
                     fontSize = selectedFontSize.sp,
+                    lineHeight = (selectedFontSize * CloudSessionManager.readerLineHeightMultiplier).sp,
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .widthIn(max = windowMetrics.maxReadingWidth)

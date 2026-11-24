@@ -10,10 +10,13 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
@@ -30,36 +34,53 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -74,16 +95,22 @@ import data.bible.Chapter
 import data.bible.DailyVerse
 import data.bible.bibleBooksFull
 import data.config.CloudSessionManager
+import data.notifications.VotdNotificationController
+import data.notifications.parseVerseRange
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
 import email.kevinphillips.biblebible.getPlatformName
 import io.github.aakira.napier.Napier
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import ui.configs.BibleBibleTopBar
 import ui.configs.BottomSheetConfigView
+import ui.configs.DailyReminderTimePickerRow
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
 
@@ -127,8 +154,97 @@ internal fun BibleHomeScreen(
     }
 
     LaunchedEffect(Unit) {
+        VotdNotificationController.refresh()
         channel.receiveAsFlow().collect { errorMsg ->
             localScaffoldState.snackbarHostState.showSnackbar(message = errorMsg)
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                VotdNotificationController.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (BibleState.showHomePage &&
+        !BibleState.showBiblicalShorts &&
+        !BibleState.autoDemoTourEnabled &&
+        VotdNotificationController.shouldShowOptInPrompt
+    ) {
+        Dialog(onDismissRequest = { VotdNotificationController.dismissOptInPrompt() }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color(0xFF132238),
+                border = BorderStroke(1.5.dp, Color(0x66FBD38D)),
+                elevation = 12.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp)
+                    .testTag("votd_opt_in_dialog"),
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        text = "Daily Verse of the Day",
+                        color = Color(0xFFFBD38D),
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Start your morning in God's Word. Choose your daily reminder time below and tap straight to that book, chapter, and verse. You can adjust or turn this off anytime in Settings.",
+                        color = Color(0xFFE2E8F0),
+                        fontSize = 16.sp,
+                        lineHeight = 23.sp,
+                    )
+                    DailyReminderTimePickerRow(
+                        selectedHour = VotdNotificationController.reminderHour,
+                        selectedMinute = VotdNotificationController.reminderMinute,
+                        onTimeSelected = { hour, minute ->
+                            VotdNotificationController.updateReminderTime(hour, minute)
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        TextButton(onClick = { VotdNotificationController.dismissOptInPrompt() }) {
+                            Text(
+                                text = "Not now",
+                                color = Color(0xFFCBD5E1),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Button(
+                            onClick = { VotdNotificationController.onEnableRequested() },
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color(0xFFFBD38D),
+                                contentColor = Color(0xFF09111E),
+                            ),
+                            modifier = Modifier.testTag("votd_opt_in_enable_btn"),
+                        ) {
+                            Text(
+                                text = "Enable",
+                                color = Color(0xFF09111E),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -143,7 +259,7 @@ internal fun BibleHomeScreen(
                 localScaffoldState.bottomSheetState.collapse()
             }
             BibleState.showBiblicalShorts -> {
-                BibleState.closeBiblicalShorts()
+                BibleState.exitBiblicalShortsToHome()
             }
             !BibleState.showHomePage -> {
                 BibleState.navigateBackFromReader()
@@ -228,8 +344,7 @@ internal fun BibleHomeScreen(
                 if (BibleState.showBiblicalShorts) {
                     BiblicalShortsScreen(
                         onBack = {
-                            BibleState.resumeShortIdOnReturn = null
-                            BibleState.closeBiblicalShorts()
+                            BibleState.exitBiblicalShortsToHome()
                         },
                         onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
                         resumeShortId = BibleState.resumeShortIdOnReturn,
@@ -303,25 +418,69 @@ internal fun BibleHomeScreen(
     )
 }
 
+private fun partitionBookSections(
+    indexedBooks: List<IndexedValue<BookData>>,
+    sectionBreakIds: Set<String>,
+    applySections: Boolean,
+): List<List<IndexedValue<BookData>>> {
+    if (!applySections || indexedBooks.isEmpty()) {
+        return listOf(indexedBooks)
+    }
+    val sections = mutableListOf<List<IndexedValue<BookData>>>()
+    var currentSection = mutableListOf<IndexedValue<BookData>>()
+    indexedBooks.forEachIndexed { pos, indexedBook ->
+        currentSection.add(indexedBook)
+        val usfm = indexedBook.value.bookId.uppercase()
+        if (usfm in sectionBreakIds && pos < indexedBooks.lastIndex) {
+            sections.add(currentSection)
+            currentSection = mutableListOf()
+        }
+    }
+    if (currentSection.isNotEmpty()) {
+        sections.add(currentSection)
+    }
+    return sections
+}
+
 @Composable
 internal fun BibleBookList(
     bookData: List<BookData>?,
     lazyGridState: LazyGridState = rememberLazyGridState(),
     header: (@Composable (windowMetrics: AdaptiveWindowMetrics) -> Unit)? = null,
 ) {
-    // Unified 2-phase electrifying diagonal lightning cycle:
-    // Phase 0..1: crackles diagonally down-right starting from Genesis (top-left)
-    // Phase 1..2: crackles diagonally down-left starting from Leviticus (top-right)
-    val infiniteTransition = rememberInfiniteTransition(label = "living_word_lightning")
-    val lightningCycle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "lightning_cycle",
-    )
+    val shimmerStyle = CloudSessionManager.bookShimmerStyle
+    val shimmerPace = CloudSessionManager.bookShimmerPace
+    val shimmerIntensity = CloudSessionManager.bookShimmerIntensity
+    val sectionPaddingDp = CloudSessionManager.bookSectionPaddingDp
+    val tabletLayoutMode = CloudSessionManager.bookGridTabletLayout
+    val mobileBreakIds = CloudSessionManager.bookSectionBreaksMobile
+    val tabletBreakIds = CloudSessionManager.bookSectionBreaksTablet
+
+    val baseDurationMs = when (shimmerStyle) {
+        "soft_gold_sheen" -> 5400
+        "candle_breathe" -> 6200
+        "row_wave" -> 7000
+        "horizon_pulse" -> 8000
+        "electric" -> 4800
+        else -> 5400
+    }
+    val cycleDurationMs = (baseDurationMs / shimmerPace).roundToInt().coerceAtLeast(800)
+    val shimmerProgress by if (shimmerStyle == "none" || shimmerIntensity <= 0.01f) {
+        remember { mutableStateOf(0f) }
+    } else {
+        key(shimmerStyle, cycleDurationMs) {
+            val infiniteTransition = rememberInfiniteTransition(label = "study_word_shimmer")
+            infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = cycleDurationMs, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+                label = "shimmer_progress",
+            )
+        }
+    }
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     AnimatedVisibility(
@@ -333,6 +492,27 @@ internal fun BibleBookList(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val windowMetrics = computeAdaptiveWindowMetrics(maxWidth, maxHeight)
                 val columnsCount = windowMetrics.bookGridColumns
+                val indexedAll = remember(bookDataList) { bookDataList.withIndex().toList() }
+                val otBooks = remember(indexedAll) {
+                    indexedAll.filter { BibleState.getBookOrdinal(it.value.bookId) <= 39 }
+                }
+                val ntBooks = remember(indexedAll) {
+                    indexedAll.filter { BibleState.getBookOrdinal(it.value.bookId) > 39 }
+                }
+                val useSplitTestaments = !BibleState.sortAZ &&
+                    columnsCount >= 6 &&
+                    tabletLayoutMode == "split_testaments" &&
+                    otBooks.isNotEmpty() &&
+                    ntBooks.isNotEmpty()
+                val applySectionBreaks = !BibleState.sortAZ && sectionPaddingDp > 0
+                val activeBreakIds = when {
+                    columnsCount <= 3 || tabletLayoutMode == "mobile_breaks" -> mobileBreakIds
+                    else -> tabletBreakIds
+                }
+                val flatSections = remember(indexedAll, activeBreakIds, applySectionBreaks) {
+                    partitionBookSections(indexedAll, activeBreakIds, applySectionBreaks)
+                }
+
                 LazyVerticalGrid(
                     state = lazyGridState,
                     columns = GridCells.Fixed(columnsCount),
@@ -360,132 +540,433 @@ internal fun BibleBookList(
                             )
                         }
                     }
-                    itemsIndexed(items = bookDataList) { index, book ->
-                        val row = index / columnsCount
-                        val col = index % columnsCount
-                        // Composite the book tint solidly over the deep background so there is NEVER any translucent shadow box artifact
-                        val rawColor = BibleState.getBibleBookColor(
-                            BibleState.getBookOrdinal(book.bookId)
-                        )
-                        val solidBase = rawColor.compositeOver(Color(0xFF1A2838))
-                        val tileBrush = Brush.verticalGradient(
-                            colors = listOf(
-                                solidBase.copy(alpha = 1f),
-                                Color(0x1809111E).compositeOver(solidBase),
-                            )
-                        )
-                        // Phase 1 (0..1): Genesis -> down-right diagonal; Phase 2 (1..2): Leviticus -> down-left diagonal
-                        val isLeftToRight = lightningCycle < 1f
-                        val passProgress = if (isLeftToRight) lightningCycle else (lightningCycle - 1f)
-                        val waveHead = -0.25f + (passProgress * 1.55f)
-                        val horizStep = if (isLeftToRight) col else (columnsCount - 1 - col)
-                        val tileCoord = (horizStep * 0.16f) + ((row % 7) * 0.11f)
-                        val distance = abs(waveHead - tileCoord)
-                        val boltPower = (1f - (distance / 0.24f)).coerceIn(0f, 1f)
 
-                        val tileShape = RoundedCornerShape(14.dp)
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .fillMaxWidth()
-                                .defaultMinSize(minWidth = 100.dp, minHeight = 46.dp)
-                                .clip(tileShape)
-                                .background(tileBrush)
-                                .border(
-                                    width = if (boltPower > 0.2f) 2.dp else 1.dp,
-                                    color = if (boltPower > 0.08f) {
-                                        Color(0xFFFBD38D).copy(alpha = (0.35f + boltPower * 0.65f).coerceIn(0f, 1f))
-                                    } else {
-                                        Color(0x36FFFFFF)
-                                    },
-                                    shape = tileShape,
+                    if (useSplitTestaments) {
+                        item(
+                            span = { GridItemSpan(maxLineSpan) },
+                            key = "tablet_split_testaments_grid",
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("tablet_split_testaments_grid"),
+                            ) {
+                                SplitTestamentColumn(
+                                    heading = "Old Testament",
+                                    indexedBooks = otBooks,
+                                    breakIds = mobileBreakIds,
+                                    sectionPaddingDp = sectionPaddingDp,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                    modifier = Modifier.weight(1f),
                                 )
-                                .drawWithContent {
-                                    drawContent()
-                                    if (boltPower > 0.04f) {
-                                        // Soft electric surface flash
-                                        drawRect(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    Color.Transparent,
-                                                    Color(0xFF90CDF4).copy(alpha = 0.28f * boltPower),
-                                                    Color(0xFFFBD38D).copy(alpha = 0.36f * boltPower),
-                                                    Color.Transparent,
-                                                ),
-                                                start = if (isLeftToRight) Offset.Zero else Offset(size.width, 0f),
-                                                end = if (isLeftToRight) Offset(size.width, size.height) else Offset(0f, size.height),
+                                SplitTestamentColumn(
+                                    heading = "New Testament",
+                                    indexedBooks = ntBooks,
+                                    breakIds = mobileBreakIds,
+                                    sectionPaddingDp = sectionPaddingDp,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    } else {
+                        flatSections.forEachIndexed { sectionIndex, sectionBooks ->
+                            itemsIndexed(
+                                items = sectionBooks,
+                                key = { _, indexedBook -> "${indexedBook.value.bookId}-${indexedBook.index}" },
+                            ) { _, indexedBook ->
+                                BookTileCard(
+                                    index = indexedBook.index,
+                                    book = indexedBook.value,
+                                    columnsCount = columnsCount,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                )
+                            }
+                            if (applySectionBreaks && sectionIndex < flatSections.lastIndex) {
+                                item(
+                                    span = { GridItemSpan(maxLineSpan) },
+                                    key = "book_section_spacer_$sectionIndex",
+                                ) {
+                                    val isTestamentDivider = columnsCount > 3 &&
+                                        sectionBooks.lastOrNull()?.value?.bookId.equals("MAL", ignoreCase = true)
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("book_section_spacer_$sectionIndex"),
+                                    ) {
+                                        Spacer(modifier = Modifier.height(sectionPaddingDp.dp))
+                                        if (isTestamentDivider) {
+                                            Text(
+                                                text = "New Testament",
+                                                color = Color(0xFFFBD38D),
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(start = 6.dp, top = 4.dp, bottom = 6.dp),
                                             )
-                                        )
-                                        // Crisp jagged electric lightning arc crackling diagonally across the tile
-                                        val w = size.width
-                                        val h = size.height
-                                        val jitter = if ((index % 2) == 0) 0.14f else -0.14f
-                                        val boltPath = Path().apply {
-                                            if (isLeftToRight) {
-                                                moveTo(w * 0.04f, h * 0.10f)
-                                                lineTo(w * 0.34f, h * (0.44f + jitter))
-                                                lineTo(w * 0.46f, h * (0.28f - jitter))
-                                                lineTo(w * 0.70f, h * (0.68f + jitter))
-                                                lineTo(w * 0.96f, h * 0.92f)
-                                            } else {
-                                                moveTo(w * 0.96f, h * 0.10f)
-                                                lineTo(w * 0.66f, h * (0.44f + jitter))
-                                                lineTo(w * 0.54f, h * (0.28f - jitter))
-                                                lineTo(w * 0.30f, h * (0.68f + jitter))
-                                                lineTo(w * 0.04f, h * 0.92f)
-                                            }
                                         }
-                                        // Outer warm-gold / sky-blue lightning aura
-                                        drawPath(
-                                            path = boltPath,
-                                            color = Color(0xFFFBD38D).copy(alpha = 0.55f * boltPower),
-                                            style = Stroke(
-                                                width = 5.dp.toPx(),
-                                                cap = StrokeCap.Round,
-                                                join = StrokeJoin.Round,
-                                            ),
-                                        )
-                                        // Bright white electrifying core filament
-                                        drawPath(
-                                            path = boltPath,
-                                            color = Color.White.copy(alpha = 0.92f * boltPower),
-                                            style = Stroke(
-                                                width = 1.6.dp.toPx(),
-                                                cap = StrokeCap.Round,
-                                                join = StrokeJoin.Round,
-                                            ),
-                                        )
                                     }
                                 }
-                                .clickable {
-                                    AnalyticsTracker.trackBookSelected(
-                                        bookId = book.bookId,
-                                        bookName = book.name ?: book.cleanedName ?: book.bookId,
-                                        source = "home_grid",
-                                    )
-                                    BibleState.returnToShortsOnBack = false
-                                    BibleState.updateSelectedChapter(book.remoteKey)
-                                    BibleState.updateSelectedBook(book)
-                                    BibleState.showHomePage = false
-                                }
-                                .padding(horizontal = 8.dp, vertical = 10.dp),
-                        ) {
-                            book.cleanedName?.let { name ->
-                                Text(
-                                    fontFamily = MaterialTheme.typography.h3.fontFamily,
-                                    fontWeight = FontWeight.SemiBold,
-                                    text = name,
-                                    fontSize = 13.5.sp,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SplitTestamentColumn(
+    heading: String,
+    indexedBooks: List<IndexedValue<BookData>>,
+    breakIds: Set<String>,
+    sectionPaddingDp: Int,
+    shimmerStyle: String,
+    shimmerProgress: Float,
+    shimmerIntensity: Float,
+    modifier: Modifier = Modifier,
+) {
+    val sections = remember(indexedBooks, breakIds, sectionPaddingDp) {
+        partitionBookSections(indexedBooks, breakIds, sectionPaddingDp > 0)
+    }
+    Column(modifier = modifier) {
+        Text(
+            text = heading,
+            color = Color(0xFFFBD38D),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp,
+            modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
+        )
+        sections.forEachIndexed { sectionIndex, sectionBooks ->
+            val chunkRows = sectionBooks.chunked(3)
+            chunkRows.forEach { rowItems ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (slot in 0 until 3) {
+                        val entry = rowItems.getOrNull(slot)
+                        if (entry != null) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                BookTileCard(
+                                    index = entry.index,
+                                    book = entry.value,
+                                    columnsCount = 3,
+                                    shimmerStyle = shimmerStyle,
+                                    shimmerProgress = shimmerProgress,
+                                    shimmerIntensity = shimmerIntensity,
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+            if (sectionPaddingDp > 0 && sectionIndex < sections.lastIndex) {
+                Spacer(
+                    modifier = Modifier
+                        .height(sectionPaddingDp.dp)
+                        .testTag("split_${heading.lowercase().replace(' ', '_')}_spacer_$sectionIndex"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookTileCard(
+    index: Int,
+    book: BookData,
+    columnsCount: Int,
+    shimmerStyle: String,
+    shimmerProgress: Float,
+    shimmerIntensity: Float,
+) {
+    val row = index / columnsCount
+    val col = index % columnsCount
+    // Composite the book tint solidly over the deep background so there is no translucent box artifact
+    val rawColor = BibleState.getBibleBookColor(BibleState.getBookOrdinal(book.bookId))
+    val solidBase = rawColor.compositeOver(Color(0xFF1A2838))
+    val tileBrush = Brush.verticalGradient(
+        colors = listOf(
+            solidBase.copy(alpha = 1f),
+            Color(0x1809111E).compositeOver(solidBase),
+        )
+    )
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val shimmerBorderAlpha = computeShimmerBorderAlpha(
+        shimmerStyle = shimmerStyle,
+        shimmerProgress = shimmerProgress,
+        shimmerIntensity = shimmerIntensity,
+        index = index,
+        row = row,
+        col = col,
+        columnsCount = columnsCount,
+    )
+    val borderWidth = if (isPressed || (shimmerStyle == "electric" && shimmerBorderAlpha > 0.25f)) 2.dp else 1.dp
+    val borderColor = when {
+        isPressed -> Color(0xFFFBD38D).copy(alpha = 0.85f)
+        shimmerBorderAlpha > 0.02f -> Color(0xFFFBD38D).copy(alpha = shimmerBorderAlpha)
+        else -> Color(0x36FFFFFF)
+    }
+
+    val tileShape = RoundedCornerShape(14.dp)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .padding(4.dp)
+            .fillMaxWidth()
+            .defaultMinSize(minWidth = 100.dp, minHeight = 46.dp)
+            .clip(tileShape)
+            .background(tileBrush)
+            .border(width = borderWidth, color = borderColor, shape = tileShape)
+            .drawWithContent {
+                drawContent()
+                drawBookTileShimmer(
+                    shimmerStyle = shimmerStyle,
+                    shimmerProgress = shimmerProgress,
+                    shimmerIntensity = shimmerIntensity,
+                    index = index,
+                    row = row,
+                    col = col,
+                    columnsCount = columnsCount,
+                    isPressed = isPressed,
+                )
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+            ) {
+                AnalyticsTracker.trackBookSelected(
+                    bookId = book.bookId,
+                    bookName = book.name ?: book.cleanedName ?: book.bookId,
+                    source = "home_grid",
+                )
+                BibleState.returnToShortsOnBack = false
+                BibleState.updateSelectedChapter(book.remoteKey)
+                BibleState.updateSelectedBook(book)
+                BibleState.showHomePage = false
+            }
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+    ) {
+        book.cleanedName?.let { name ->
+            Text(
+                fontFamily = MaterialTheme.typography.h3.fontFamily,
+                fontWeight = FontWeight.SemiBold,
+                text = name,
+                fontSize = 13.5.sp,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private fun computeShimmerBorderAlpha(
+    shimmerStyle: String,
+    shimmerProgress: Float,
+    shimmerIntensity: Float,
+    index: Int,
+    row: Int,
+    col: Int,
+    columnsCount: Int,
+): Float {
+    if (shimmerIntensity <= 0.01f) return 0f
+    return when (shimmerStyle) {
+        "soft_gold_sheen" -> {
+            val cycle = (shimmerProgress + col * 0.08f + (row % 7) * 0.12f) % 1f
+            if (cycle >= 0.36f) 0f else {
+                val env = sin((cycle / 0.36f) * PI).toFloat()
+                (0.28f * env * shimmerIntensity).coerceIn(0f, 0.6f)
+            }
+        }
+        "candle_breathe" -> {
+            val wave = ((sin((shimmerProgress * 2.0 * PI) + index * 0.65) + 1.0) * 0.5).toFloat()
+            (0.10f + wave * 0.24f * shimmerIntensity).coerceIn(0f, 0.55f)
+        }
+        "row_wave" -> {
+            val rowPos = shimmerProgress * 9.5f - (row % 8) * 0.72f
+            if (rowPos <= 0f || rowPos >= 1.2f) 0f else {
+                val env = sin((rowPos / 1.2f) * PI).toFloat()
+                (0.24f * env * shimmerIntensity).coerceIn(0f, 0.45f)
+            }
+        }
+        "electric" -> {
+            val cycle = shimmerProgress * 2f
+            val isLeftToRight = cycle < 1f
+            val passProgress = if (isLeftToRight) cycle else (cycle - 1f)
+            val waveHead = -0.25f + (passProgress * 1.55f)
+            val horizStep = if (isLeftToRight) col else (columnsCount - 1 - col)
+            val tileCoord = (horizStep * 0.16f) + ((row % 7) * 0.11f)
+            val power = (1f - (abs(waveHead - tileCoord) / 0.24f)).coerceIn(0f, 1f) * shimmerIntensity
+            if (power > 0.08f) (0.35f + power * 0.65f).coerceIn(0f, 1f) else 0f
+        }
+        else -> 0f
+    }
+}
+
+private fun DrawScope.drawBookTileShimmer(
+    shimmerStyle: String,
+    shimmerProgress: Float,
+    shimmerIntensity: Float,
+    index: Int,
+    row: Int,
+    col: Int,
+    columnsCount: Int,
+    isPressed: Boolean,
+) {
+    if (isPressed) {
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFFBD38D).copy(alpha = 0.22f),
+                    Color.Transparent,
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.5f),
+                radius = size.width * 0.75f,
+            )
+        )
+    }
+    if (shimmerStyle == "none" || shimmerIntensity <= 0.01f) return
+
+    when (shimmerStyle) {
+        "soft_gold_sheen" -> {
+            val cycle = (shimmerProgress + col * 0.08f + (row % 7) * 0.12f) % 1f
+            if (cycle < 0.36f) {
+                val p = cycle / 0.36f
+                val env = sin(p * PI).toFloat()
+                val alpha = (0.20f * env * shimmerIntensity).coerceIn(0f, 0.45f)
+                val cx = (p * 1.7f - 0.35f) * size.width
+                val bandWidth = 34.dp.toPx()
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0xFFFBD38D).copy(alpha = alpha),
+                            Color.Transparent,
+                        ),
+                        start = Offset(cx - bandWidth, 0f),
+                        end = Offset(cx + bandWidth, size.height),
+                    )
+                )
+            }
+        }
+        "candle_breathe" -> {
+            val wave = ((sin((shimmerProgress * 2.0 * PI) + index * 0.65) + 1.0) * 0.5).toFloat()
+            val alpha = ((0.04f + wave * 0.12f * shimmerIntensity)).coerceIn(0f, 0.28f)
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFBD38D).copy(alpha = alpha),
+                        Color.Transparent,
+                    )
+                )
+            )
+        }
+        "row_wave" -> {
+            val rowPos = shimmerProgress * 9.5f - (row % 8) * 0.72f
+            if (rowPos > 0f && rowPos < 1.2f) {
+                val p = rowPos / 1.2f
+                val env = sin(p * PI).toFloat()
+                val alpha = (0.17f * env * shimmerIntensity).coerceIn(0f, 0.35f)
+                val ySweep = p * size.height
+                val band = 24.dp.toPx()
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0xFFFBD38D).copy(alpha = alpha),
+                            Color.Transparent,
+                        ),
+                        startY = ySweep - band,
+                        endY = ySweep + band,
+                    )
+                )
+            }
+        }
+        "horizon_pulse" -> {
+            val cycle = (shimmerProgress + index * 0.11f) % 1f
+            if (cycle < 0.28f) {
+                val p = cycle / 0.28f
+                val env = sin(p * PI).toFloat()
+                val alpha = (0.42f * env * shimmerIntensity).coerceIn(0f, 0.65f)
+                val lx = p * size.width
+                val halfSpan = 26.dp.toPx()
+                val barHeight = 2.4.dp.toPx()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0xFFFBD38D).copy(alpha = alpha),
+                            Color.Transparent,
+                        ),
+                        startX = lx - halfSpan,
+                        endX = lx + halfSpan,
+                    ),
+                    topLeft = Offset(0f, size.height - barHeight),
+                    size = Size(size.width, barHeight),
+                )
+            }
+        }
+        "electric" -> {
+            val cycle = shimmerProgress * 2f
+            val isLeftToRight = cycle < 1f
+            val passProgress = if (isLeftToRight) cycle else (cycle - 1f)
+            val waveHead = -0.25f + (passProgress * 1.55f)
+            val horizStep = if (isLeftToRight) col else (columnsCount - 1 - col)
+            val tileCoord = (horizStep * 0.16f) + ((row % 7) * 0.11f)
+            val boltPower = (1f - (abs(waveHead - tileCoord) / 0.24f)).coerceIn(0f, 1f) * shimmerIntensity
+            if (boltPower > 0.04f) {
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0xFF90CDF4).copy(alpha = (0.28f * boltPower).coerceIn(0f, 0.6f)),
+                            Color(0xFFFBD38D).copy(alpha = (0.36f * boltPower).coerceIn(0f, 0.7f)),
+                            Color.Transparent,
+                        ),
+                        start = if (isLeftToRight) Offset.Zero else Offset(size.width, 0f),
+                        end = if (isLeftToRight) Offset(size.width, size.height) else Offset(0f, size.height),
+                    )
+                )
+                val w = size.width
+                val h = size.height
+                val jitter = if ((index % 2) == 0) 0.14f else -0.14f
+                val boltPath = Path().apply {
+                    if (isLeftToRight) {
+                        moveTo(w * 0.04f, h * 0.10f)
+                        lineTo(w * 0.34f, h * (0.44f + jitter))
+                        lineTo(w * 0.46f, h * (0.28f - jitter))
+                        lineTo(w * 0.70f, h * (0.68f + jitter))
+                        lineTo(w * 0.96f, h * 0.92f)
+                    } else {
+                        moveTo(w * 0.96f, h * 0.10f)
+                        lineTo(w * 0.66f, h * (0.44f + jitter))
+                        lineTo(w * 0.54f, h * (0.28f - jitter))
+                        lineTo(w * 0.30f, h * (0.68f + jitter))
+                        lineTo(w * 0.04f, h * 0.92f)
+                    }
+                }
+                drawPath(
+                    path = boltPath,
+                    color = Color(0xFFFBD38D).copy(alpha = (0.55f * boltPower).coerceIn(0f, 0.9f)),
+                    style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+                drawPath(
+                    path = boltPath,
+                    color = Color.White.copy(alpha = (0.92f * boltPower).coerceIn(0f, 1f)),
+                    style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
             }
         }
     }
@@ -515,6 +996,13 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
     BibleState.resumeShortIdOnReturn = shortItem.id
     BibleState.returnToShortsOnBack = true
     BibleState.restoreReadingLocation(book, shortItem.chapter)
+    val verseRange = parseVerseRange(shortItem.scriptureReference, shortItem.verse)
+    BibleState.focusScriptureVerse(
+        bookId = book.bookId,
+        chapter = shortItem.chapter,
+        verseStart = verseRange.first,
+        verseEnd = verseRange.last,
+    )
 }
 
 private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
@@ -542,4 +1030,10 @@ private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
     )
     BibleState.returnToShortsOnBack = false
     BibleState.restoreReadingLocation(targetBook, data.chapter.coerceAtLeast(1))
+    BibleState.focusScriptureVerse(
+        bookId = targetBook.bookId,
+        chapter = data.chapter.coerceAtLeast(1),
+        verseStart = data.verse.coerceAtLeast(1),
+        verseEnd = data.verse.coerceAtLeast(1),
+    )
 }

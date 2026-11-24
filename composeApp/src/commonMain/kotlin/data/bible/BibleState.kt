@@ -79,11 +79,22 @@ object BibleState {
 
     var pendingDeepLink by mutableStateOf<ScriptureDeepLink?>(null)
         private set
+    var navigationGeneration by mutableStateOf(0)
+        private set
     var pendingTargetVerse by mutableStateOf<Int?>(null)
         private set
     var pendingTargetBookId by mutableStateOf<String?>(null)
         private set
     var pendingTargetChapter by mutableStateOf<Int?>(null)
+        private set
+
+    var highlightedVerseBookId by mutableStateOf<String?>(null)
+        private set
+    var highlightedVerseChapter by mutableStateOf<Int?>(null)
+        private set
+    var highlightedVerseStart by mutableStateOf<Int?>(null)
+        private set
+    var highlightedVerseEnd by mutableStateOf<Int?>(null)
         private set
 
     fun enqueueDeepLink(link: ScriptureDeepLink) {
@@ -94,6 +105,31 @@ object BibleState {
         pendingTargetVerse = null
         pendingTargetBookId = null
         pendingTargetChapter = null
+    }
+
+    fun clearHighlightedVerse() {
+        highlightedVerseBookId = null
+        highlightedVerseChapter = null
+        highlightedVerseStart = null
+        highlightedVerseEnd = null
+    }
+
+    fun focusScriptureVerse(
+        bookId: String,
+        chapter: Int,
+        verseStart: Int,
+        verseEnd: Int = verseStart,
+    ) {
+        val safeChapter = chapter.coerceAtLeast(1)
+        val safeStart = verseStart.coerceAtLeast(1)
+        val safeEnd = verseEnd.coerceAtLeast(safeStart)
+        highlightedVerseBookId = bookId
+        highlightedVerseChapter = safeChapter
+        highlightedVerseStart = safeStart
+        highlightedVerseEnd = safeEnd
+        pendingTargetVerse = safeStart
+        pendingTargetBookId = bookId
+        pendingTargetChapter = safeChapter
     }
 
     internal suspend fun consumePendingDeepLink(
@@ -162,13 +198,12 @@ object BibleState {
         returnToShortsOnBack = false
         closeBiblicalShorts()
         restoreReadingLocation(matchedBook, targetRef.chapter.coerceAtLeast(1))
-        if (targetRef.verse > 1) {
-            pendingTargetVerse = targetRef.verse
-            pendingTargetBookId = matchedBook.bookId
-            pendingTargetChapter = targetRef.chapter.coerceAtLeast(1)
-        } else {
-            clearPendingTargetVerse()
-        }
+        focusScriptureVerse(
+            bookId = matchedBook.bookId,
+            chapter = targetRef.chapter.coerceAtLeast(1),
+            verseStart = targetRef.verse.coerceAtLeast(1),
+            verseEnd = targetRef.verse.coerceAtLeast(1),
+        )
         AnalyticsTracker.trackBookSelected(
             bookId = matchedBook.bookId,
             bookName = matchedBook.name ?: resolvedUsfm,
@@ -265,11 +300,26 @@ object BibleState {
 
     internal fun updateSelectedChapter(chapter: String? = null) {
         Napier.v("updateSelectedChapter: $chapter", tag = "BB2452")
-        selectedChapter = chapter ?: "${selectedBook.bookId}.1"
+        val resolved = chapter ?: "${selectedBook.bookId}.1"
+        val resolvedChapterNum = resolved.substringAfter('.').toIntOrNull()
+        if (highlightedVerseBookId != null &&
+            (!highlightedVerseBookId.equals(selectedBook.bookId, ignoreCase = true) ||
+                (resolvedChapterNum != null && highlightedVerseChapter != resolvedChapterNum))
+        ) {
+            clearHighlightedVerse()
+        }
+        selectedChapter = resolved
     }
 
     fun updateSelectedBook(newBook: BookData) {
-        if (newBook.bookId != selectedBook.bookId) GeminiModel.cancelPendingSummary()
+        if (newBook.bookId != selectedBook.bookId) {
+            GeminiModel.cancelPendingSummary()
+            if (highlightedVerseBookId != null &&
+                !highlightedVerseBookId.equals(newBook.bookId, ignoreCase = true)
+            ) {
+                clearHighlightedVerse()
+            }
+        }
         selectedBook = newBook
     }
 
@@ -288,11 +338,13 @@ object BibleState {
             )
         }
         showHomePage = false
+        navigationGeneration += 1
     }
 
     internal fun discardReadingLocation() {
         bibleChapter = BibleChapterUIState()
         clearPendingTargetVerse()
+        clearHighlightedVerse()
         GeminiModel.cancelPendingSummary()
         showHomePage = true
     }
@@ -343,10 +395,12 @@ object BibleState {
     fun updateReadingHistory(newHistory: List<SelectReadingHistory>) {
         readingHistory = newHistory.map {
             if (it.b == null || it.c == null) return@map ReadingHistoryUIState()
+            val ordinal = it.b.toIntOrNull()
             ReadingHistoryUIState(
-                bookName = bibleBooks.data?.getOrNull(it.b.toInt() - 1)?.name,
+                bookName = ordinal?.let { ord -> bibleBooks.data?.getOrNull(ord - 1)?.name },
                 chapterId = it.c.toInt(),
                 date = transformDate(it.DATE),
+                bookOrdinal = ordinal,
             )
         }
     }
@@ -366,6 +420,20 @@ object BibleState {
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         returnToShortsOnBack = false
         resumeShortIdOnReturn = null
+        clearHighlightedVerse()
+        clearPendingTargetVerse()
+        showBiblicalShorts = false
+        showHomePage = true
+        ReadingSession.goHome()
+    }
+
+    internal fun exitBiblicalShortsToHome() {
+        closeBiblicalShorts()
+        GeminiModel.cancelPendingSummary()
+        returnToShortsOnBack = false
+        resumeShortIdOnReturn = null
+        clearHighlightedVerse()
+        clearPendingTargetVerse()
         showBiblicalShorts = false
         showHomePage = true
         ReadingSession.goHome()
@@ -375,6 +443,10 @@ object BibleState {
         GeminiModel.cancelPendingSummary()
         if (returnToShortsOnBack) {
             returnToShortsOnBack = false
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+            showHomePage = true
+            ReadingSession.goHome()
             AnalyticsTracker.track("reader_back_to_shorts", "navigation")
             openBiblicalShorts()
         } else {

@@ -108,3 +108,72 @@ fun findVerseCharacterOffset(
     val bareIdx = chapterText.indexOf(bracketBare)
     return if (bareIdx >= 0) bareIdx else null
 }
+
+fun parseVerseRange(
+    scriptureReference: String,
+    fallbackVerse: Int = 1,
+): IntRange {
+    val safeFallback = fallbackVerse.coerceAtLeast(1)
+    val match = Regex(":(\\d+)(?:\\s*[-–—]\\s*(\\d+))?").find(scriptureReference)
+        ?: return safeFallback..safeFallback
+    val start = match.groupValues[1].toIntOrNull()?.coerceAtLeast(1) ?: safeFallback
+    val end = match.groupValues[2].toIntOrNull()?.coerceAtLeast(start) ?: start
+    return start..end
+}
+
+fun findVerseCharacterRange(
+    chapterText: String,
+    verseStart: Int,
+    verseEnd: Int = verseStart,
+    version: String,
+): IntRange? {
+    if (chapterText.isBlank()) return null
+    val safeStart = verseStart.coerceAtLeast(1)
+    val safeEnd = verseEnd.coerceAtLeast(safeStart)
+
+    val startIdx = if (safeStart == 1) {
+        if (version.equals("svd", ignoreCase = true)) {
+            val match = Regex("(?:^|\\n)1\\s").find(chapterText)
+            if (match != null) {
+                val first = match.range.first
+                if (chapterText[first] == '\n') first + 1 else first
+            } else {
+                0
+            }
+        } else {
+            val spaced = chapterText.indexOf("[1] ")
+            if (spaced >= 0) spaced else {
+                val bare = chapterText.indexOf("[1]")
+                if (bare >= 0) bare else 0
+            }
+        }
+    } else {
+        findVerseCharacterOffset(chapterText, safeStart, version)
+    } ?: return null
+
+    val exactNext = findVerseCharacterOffset(chapterText, safeEnd + 1, version)
+    val fallbackNext = if (exactNext == null) {
+        val endVerseAnchor = if (safeEnd > safeStart) {
+            findVerseCharacterOffset(chapterText, safeEnd, version) ?: startIdx
+        } else {
+            startIdx
+        }
+        if (endVerseAnchor + 1 < chapterText.length) {
+            val tailPattern = if (version.equals("svd", ignoreCase = true)) {
+                Regex("\\n\\d+\\s")
+            } else {
+                Regex("\\n\\[\\d+\\]")
+            }
+            tailPattern.find(chapterText, startIndex = endVerseAnchor + 1)?.range?.first?.plus(1)
+        } else {
+            null
+        }
+    } else {
+        null
+    }
+    var endExclusive = exactNext ?: fallbackNext ?: chapterText.length
+    while (endExclusive > startIdx && chapterText[endExclusive - 1].isWhitespace()) {
+        endExclusive--
+    }
+    return if (endExclusive > startIdx) startIdx until endExclusive else null
+}

@@ -37,9 +37,11 @@ struct iOSApp: App {
 
 	var body: some Scene {
 		WindowGroup {
-			ContentView()
-                .background(Color(hex: 0x2C3E50))
-//                .edgesIgnoringSafeArea(.bottom)
+			ZStack {
+				Color(hex: 0x09111E)
+					.ignoresSafeArea(.all)
+				ContentView()
+			}
 		}
 	}
 }

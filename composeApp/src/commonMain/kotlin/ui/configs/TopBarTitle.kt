@@ -44,14 +44,14 @@ internal fun TopBarTitle(
             text = title,
             style = TextStyle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
-                fontSize = 21.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.4.sp,
+                letterSpacing = 0.8.sp,
                 color = Color.White,
             ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(end = 4.dp)
+            modifier = Modifier.padding(end = 6.dp)
         )
     }
 }

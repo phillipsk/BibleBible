@@ -87,6 +87,7 @@ data class ReadingHistoryUIState(
     val bookName: String? = null,
     val chapterId: Int? = null,
     val date: String? = null,
+    val bookOrdinal: Int? = null,
 ) {
     override fun toString(): String {
         return "$date   $bookName, Chapter: $chapterId"

@@ -1,11 +1,16 @@
 package ui
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.swipeUp
 import data.shorts.BiblicalShortDto
 import data.shorts.InMemorySeenWordsStore
 import data.shorts.InMemoryShortsPrefsBacking
@@ -71,24 +76,35 @@ class BiblicalShortsUiTest {
         onNodeWithText("Welcome to Biblical Words").assertDoesNotExist()
 
         onNodeWithText("Biblical Words").assertIsDisplayed()
-        // Sound defaults to OFF and toggles cleanly
-        onNodeWithText("Sound Off").assertIsDisplayed()
-        onNodeWithTag("shorts_mute_toggle").performClick()
-        onNodeWithText("Sound On").assertIsDisplayed()
+        // Sound defaults to OFF (Speaker-X icon) and toggles cleanly
+        onNodeWithTag("shorts_mute_toggle")
+            .assertIsDisplayed()
+            .assertContentDescriptionEquals("Sound Off")
+            .performClick()
+            .assertContentDescriptionEquals("Sound On")
 
-        // Decluttered bottom: Key Lesson removed, scrubber + bottom categories + weekly hint present
+        // Decluttered bottom: Key Lesson, category chips, and bottom CTA buttons removed; overlaid legend, scrubber + hint present
         onNodeWithText("Key Lesson:", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}", useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
-        onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
 
-        // Advance to second short and tap Read Chapter
-        onNodeWithText("Next").performClick()
-        onNodeWithTag("read_chapter_btn_02-1a-inhouse-covenant-provision").performClick()
+        // Swipe up to second short, scrub into Scene 2, and tap animated Read Now CTA
+        val expectedSecond = sampleShorts[1]
+        onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
+        waitForIdle()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).performSemanticsAction(
+            SemanticsActions.SetProgress
+        ) { setProgress ->
+            setProgress(expectedSecond.effectiveScene2StartSeconds().toFloat() + 1f)
+        }
+        onNodeWithTag("short_card2_read_now_button", useUnmergedTree = true).performClick()
         runOnIdle {
-            assertEquals("02-1a-inhouse-covenant-provision", openedChapter?.id)
-            assertEquals(19, openedChapter?.bookId)
-            assertEquals(37, openedChapter?.chapter)
+            assertEquals(expectedSecond.id, openedChapter?.id)
+            assertEquals(expectedSecond.bookId, openedChapter?.bookId)
+            assertEquals(expectedSecond.chapter, openedChapter?.chapter)
         }
     }
 }

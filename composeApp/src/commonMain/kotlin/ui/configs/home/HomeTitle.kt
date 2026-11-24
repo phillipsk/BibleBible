@@ -40,7 +40,7 @@ internal fun HomeTitle(onClick: () -> Unit) {
                 letterSpacing = 3.1.sp,
                 fontWeight = FontWeight.Bold,
                 fontSize = 24.sp,
-                color = Color.White,
+                color = Color(0xFFFBD38D),
             ),
             maxLines = 1,
             overflow = TextOverflow.Visible,

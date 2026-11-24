@@ -76,6 +76,17 @@ internal fun BibleScripturesPager(
             pageCount = { chapterCount }
         )
 
+        LaunchedEffect(BibleState.navigationGeneration) {
+            if (BibleState.navigationGeneration == 0) return@LaunchedEffect
+            val requestedChapter = BibleState.selectedChapter.substringAfter('.').toIntOrNull() ?: return@LaunchedEffect
+            if (BibleState.selectedBook.bookId == selectedBook.bookId) {
+                val targetPage = (requestedChapter - 1).coerceIn(0, chapterCount - 1)
+                if (pagerState.currentPage != targetPage) {
+                    pagerState.scrollToPage(targetPage)
+                }
+            }
+        }
+
         // One request per settled navigation. Recreating an already loaded reader
         // (rotation, foregrounding) must not reload chapter 1 or add history.
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
