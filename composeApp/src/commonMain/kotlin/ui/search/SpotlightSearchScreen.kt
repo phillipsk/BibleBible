@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -92,47 +93,48 @@ internal fun ElasticSearchTriggerBar(
 ) {
     Surface(
         onClick = onActivateSearch,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = DeepNavy,
-        border = BorderStroke(1.2.dp, Color(0x66FBD38D)),
-        elevation = 2.dp,
+        border = BorderStroke(1.3.dp, Color(0x73FBD38D)),
+        elevation = 3.dp,
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 58.dp)
             .padding(horizontal = 4.dp, vertical = 4.dp)
             .testTag("elastic_search_trigger"),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 15.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Search Bible",
                 tint = GoldAccent,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(20.dp),
             )
             Text(
                 text = "Search books, topics, or how you feel...",
-                color = Color(0xFFCBD5E1),
-                fontSize = 13.5.sp,
+                color = Color(0xFFDCE6F2),
+                fontSize = 15.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Surface(
                 shape = RoundedCornerShape(50),
-                color = Color(0x24FBD38D),
+                color = Color(0x28FBD38D),
                 elevation = 0.dp,
             ) {
                 Text(
                     text = "Search",
                     color = GoldAccent,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
         }
@@ -258,31 +260,33 @@ internal fun SpotlightSearchScreen(
 
             // Gold-Rimmed Search Box
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(18.dp),
                 color = DeepNavy,
                 border = BorderStroke(1.5.dp, GoldAccent),
                 elevation = 0.dp,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         tint = GoldAccent,
-                        modifier = Modifier.size(18.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     Box(modifier = Modifier.weight(1f)) {
                         if (query.isEmpty()) {
                             Text(
                                 text = "Book, verse (John 3:16), topic, or mood...",
                                 color = Color(0xFF94A3B8),
-                                fontSize = 14.sp,
+                                fontSize = 15.5.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -293,7 +297,7 @@ internal fun SpotlightSearchScreen(
                             singleLine = true,
                             textStyle = TextStyle(
                                 color = Color.White,
-                                fontSize = 14.sp,
+                                fontSize = 15.5.sp,
                                 fontWeight = FontWeight.Medium,
                             ),
                             cursorBrush = SolidColor(GoldAccent),
@@ -771,13 +775,21 @@ private fun MasonryTopicCard(
         colors = listOf(solidColor, Color(0xFF132238)),
     )
 
+    val minCardHeight = when {
+        card.size == "hero" -> 148.dp
+        isTall -> 136.dp
+        else -> 96.dp
+    }
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
         color = solidColor,
         border = BorderStroke(1.dp, Color(0x4DFBD38D)),
         elevation = 3.dp,
-        modifier = modifier.testTag("masonry_card_${card.id}"),
+        modifier = modifier
+            .heightIn(min = minCardHeight)
+            .testTag("masonry_card_${card.id}"),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(6.dp),

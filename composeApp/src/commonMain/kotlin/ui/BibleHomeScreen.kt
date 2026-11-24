@@ -615,124 +615,107 @@ internal fun BibleHomeContent(
                 val showShorts = CloudSessionManager.biblicalShortsEnabled
                 val showPlans = CloudSessionManager.readingPlansEnabled
                 val plansLayout = CloudSessionManager.homePlansLayout
-                val useTwinCards = showShorts && showPlans &&
-                    (plansLayout == "twin_cards" || (plansLayout == "adaptive" && windowMetrics.isWideHome))
+                val useTwinCardsRow = showShorts && showPlans &&
+                    (plansLayout == "twin_cards" || (plansLayout == "adaptive" && windowMetrics.isLandscapePhone))
+                val isTabletWide = windowMetrics.isWideHome && !windowMetrics.isLandscapePhone
                 val hingeGap = windowMetrics.hingeSafeGap.coerceAtLeast(12.dp)
 
-                if (windowMetrics.isWideHome && dailyVerse != null) {
-                    when {
-                        showShorts && showPlans -> {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(hingeGap),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                            ) {
-                                VerseOfTheDay(
-                                    presentation = dailyVerse,
-                                    version = version,
-                                    modifier = Modifier
-                                        .weight(1.05f)
-                                        .fillMaxHeight(),
-                                    onVerseClick = { dv -> openDailyVerseChapter(dv) },
-                                )
-                                if (plansLayout == "twin_cards") {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                        modifier = Modifier
-                                            .weight(0.95f)
-                                            .fillMaxHeight(),
-                                    ) {
-                                        BiblicalShortsEntryCard(
-                                            onOpenShorts = {
-                                                BibleState.resumeShortIdOnReturn = null
-                                                BibleState.openBiblicalShorts()
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight(),
-                                        )
-                                        ReadingPlanTwinCard(
-                                            onOpenPlans = { BibleState.openReadingPlans() },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight(),
-                                        )
-                                    }
-                                } else {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(0.dp),
-                                        modifier = Modifier.weight(0.95f),
-                                    ) {
-                                        BiblicalShortsEntryCard(
-                                            onOpenShorts = {
-                                                BibleState.resumeShortIdOnReturn = null
-                                                BibleState.openBiblicalShorts()
-                                            },
-                                        )
-                                        ReadingPlanTwinCard(
-                                            onOpenPlans = { BibleState.openReadingPlans() },
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        showShorts -> {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(hingeGap),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                            ) {
-                                VerseOfTheDay(
-                                    presentation = dailyVerse,
-                                    version = version,
-                                    modifier = Modifier
-                                        .weight(1.15f)
-                                        .fillMaxHeight(),
-                                    onVerseClick = { dv -> openDailyVerseChapter(dv) },
-                                )
-                                BiblicalShortsEntryCard(
-                                    onOpenShorts = {
-                                        BibleState.resumeShortIdOnReturn = null
-                                        BibleState.openBiblicalShorts()
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.85f)
-                                        .fillMaxHeight(),
-                                )
-                            }
-                        }
-                        showPlans -> {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(hingeGap),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                            ) {
-                                VerseOfTheDay(
-                                    presentation = dailyVerse,
-                                    version = version,
-                                    modifier = Modifier
-                                        .weight(1.15f)
-                                        .fillMaxHeight(),
-                                    onVerseClick = { dv -> openDailyVerseChapter(dv) },
-                                )
-                                ReadingPlanBannerCard(
-                                    onOpenPlans = { BibleState.openReadingPlans() },
-                                    modifier = Modifier
-                                        .weight(0.85f)
-                                        .fillMaxHeight(),
-                                )
-                            }
-                        }
-                        else -> {
+                if (useTwinCardsRow) {
+                    Column {
+                        if (dailyVerse != null) {
                             VerseOfTheDay(
                                 presentation = dailyVerse,
                                 version = version,
                                 onVerseClick = { dv -> openDailyVerseChapter(dv) },
                             )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                        ) {
+                            BiblicalShortsEntryCard(
+                                onOpenShorts = {
+                                    BibleState.resumeShortIdOnReturn = null
+                                    BibleState.openBiblicalShorts()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
+                            ReadingPlanTwinCard(
+                                onOpenPlans = { BibleState.openReadingPlans() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
+                        }
+                    }
+                } else if (isTabletWide && dailyVerse != null && plansLayout != "stacked") {
+                    Column {
+                        when {
+                            showShorts -> {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(hingeGap),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
+                                    VerseOfTheDay(
+                                        presentation = dailyVerse,
+                                        version = version,
+                                        modifier = Modifier
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
+                                        onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                    )
+                                    BiblicalShortsEntryCard(
+                                        onOpenShorts = {
+                                            BibleState.resumeShortIdOnReturn = null
+                                            BibleState.openBiblicalShorts()
+                                        },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
+                                    )
+                                }
+                                if (showPlans) {
+                                    ReadingPlanBannerCard(
+                                        onOpenPlans = { BibleState.openReadingPlans() },
+                                    )
+                                }
+                            }
+                            showPlans -> {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(hingeGap),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
+                                    VerseOfTheDay(
+                                        presentation = dailyVerse,
+                                        version = version,
+                                        modifier = Modifier
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
+                                        onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                    )
+                                    ReadingPlanBannerCard(
+                                        onOpenPlans = { BibleState.openReadingPlans() },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
+                                    )
+                                }
+                            }
+                            else -> {
+                                VerseOfTheDay(
+                                    presentation = dailyVerse,
+                                    version = version,
+                                    onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                )
+                            }
                         }
                     }
                 } else {
@@ -744,43 +727,18 @@ internal fun BibleHomeContent(
                                 onVerseClick = { dv -> openDailyVerseChapter(dv) },
                             )
                         }
-                        if (useTwinCards) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(IntrinsicSize.Min),
-                            ) {
-                                BiblicalShortsEntryCard(
-                                    onOpenShorts = {
-                                        BibleState.resumeShortIdOnReturn = null
-                                        BibleState.openBiblicalShorts()
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                )
-                                ReadingPlanTwinCard(
-                                    onOpenPlans = { BibleState.openReadingPlans() },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight(),
-                                )
-                            }
-                        } else {
-                            if (showShorts) {
-                                BiblicalShortsEntryCard(
-                                    onOpenShorts = {
-                                        BibleState.resumeShortIdOnReturn = null
-                                        BibleState.openBiblicalShorts()
-                                    }
-                                )
-                            }
-                            if (showPlans) {
-                                ReadingPlanBannerCard(
-                                    onOpenPlans = { BibleState.openReadingPlans() },
-                                )
-                            }
+                        if (showShorts) {
+                            BiblicalShortsEntryCard(
+                                onOpenShorts = {
+                                    BibleState.resumeShortIdOnReturn = null
+                                    BibleState.openBiblicalShorts()
+                                }
+                            )
+                        }
+                        if (showPlans) {
+                            ReadingPlanBannerCard(
+                                onOpenPlans = { BibleState.openReadingPlans() },
+                            )
                         }
                     }
                 }

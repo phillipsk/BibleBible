@@ -10,8 +10,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.url
+import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -156,10 +158,14 @@ internal object SearchRepository {
         val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
         val endpoint = "$prefix${ProtectedEndpoints.searchPath()}"
         return try {
+            val token = CloudSessionManager.sessionToken
             val response = withContext(Dispatchers.IO) {
                 client.get {
                     expectSuccess = false
                     url(endpoint)
+                    if (token.isNotBlank()) {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                    }
                     parameter("q", query)
                     parameter("versionId", versionId)
                     if (intentTopics.isNotEmpty()) {
