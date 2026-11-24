@@ -1,39 +1,36 @@
-# HANDOFF.md — Current Development State
+# HANDOFF.md: Current Development State
 
-## Current Branches & PRs
-- **Target Release Branch**: `release/3.1` (branched off `c944478` / `release/3.0` / `v3.0`).
-- **Feature Branches**:
-  - `feature/biblical-shorts`: [PR #61](https://github.com/phillipsk/BibleBible/pull/61) (`feature/biblical-shorts` -> `release/3.1`).
-  - `feature/analytics`: [PR #62](https://github.com/phillipsk/BibleBible/pull/62) (`feature/analytics` -> `release/3.1`).
-- **Worktree**: `/Users/phillipsk7461/Documents/BibleBibleAntigravity/biblebible-shorts`
+## Current Branch & Release Artifacts
+- **Active Release Branch**: `release/3.1` (latest commit `5ed533b`)
+- **Android Release Version**: `versionName = "3.1"`, `versionCode = 23`
+- **iOS Release Version**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 19`
+- **CI Test Release Run**: `.github/workflows/mobile-test-release.yml` run `#63` (`45394576867`) uploading Android `3.1 (23)` to Google Play Internal Testing and iOS `5.8 (19)` to TestFlight.
+- **Cloud Run Backend**: `biblebible-api` revision `biblebible-api-00017-vw9` (`us-central1`) at `https://biblebible-api-687901748717.us-central1.run.app`.
 
-## Completed Work
-1. **Biblical Shorts (<30s Video Reels)**:
-   - 50 curated Old & New Testament video narratives generated in 720x1280 MP4 (H.264/AAC, 79 MB total) hosted on Google Cloud Storage `gs://gen-lang-client-0150678391-biblebible-shorts/shorts/`.
-   - Streaming endpoint `GET /v1/shorts` with HTTP 206 Partial Content range streaming on Cloud Run.
-   - Enforced $100/mo spending cap via GCP Cloud Billing budget `BibleBible Monthly Cap ($100)` (ID: `798e52d4-1a22-43a8-9895-372b04fe8ff9`).
-   - Compose Multiplatform client:
-     - Entry card with animated swipe arrow below Verse of the Day on `BibleHomeScreen`.
-     - Full-screen reels pager with category filters, sound/pause toggles, and "Read Chapter" navigation.
-     - Platform-native video player integration via `TextureView` on Android, `AVPlayer` on iOS, and deterministic preview on Desktop.
-   - Recorded mobile demo tours saved to Desktop:
-     - `ios-biblical-shorts-demo.mp4` (26 MB, 16.8s)
-     - `android-biblical-shorts-demo.mp4` (12 MB, 18.2s)
-2. **First-Party Analytics & Live Dashboard**:
-   - `AnalyticsTracker` with background channel coalescing, 15-second batch flushes, offline queueing, and flush-on-exit lifecycle hooks.
-   - Full sweep of 22 files across reader, search, audio, AI summary, and Biblical Shorts.
-   - Backend collector on Cloud Run: `POST /v1/analytics/events`, `GET /v1/analytics/summary`, structured Cloud Logging (`component: "biblebible-analytics"`), and live auto-refreshing HTML dashboard at `GET /analytics`.
-3. **Privacy & Store Compliance Updates**:
-   - Updated `PrivacyPolicy.md` with explicit disclosures for anonymous operational telemetry, zero PII, no advertising/ATT requirement, and Google Gemini AI processing.
-   - Store compliance specifications for Apple App Store (Nutrition labels: "Not Linked to You", zero tracking) and Google Play (Data Safety: App interactions & Diagnostics, encrypted in transit).
-4. **Strategic Architecture Reports**:
-   - `docs/reports/release-3.1-strategy-report.html`: Standalone in-depth analysis covering Privacy Policy, Store Compliance, Authentication & Token Cost/Abuse Prevention, and Version Control (GitHub vs. Google ecosystem).
-   - Architectural Decision Records: [ADR 0001](adr/0001-cloud-gateway-and-token-security.md), [ADR 0002](adr/0002-kmp-vs-native-video-player.md), [ADR 0003](adr/0003-biblical-shorts-and-budget-cap.md), [ADR 0004](adr/0004-first-party-cloud-analytics-and-live-dashboard.md).
+## Completed Work on `release/3.1`
+1. **Literary Serif Bible Reader & Cloud Config Flags**:
+   - Bundled SIL OFL `Newsreader` fonts (`newsreader_regular.ttf`, `newsreader_semibold.ttf`), `22sp` default text size, Warm Coral (`#F48B8B`) red-letter Words of Jesus spans, superscript gold verse `1`, and SQLite-safe `ChapterFormatMeta` side table keeping SQLDelight schema at `8L`.
+   - Clean white `ChapterTopBar`, gold `#FBD38D` selected chapter tab indicator in `BibleScripturesPager`, and gold `#FBD38D` settings drawer accents (`BottomSheetConfigView`, including top drag bar).
+2. **Sticky AI Chapter Summaries & Loading Polish**:
+   - Gold `#FBD38D` AI checkmark and outline border (`isAiButtonHighlighted` in `GeminiModel.kt`), locked across same-book chapter swipes and reset on failure, toggle off, Home/back navigation, book changes, or deep links (`restoreReadingLocation`).
+   - Stripped markdown horizontal rules (`---`, `***`, `___`) and em-dashes/double hyphens in both backend (`geminiGateway.js` `:v2` cache key + `sanitizeSummaryText`) and client (`GeminiSummary.kt`).
+   - Wall-clock-driven `GoldSpinningProgressIndicator` and `GoldSlidingProgressBar` in `LoadingScreen.kt` so loading indicators spin smoothly even with Android `animator_duration_scale = 0`.
+3. **Biblical Words / Shorts Polish**:
+   - Fixed iOS tap/double-tap interception (`UIKitInteropProperties(isInteractive = false)`) and physical-device audio (`AVAudioSessionCategoryPlayback`).
+   - Applied Sample 1 translucent top bar (`0.68f` white title, `0x4709111E` frosted mute circle), daily 2-reel cap for `1x Pause · 2x Sound` legend (`GESTURE_LEGEND_MAX_PER_DAY = 2`), and continuous auto-advance after 2 completed plays (`SHORTS_AUTO_ADVANCE_AFTER_PLAYS = 2`).
+4. **Device & Reading Analytics + GitHub Actions Hardening**:
+   - Added persistent app-scoped `deviceId` (`X-Client-Device-Id`), per-book and per-chapter active reading time tracking, and Shorts autoplay idle detection aggregated in backend `/v1/analytics/summary` and `/analytics`.
+   - Added `release/**` trigger and `verify_no_client_secrets.py` step to `.github/workflows/build.yml`.
 
-## Verification Matrix
-- `cd backend && npm test`: **8/8 suites passing**.
-- `desktopTest`: **21 suites, 72 tests passed** (0 failures, 0 errors).
-- `testAndroidHostTest`: **13 suites, 43 tests passed** (0 failures, 0 errors).
-- `compileKotlinIosSimulatorArm64`: **BUILD SUCCESSFUL**.
-- Secret leak scan (`python3 tools/verify_no_client_secrets.py`): **0 leaks found across 207 files**.
-- Live Cloud Run service: `https://biblebible-api-687901748717.us-central1.run.app` (`/v1/config`, `/v1/summary`, `/v1/shorts`, `/v1/analytics/events`, `/v1/analytics/summary`, `/analytics`).
+## Verified Results
+- `cd backend && npm test`: **24/24 passed**.
+- `python3 tools/verify_no_client_secrets.py`: **248 files scanned, 0 leaks found**.
+- `./gradlew :composeApp:testAndroidHostTest :composeApp:desktopTest :composeApp:compileKotlinIosArm64 :androidApp:assembleDebug`:
+  - `androidHostTest`: **74 tests, 0 failed, 0 skipped**.
+  - `desktopTest`: **109 tests, 0 failed, 0 skipped**.
+  - `compileKotlinIosArm64` and `assembleDebug`: **BUILD SUCCESSFUL**.
+
+## Remaining Next Steps
+1. Complete manual smoke testing on Google Play Internal Testing (`3.1 (23)`) and Apple TestFlight (`5.8 (19)`).
+2. Confirm Google Play **Managed Publishing** is enabled in Play Console before promoting/submitting Production review, and set App Store Connect `5.8 (19)` to **Manually release this version** when submitting to App Review.
+3. Open/merge PR from `release/3.1` to `main` once approved and released.
