@@ -55,8 +55,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -494,7 +492,6 @@ internal fun homeBarGlassProgress(gridState: LazyGridState, fadeDistance: Float)
         (gridState.firstVisibleItemScrollOffset / fadeDistance).coerceIn(0f, 1f)
     }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun BibleHomeContent(
     gridState: LazyGridState,
@@ -509,8 +506,15 @@ internal fun BibleHomeContent(
     val version = BibleState.selectedVersion
     val dailyVerse = if (CloudSessionManager.verseOfTheDayEnabled) rememberDailyVerse(version, verseRepository) else null
     val refreshing = dailyVerse?.refreshing == true
-    val pullState = rememberPullRefreshState(refreshing, onRefresh = { dailyVerse?.refresh() })
-    Box(Modifier.fillMaxSize().pullRefresh(pullState, enabled = interactive && dailyVerse != null)) {
+    Box(Modifier.fillMaxSize()) {
+    HomePullRefreshBox(
+        enabled = interactive && dailyVerse != null,
+        refreshing = refreshing,
+        onRefresh = { dailyVerse?.refresh() },
+        indicatorTop = topInset + HomeTopBarHeight + 8.dp,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+      Box(Modifier.fillMaxSize()) {
         BibleBookList(
             bookData = BibleState.uiBooks.data,
             lazyGridState = gridState,
@@ -566,8 +570,9 @@ internal fun BibleHomeContent(
                 }
             },
         )
-        FloatingHomeTopBar(progress = { glassProgress })
-
+      }
+    }
+    FloatingHomeTopBar(progress = { glassProgress })
     }
 }
 

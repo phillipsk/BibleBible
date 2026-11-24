@@ -23,7 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -127,6 +132,7 @@ internal fun VerseOfTheDay(
         onRetry = presentation::refresh,
         onVerseClick = onVerseClick,
         modifier = modifier,
+        refreshing = presentation.refreshing,
     )
 }
 
@@ -137,6 +143,7 @@ internal fun VerseOfTheDayCard(
     onRetry: () -> Unit,
     onVerseClick: (DailyVerse) -> Unit = {},
     modifier: Modifier = Modifier,
+    refreshing: Boolean = false,
 ) {
     val cardBrush = Brush.horizontalGradient(
         colors = listOf(
@@ -178,6 +185,7 @@ internal fun VerseOfTheDayCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(cardBrush)
+                .refreshSheen(refreshing)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -262,4 +270,29 @@ internal fun VerseOfTheDayCard(
             }
         }
     }
+}
+
+// Frosted gold sheen that sweeps across the card while the next verse loads.
+// Driven by the wall clock so it still moves when Android animation scales are 0.
+private fun Modifier.refreshSheen(active: Boolean): Modifier = if (!active) this else composed {
+    var time by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos { time = it / 1_000_000L }
+        }
+    }
+    graphicsLayer { alpha = 0.72f }
+        .drawWithContent {
+            drawContent()
+            val phase = (time % 1200L) / 1200f
+            val x = size.width * (-0.4f + 1.8f * phase)
+            drawRect(Color(0x14FBD38D))
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, Color(0x48FBD38D), Color.Transparent),
+                    startX = x - size.width * 0.3f,
+                    endX = x + size.width * 0.3f,
+                ),
+            )
+        }
 }
