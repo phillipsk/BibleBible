@@ -130,6 +130,13 @@ class CloudConfigRepositoryTest {
         assertEquals(14, CloudSessionManager.readerVerseGapDp)
         assertEquals(22.0f, CloudSessionManager.readerDefaultFontSizeSp)
         assertTrue(CloudSessionManager.readerRedLetterEnabled)
+        assertTrue(CloudSessionManager.elasticSearchEnabled)
+        assertTrue(CloudSessionManager.searchMasonryTopicsEnabled)
+        assertTrue(CloudSessionManager.readingPlansEnabled)
+        assertTrue(CloudSessionManager.readingPlansAutoCheckoffEnabled)
+        assertTrue(CloudSessionManager.onDeviceAiEnabled)
+        assertTrue(CloudSessionManager.cloudSearchAiFallbackEnabled)
+        assertEquals("adaptive", CloudSessionManager.homePlansLayout)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
@@ -148,6 +155,13 @@ class CloudConfigRepositoryTest {
                     readerVerseGapDp = 18,
                     readerDefaultFontSizeSp = 24f,
                     readerRedLetterEnabled = false,
+                    elasticSearchEnabled = false,
+                    searchMasonryTopicsEnabled = false,
+                    readingPlansEnabled = false,
+                    readingPlansAutoCheckoffEnabled = false,
+                    onDeviceAiEnabled = false,
+                    cloudSearchAiFallbackEnabled = false,
+                    homePlansLayout = "TWIN_CARDS",
                 )
             )
         )
@@ -165,6 +179,13 @@ class CloudConfigRepositoryTest {
         assertEquals(18, CloudSessionManager.readerVerseGapDp)
         assertEquals(24f, CloudSessionManager.readerDefaultFontSizeSp)
         assertFalse(CloudSessionManager.readerRedLetterEnabled)
+        assertFalse(CloudSessionManager.elasticSearchEnabled)
+        assertFalse(CloudSessionManager.searchMasonryTopicsEnabled)
+        assertFalse(CloudSessionManager.readingPlansEnabled)
+        assertFalse(CloudSessionManager.readingPlansAutoCheckoffEnabled)
+        assertFalse(CloudSessionManager.onDeviceAiEnabled)
+        assertFalse(CloudSessionManager.cloudSearchAiFallbackEnabled)
+        assertEquals("twin_cards", CloudSessionManager.homePlansLayout)
 
         CloudSessionManager.applyRuntimeConfig(
             CloudRuntimeConfigDto(
@@ -179,6 +200,7 @@ class CloudConfigRepositoryTest {
                     readerLineHeightMultiplier = 9f,
                     readerVerseGapDp = -5,
                     readerDefaultFontSizeSp = 5f,
+                    homePlansLayout = "invalid_layout",
                 )
             )
         )
@@ -192,5 +214,6 @@ class CloudConfigRepositoryTest {
         assertEquals(2.2f, CloudSessionManager.readerLineHeightMultiplier)
         assertEquals(0, CloudSessionManager.readerVerseGapDp)
         assertEquals(14f, CloudSessionManager.readerDefaultFontSizeSp)
+        assertEquals("adaptive", CloudSessionManager.homePlansLayout)
     }
 }

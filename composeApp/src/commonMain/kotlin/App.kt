@@ -16,6 +16,7 @@ import data.bible.cleanReadingHistory
 import data.bible.loadBibleBooks
 import data.bible.loadBibleVersions
 import data.config.CloudSessionManager
+import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.SetSystemBarColor
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -44,7 +45,11 @@ fun App(modifier: Modifier = Modifier) {
             launch {
                 async { checkDatabaseSize() }
                 async { cleanReadingHistory() }
-                async { CloudSessionManager.initializeStartupConfig() }
+                async { ReadingPlanRepository.loadLocalState() }
+                async {
+                    CloudSessionManager.initializeStartupConfig()
+                    ReadingPlanRepository.refreshRemoteCatalog()
+                }
             }
             val versionsJob = async { loadBibleVersions() }
             val booksJob = async { loadBibleBooks() }

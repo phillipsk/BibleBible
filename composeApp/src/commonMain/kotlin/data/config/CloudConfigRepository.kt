@@ -59,6 +59,12 @@ private val validReaderLayoutStyles = setOf(
     "classic_inline",
 )
 
+private val validHomePlansLayouts = setOf(
+    "adaptive",
+    "stacked",
+    "twin_cards",
+)
+
 private fun parseUsfmSet(rawCsv: String, fallback: Set<String>): Set<String> {
     val parsed = rawCsv.split(",")
         .map { it.trim().uppercase() }
@@ -96,6 +102,13 @@ internal data class CloudFeatureFlagsDto(
     @SerialName("readerTutorialReminderDays") val readerTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
     @SerialName("biblicalShortsTutorialEnabled") val biblicalShortsTutorialEnabled: Boolean = true,
     @SerialName("biblicalShortsTutorialReminderDays") val biblicalShortsTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    @SerialName("elasticSearchEnabled") val elasticSearchEnabled: Boolean = true,
+    @SerialName("searchMasonryTopicsEnabled") val searchMasonryTopicsEnabled: Boolean = true,
+    @SerialName("readingPlansEnabled") val readingPlansEnabled: Boolean = true,
+    @SerialName("readingPlansAutoCheckoffEnabled") val readingPlansAutoCheckoffEnabled: Boolean = true,
+    @SerialName("onDeviceAiEnabled") val onDeviceAiEnabled: Boolean = true,
+    @SerialName("cloudSearchAiFallbackEnabled") val cloudSearchAiFallbackEnabled: Boolean = true,
+    @SerialName("homePlansLayout") val homePlansLayout: String = "adaptive",
 )
 
 @Serializable
@@ -222,6 +235,31 @@ internal object CloudSessionManager {
 
     val readerRedLetterEnabled: Boolean
         get() = featureFlags.readerRedLetterEnabled
+
+    val elasticSearchEnabled: Boolean
+        get() = featureFlags.elasticSearchEnabled
+
+    val searchMasonryTopicsEnabled: Boolean
+        get() = featureFlags.searchMasonryTopicsEnabled
+
+    val readingPlansEnabled: Boolean
+        get() = featureFlags.readingPlansEnabled
+
+    val readingPlansAutoCheckoffEnabled: Boolean
+        get() = featureFlags.readingPlansAutoCheckoffEnabled
+
+    val onDeviceAiEnabled: Boolean
+        get() = featureFlags.onDeviceAiEnabled
+
+    val cloudSearchAiFallbackEnabled: Boolean
+        get() = featureFlags.cloudSearchAiFallbackEnabled
+
+    val homePlansLayout: String
+        get() = featureFlags.homePlansLayout
+            .trim()
+            .lowercase()
+            .takeIf { it in validHomePlansLayouts }
+            ?: "adaptive"
 
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url

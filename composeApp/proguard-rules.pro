@@ -17,6 +17,8 @@
 -dontwarn app.cash.sqldelight.**
 -dontwarn kotlinx.coroutines.**
 -dontwarn com.google.android.play.core.**
+-dontwarn com.google.mlkit.**
+-dontwarn com.google.android.datatransport.**
 -dontnote kotlinx.serialization.AnnotationsKt
 
 # Ktor engine ServiceLoader discovery
