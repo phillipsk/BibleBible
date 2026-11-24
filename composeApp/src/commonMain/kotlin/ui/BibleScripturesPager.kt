@@ -74,8 +74,11 @@ import data.bible.fetchBibleChapter
 import data.config.CloudSessionManager
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
+import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
+import ui.plans.PlanReaderCompletionBar
+import ui.plans.PlanReaderTopStrip
 
 internal fun resolveReaderPageMode(
     showAISummary: Boolean,
@@ -278,6 +281,24 @@ internal fun BibleScripturesPager(
                 )
             }
 
+            val activePlanContext = BibleState.activePlanReading?.takeIf {
+                CloudSessionManager.readingPlansEnabled &&
+                    sameBook &&
+                    (it.reading.bookNumber == bookId || it.reading.bookId.equals(selectedBook.bookId, ignoreCase = true)) &&
+                    it.reading.chapter == (chapters.chapterId ?: -1)
+            }
+            val isPlanReadingCompleted = activePlanContext != null &&
+                activePlanContext.reading.id in ReadingPlanRepository.completedReadingIds
+            val nextPlanPassage = activePlanContext?.let {
+                ReadingPlanRepository.nextReadingAfter(it.planId, it.reading.id)
+            }
+            if (activePlanContext != null) {
+                PlanReaderTopStrip(
+                    context = activePlanContext,
+                    scrollProgress = BibleState.activeReaderScrollProgress,
+                )
+            }
+
             val lifecycleOwner = LocalLifecycleOwner.current
             DisposableEffect(
                 lifecycleOwner,
@@ -473,6 +494,7 @@ internal fun BibleScripturesPager(
                         !showAISummary &&
                         sameBook &&
                         chapters.text != null &&
+                        !isPlanReadingCompleted &&
                         !BibleState.autoDemoTourEnabled,
                     enter = fadeIn(),
                     exit = fadeOut(),
@@ -485,6 +507,20 @@ internal fun BibleScripturesPager(
                         onDismiss = { dismissGestureTutorial("button") },
                     )
                 }
+
+                PlanReaderCompletionBar(
+                    visible = isPlanReadingCompleted && !showAISummary,
+                    hasNextPassage = nextPlanPassage != null,
+                    onBackToPlan = { BibleState.navigateBackFromReader() },
+                    onNextPassage = {
+                        nextPlanPassage?.let { nextContext ->
+                            BibleState.openPlanReading(nextContext)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                )
             }
         }
     }

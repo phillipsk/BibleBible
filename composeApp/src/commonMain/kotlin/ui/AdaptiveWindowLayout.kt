@@ -18,11 +18,12 @@ internal data class AdaptiveWindowMetrics(
     val hingeSafeGap: Dp,
     val isDualPaneShorts: Boolean,
     val isWideHome: Boolean,
+    val isLandscapePhone: Boolean = false,
 )
 
 /**
- * Classifies the active viewport into compact phone, unfolded foldable / iPhone Duo, or tablet/wide
- * layouts so grid column density, reading line length, and hinge-safe dual-pane geometry adapt cleanly.
+ * Classifies the active viewport into compact phone, landscape phone, unfolded foldable /
+ * iPhone Duo, or tablet/wide layouts so grid density and Home card pairing adapt cleanly.
  */
 internal fun computeAdaptiveWindowMetrics(
     maxWidth: Dp,
@@ -41,6 +42,19 @@ internal fun computeAdaptiveWindowMetrics(
             hingeSafeGap = 0.dp,
             isDualPaneShorts = false,
             isWideHome = false,
+            isLandscapePhone = false,
+        )
+
+        maxWidth >= 560.dp && maxHeight < 520.dp -> AdaptiveWindowMetrics(
+            layoutClass = BibleWindowLayoutClass.FOLDABLE_DUO_UNFOLDED,
+            maxWidth = maxWidth,
+            maxHeight = maxHeight,
+            bookGridColumns = 4,
+            maxReadingWidth = 640.dp,
+            hingeSafeGap = 12.dp,
+            isDualPaneShorts = true,
+            isWideHome = true,
+            isLandscapePhone = true,
         )
 
         maxWidth < 900.dp && aspectRatio in 0.68f..1.45f -> AdaptiveWindowMetrics(
@@ -52,6 +66,7 @@ internal fun computeAdaptiveWindowMetrics(
             hingeSafeGap = 28.dp,
             isDualPaneShorts = true,
             isWideHome = true,
+            isLandscapePhone = false,
         )
 
         else -> AdaptiveWindowMetrics(
@@ -63,6 +78,7 @@ internal fun computeAdaptiveWindowMetrics(
             hingeSafeGap = 24.dp,
             isDualPaneShorts = true,
             isWideHome = true,
+            isLandscapePhone = false,
         )
     }
 }

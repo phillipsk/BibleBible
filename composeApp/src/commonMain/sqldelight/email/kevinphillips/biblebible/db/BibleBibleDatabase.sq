@@ -168,3 +168,50 @@ SELECT short_id FROM SeenBiblicalWords;
 
 clearSeenBiblicalWords:
 DELETE FROM SeenBiblicalWords;
+
+CREATE TABLE IF NOT EXISTS ActiveReadingPlan (
+    plan_id TEXT PRIMARY KEY NOT NULL,
+    started_at INTEGER NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS ReadingPlanProgress (
+    reading_id TEXT PRIMARY KEY NOT NULL,
+    plan_id TEXT NOT NULL,
+    day_number INTEGER NOT NULL,
+    completed_at INTEGER NOT NULL,
+    source TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reading_plan_progress_plan
+ON ReadingPlanProgress(plan_id, day_number);
+
+deactivateAllReadingPlans:
+UPDATE ActiveReadingPlan SET is_active = 0;
+
+upsertActiveReadingPlan:
+INSERT OR REPLACE INTO ActiveReadingPlan (plan_id, started_at, is_active)
+VALUES (?, ?, 1);
+
+selectActiveReadingPlan:
+SELECT plan_id, started_at, is_active FROM ActiveReadingPlan
+WHERE is_active = 1
+ORDER BY started_at DESC
+LIMIT 1;
+
+insertReadingPlanProgress:
+INSERT OR REPLACE INTO ReadingPlanProgress (reading_id, plan_id, day_number, completed_at, source)
+VALUES (?, ?, ?, ?, ?);
+
+deleteReadingPlanProgress:
+DELETE FROM ReadingPlanProgress WHERE reading_id = ?;
+
+selectReadingPlanProgressByPlan:
+SELECT reading_id, plan_id, day_number, completed_at, source
+FROM ReadingPlanProgress
+WHERE plan_id = ?
+ORDER BY day_number ASC, completed_at ASC;
+
+selectAllReadingPlanProgress:
+SELECT reading_id, plan_id, day_number, completed_at, source
+FROM ReadingPlanProgress;

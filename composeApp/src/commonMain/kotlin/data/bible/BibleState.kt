@@ -19,6 +19,7 @@ import data.notifications.PushDestinationKind
 import data.notifications.ScriptureDeepLink
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
+import data.plans.ActivePlanReadingContext
 import email.kevinphillips.biblebible.BuildKonfig
 import email.kevinphillips.biblebible.db.SelectReadingHistory
 import email.kevinphillips.biblebible.isDesktopPlatform
@@ -76,8 +77,12 @@ internal object BibleState {
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
     var showBiblicalShorts by mutableStateOf(false)
+    var isSearchActive by mutableStateOf(false)
+    var showReadingPlans by mutableStateOf(false)
     var selectedShortsCategory by mutableStateOf("All")
     var autoDemoTourEnabled by mutableStateOf(false)
+    var activePlanReading by mutableStateOf<ActivePlanReadingContext?>(null)
+    var activeReaderScrollProgress by mutableStateOf(0f)
 
     var pendingDeepLink by mutableStateOf<ScriptureDeepLink?>(null)
         private set
@@ -460,7 +465,98 @@ internal object BibleState {
     }
 
     var returnToShortsOnBack by mutableStateOf(false)
+    var returnToPlansOnBack by mutableStateOf(false)
     var resumeShortIdOnReturn by mutableStateOf<String?>(null)
+
+    fun resolveBookData(
+        bookId: String,
+        bookNumber: Int? = null,
+        fallbackName: String? = null,
+        minChapters: Int = 1,
+    ): BookData {
+        val cleanUsfm = bookId.trim().uppercase()
+        val resolvedOrdinal = bookNumber ?: bookNumberForUsfm(cleanUsfm)
+        val books = bibleBooks.data.orEmpty()
+        return books.find { it.bookId.equals(cleanUsfm, ignoreCase = true) }
+            ?: resolvedOrdinal?.let { ord -> books.getOrNull(ord - 1) }
+            ?: BookData(
+                id = cleanUsfm,
+                name = fallbackName ?: resolvedOrdinal?.let { bibleBooksFull.getOrNull(it - 1) } ?: cleanUsfm,
+                chapters = listOf(Chapter(bookId = "$cleanUsfm.intro")) +
+                    (1..minChapters.coerceAtLeast(1)).map { ch ->
+                        Chapter(
+                            name = "$cleanUsfm.$ch",
+                            bookId = cleanUsfm,
+                            number = ch.toString(),
+                            position = ch,
+                        )
+                    },
+            )
+    }
+
+    fun openSpotlightSearch() {
+        isSearchActive = true
+        showReadingPlans = false
+        AnalyticsTracker.track("spotlight_search_opened", "search")
+    }
+
+    fun closeSpotlightSearch() {
+        isSearchActive = false
+    }
+
+    fun openReadingPlans() {
+        isSearchActive = false
+        showBiblicalShorts = false
+        showReadingPlans = true
+        AnalyticsTracker.track("reading_plans_opened", "reading_plans")
+    }
+
+    fun exitReadingPlansToHome() {
+        showReadingPlans = false
+        returnToPlansOnBack = false
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        showHomePage = true
+        ReadingSession.goHome()
+    }
+
+    fun openPlanReading(context: ActivePlanReadingContext) {
+        val ref = context.reading
+        val targetBook = resolveBookData(
+            bookId = ref.bookId,
+            bookNumber = ref.bookNumber,
+            fallbackName = ref.bookName,
+            minChapters = ref.chapter,
+        )
+        isSearchActive = false
+        showReadingPlans = false
+        showBiblicalShorts = false
+        returnToShortsOnBack = false
+        returnToPlansOnBack = true
+        activePlanReading = context
+        activeReaderScrollProgress = 0f
+        restoreReadingLocation(targetBook, ref.chapter.coerceAtLeast(1))
+        if (ref.verseStart != null && ref.verseStart >= 1) {
+            focusScriptureVerse(
+                bookId = targetBook.bookId,
+                chapter = ref.chapter.coerceAtLeast(1),
+                verseStart = ref.verseStart,
+                verseEnd = (ref.verseEnd ?: ref.verseStart).coerceAtLeast(ref.verseStart),
+            )
+        } else {
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+        }
+        AnalyticsTracker.track(
+            name = "reading_plan_passage_opened",
+            category = "reading_plans",
+            properties = mapOf(
+                "planId" to context.planId,
+                "day" to context.dayNumber.toString(),
+                "readingId" to ref.id,
+            ),
+        )
+    }
 
     val onHomeClick: () -> Unit = {
         dailyVerseSwipeOrigin = null
@@ -468,7 +564,12 @@ internal object BibleState {
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         returnToShortsOnBack = false
+        returnToPlansOnBack = false
         resumeShortIdOnReturn = null
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        isSearchActive = false
+        showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()
         showBiblicalShorts = false
@@ -480,7 +581,12 @@ internal object BibleState {
         closeBiblicalShorts()
         GeminiModel.cancelPendingSummary()
         returnToShortsOnBack = false
+        returnToPlansOnBack = false
         resumeShortIdOnReturn = null
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        isSearchActive = false
+        showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()
         showBiblicalShorts = false
@@ -498,6 +604,16 @@ internal object BibleState {
             ReadingSession.goHome()
             AnalyticsTracker.track("reader_back_to_shorts", "navigation")
             openBiblicalShorts()
+        } else if (returnToPlansOnBack) {
+            returnToPlansOnBack = false
+            activePlanReading = null
+            activeReaderScrollProgress = 0f
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+            showHomePage = true
+            showReadingPlans = true
+            ReadingSession.goHome()
+            AnalyticsTracker.track("reader_back_to_plans", "reading_plans")
         } else {
             onHomeClick()
         }

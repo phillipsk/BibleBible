@@ -25,6 +25,7 @@ final class NotificationAppDelegate: NSObject, UIApplicationDelegate, UNUserNoti
         Messaging.messaging().delegate = self
         application.registerForRemoteNotifications()
         fetchAndSyncFcmToken()
+        FoundationModelsBridge.register()
 
         topicObserver = NotificationCenter.default.addObserver(
             forName: NSNotification.Name("BibleBiblePushTopicsChanged"),

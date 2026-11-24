@@ -1,4 +1,5 @@
 import androidx.compose.ui.window.ComposeUIViewController
+import data.ai.IosOnDeviceAiBridgeRegistry
 import data.bible.BibleState
 import data.bible.bibleBooksFull
 import data.bible.fetchDailyVerse
@@ -56,6 +57,16 @@ fun handleIosPushTokenRefresh(token: String, isDebug: Boolean) {
 fun handleIosNotificationTap(userInfo: Map<Any?, *>) {
     val extras = userInfo.entries.associate { (k, v) -> k?.toString().orEmpty() to v?.toString() }
     parseVotdNotificationPayload(extras)?.let { BibleState.enqueueDeepLink(it) }
+}
+
+fun registerIosOnDeviceAiBridge(
+    isAvailable: () -> Boolean,
+    extractTopics: (String, String, (String?) -> Unit) -> Unit,
+    generateReflection: (String, String, (String?) -> Unit) -> Unit,
+) {
+    IosOnDeviceAiBridgeRegistry.availabilityCheck = isAvailable
+    IosOnDeviceAiBridgeRegistry.topicExtractor = extractTopics
+    IosOnDeviceAiBridgeRegistry.reflectionGenerator = generateReflection
 }
 
 fun MainViewController(): UIViewController {

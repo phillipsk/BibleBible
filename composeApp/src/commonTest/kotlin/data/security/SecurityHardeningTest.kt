@@ -44,6 +44,8 @@ class SecurityHardeningTest {
         assertEquals("/GetVerseOfTheDay", ProtectedEndpoints.dailyVersePath())
         assertEquals("/v1/notifications/register", ProtectedEndpoints.pushRegisterPath())
         assertEquals("/v1/notifications/unregister", ProtectedEndpoints.pushUnregisterPath())
+        assertEquals("/v1/search", ProtectedEndpoints.searchPath())
+        assertEquals("/v1/plans", ProtectedEndpoints.plansPath())
         assertEquals("X-Client-Integrity", ProtectedEndpoints.headerClientIntegrity())
     }
 

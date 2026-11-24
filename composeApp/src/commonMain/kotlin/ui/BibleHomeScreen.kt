@@ -112,6 +112,7 @@ import data.bible.bibleBooksFull
 import data.config.CloudSessionManager
 import data.notifications.VotdNotificationController
 import data.notifications.parseVerseRange
+import data.plans.ReadingPlanRepository
 import data.shorts.BiblicalShortDto
 import email.kevinphillips.biblebible.PlatformBackHandler
 import kotlin.math.PI
@@ -126,6 +127,11 @@ import ui.configs.BottomSheetConfigView
 import ui.configs.DailyReminderTimePickerRow
 import ui.configs.FloatingHomeTopBar
 import ui.configs.HomeTopBarHeight
+import ui.plans.ReadingPlanBannerCard
+import ui.plans.ReadingPlanTwinCard
+import ui.plans.ReadingPlansScreen
+import ui.search.ElasticSearchTriggerBar
+import ui.search.SpotlightSearchScreen
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
 
@@ -146,8 +152,12 @@ internal fun BibleHomeScreen(
     LaunchedEffect(
         BibleState.showHomePage,
         BibleState.showBiblicalShorts,
+        BibleState.isSearchActive,
+        BibleState.showReadingPlans,
     ) {
         val activeScreen = when {
+            BibleState.isSearchActive -> "spotlight_search"
+            BibleState.showReadingPlans -> "reading_plans"
             BibleState.showBiblicalShorts -> "biblical_shorts"
             BibleState.showHomePage -> "home"
             else -> "scripture_reader"
@@ -158,8 +168,14 @@ internal fun BibleHomeScreen(
     LaunchedEffect(
         BibleState.autoDemoTourEnabled,
         BibleState.showBiblicalShorts,
+        BibleState.isSearchActive,
+        BibleState.showReadingPlans,
     ) {
-        if (BibleState.autoDemoTourEnabled && !BibleState.showBiblicalShorts) {
+        if (BibleState.autoDemoTourEnabled &&
+            !BibleState.showBiblicalShorts &&
+            !BibleState.isSearchActive &&
+            !BibleState.showReadingPlans
+        ) {
             BibleState.showHomePage = true
             delay(3500L)
             if (BibleState.autoDemoTourEnabled) {
@@ -188,6 +204,8 @@ internal fun BibleHomeScreen(
 
     if (BibleState.showHomePage &&
         !BibleState.showBiblicalShorts &&
+        !BibleState.isSearchActive &&
+        !BibleState.showReadingPlans &&
         !BibleState.autoDemoTourEnabled &&
         VotdNotificationController.shouldShowOptInPrompt
     ) {
@@ -264,7 +282,10 @@ internal fun BibleHomeScreen(
     }
 
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
-    val isHome = BibleState.showHomePage && !BibleState.showBiblicalShorts
+    val isHome = BibleState.showHomePage &&
+        !BibleState.showBiblicalShorts &&
+        !BibleState.isSearchActive &&
+        !BibleState.showReadingPlans
     val homeBackSwipe = remember(scope) { SwipeTransition(scope) }
     val animateHomeRightSwipe = CloudSessionManager.featureFlags.homeSwipePreviewEnabled
     val horizontalHomeOffset by remember(homeBackSwipe, animateHomeRightSwipe) {
@@ -300,11 +321,21 @@ internal fun BibleHomeScreen(
             BibleState.exitBiblicalShortsToHome()
         }
     }
+    LaunchedEffect(flags.elasticSearchEnabled) {
+        if (!flags.elasticSearchEnabled && BibleState.isSearchActive) {
+            BibleState.closeSpotlightSearch()
+        }
+    }
+    LaunchedEffect(flags.readingPlansEnabled) {
+        if (!flags.readingPlansEnabled && BibleState.showReadingPlans) {
+            BibleState.exitReadingPlansToHome()
+        }
+    }
     val exitShorts: () -> Unit = { BibleState.exitBiblicalShortsToHome() }
     val exitReader: () -> Unit = { BibleState.onHomeClick() }
 
     val navigateBackFromReader: () -> Unit = {
-        if (BibleState.returnToShortsOnBack) {
+        if (BibleState.returnToShortsOnBack || BibleState.returnToPlansOnBack) {
             BibleState.navigateBackFromReader()
         } else if (flags.homeSwipePreviewEnabled) {
             homeBackSwipe.goBack(exitReader)
@@ -320,6 +351,8 @@ internal fun BibleHomeScreen(
             isBottomSheetExpanded -> scope.launch {
                 localScaffoldState.bottomSheetState.collapse()
             }
+            BibleState.isSearchActive -> BibleState.closeSpotlightSearch()
+            BibleState.showReadingPlans -> BibleState.exitReadingPlansToHome()
             BibleState.showBiblicalShorts -> navigateBackFromShorts()
             !isHome -> navigateBackFromReader()
         }
@@ -409,7 +442,65 @@ internal fun BibleHomeScreen(
                             .background(MaterialTheme.colors.background),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        if (BibleState.showBiblicalShorts) {
+                        if (BibleState.isSearchActive) {
+                            SpotlightSearchScreen(
+                                onBack = { BibleState.closeSpotlightSearch() },
+                                onSelectBook = { book ->
+                                    AnalyticsTracker.trackBookSelected(
+                                        bookId = book.bookId,
+                                        bookName = book.name ?: book.bookId,
+                                        source = "spotlight_search",
+                                    )
+                                    BibleState.closeSpotlightSearch()
+                                    BibleState.returnToShortsOnBack = false
+                                    BibleState.returnToPlansOnBack = false
+                                    BibleState.activePlanReading = null
+                                    BibleState.restoreReadingLocation(book, 1)
+                                },
+                                onJumpToReference = { bookId, bookNumber, bookName, chapter, verseStart, verseEnd, source ->
+                                    val targetBook = BibleState.resolveBookData(
+                                        bookId = bookId,
+                                        bookNumber = bookNumber,
+                                        fallbackName = bookName,
+                                        minChapters = chapter,
+                                    )
+                                    AnalyticsTracker.trackBookSelected(
+                                        bookId = targetBook.bookId,
+                                        bookName = targetBook.name ?: targetBook.bookId,
+                                        source = source,
+                                    )
+                                    BibleState.closeSpotlightSearch()
+                                    BibleState.returnToShortsOnBack = false
+                                    BibleState.returnToPlansOnBack = false
+                                    BibleState.activePlanReading = null
+                                    val safeChapter = chapter.coerceAtLeast(1)
+                                    BibleState.restoreReadingLocation(targetBook, safeChapter)
+                                    if (verseStart >= 1) {
+                                        BibleState.focusScriptureVerse(
+                                            bookId = targetBook.bookId,
+                                            chapter = safeChapter,
+                                            verseStart = verseStart,
+                                            verseEnd = verseEnd.coerceAtLeast(verseStart),
+                                        )
+                                    } else {
+                                        BibleState.clearHighlightedVerse()
+                                        BibleState.clearPendingTargetVerse()
+                                    }
+                                },
+                                onOpenPlan = { planId ->
+                                    scope.launch {
+                                        ReadingPlanRepository.selectActivePlan(planId)
+                                    }
+                                    BibleState.closeSpotlightSearch()
+                                    BibleState.openReadingPlans()
+                                },
+                            )
+                        } else if (BibleState.showReadingPlans) {
+                            ReadingPlansScreen(
+                                onBack = { BibleState.exitReadingPlansToHome() },
+                                onOpenReading = { context -> BibleState.openPlanReading(context) },
+                            )
+                        } else if (BibleState.showBiblicalShorts) {
                             BiblicalShortsScreen(
                                 onBack = navigateBackFromShorts,
                                 onReadChapter = { shortItem -> openShortScriptureChapter(shortItem) },
@@ -522,32 +613,110 @@ internal fun BibleHomeContent(
             topChromePadding = topInset + HomeTopBarHeight,
             header = { windowMetrics ->
                 val showShorts = CloudSessionManager.biblicalShortsEnabled
-                if (windowMetrics.isWideHome && dailyVerse != null && showShorts) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(
-                            windowMetrics.hingeSafeGap.coerceAtLeast(12.dp)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                    ) {
-                        VerseOfTheDay(
-                            presentation = dailyVerse,
-                            version = version,
+                val showPlans = CloudSessionManager.readingPlansEnabled
+                val plansLayout = CloudSessionManager.homePlansLayout
+                val useTwinCardsRow = showShorts && showPlans &&
+                    (plansLayout == "twin_cards" || (plansLayout == "adaptive" && windowMetrics.isLandscapePhone))
+                val isTabletWide = windowMetrics.isWideHome && !windowMetrics.isLandscapePhone
+                val hingeGap = windowMetrics.hingeSafeGap.coerceAtLeast(12.dp)
+
+                if (useTwinCardsRow) {
+                    Column {
+                        if (dailyVerse != null) {
+                            VerseOfTheDay(
+                                presentation = dailyVerse,
+                                version = version,
+                                onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier
-                                .weight(1.15f)
-                                .fillMaxHeight(),
-                            onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
-                        )
-                        BiblicalShortsEntryCard(
-                            onOpenShorts = {
-                                BibleState.resumeShortIdOnReturn = null
-                                BibleState.openBiblicalShorts()
-                            },
-                            modifier = Modifier
-                                .weight(0.85f)
-                                .fillMaxHeight(),
-                        )
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min),
+                        ) {
+                            BiblicalShortsEntryCard(
+                                onOpenShorts = {
+                                    BibleState.resumeShortIdOnReturn = null
+                                    BibleState.openBiblicalShorts()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
+                            ReadingPlanTwinCard(
+                                onOpenPlans = { BibleState.openReadingPlans() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                            )
+                        }
+                    }
+                } else if (isTabletWide && dailyVerse != null && plansLayout != "stacked") {
+                    Column {
+                        when {
+                            showShorts -> {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(hingeGap),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
+                                    VerseOfTheDay(
+                                        presentation = dailyVerse,
+                                        version = version,
+                                        modifier = Modifier
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
+                                        onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                    )
+                                    BiblicalShortsEntryCard(
+                                        onOpenShorts = {
+                                            BibleState.resumeShortIdOnReturn = null
+                                            BibleState.openBiblicalShorts()
+                                        },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
+                                    )
+                                }
+                                if (showPlans) {
+                                    ReadingPlanBannerCard(
+                                        onOpenPlans = { BibleState.openReadingPlans() },
+                                    )
+                                }
+                            }
+                            showPlans -> {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(hingeGap),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(IntrinsicSize.Min),
+                                ) {
+                                    VerseOfTheDay(
+                                        presentation = dailyVerse,
+                                        version = version,
+                                        modifier = Modifier
+                                            .weight(1.15f)
+                                            .fillMaxHeight(),
+                                        onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                    )
+                                    ReadingPlanBannerCard(
+                                        onOpenPlans = { BibleState.openReadingPlans() },
+                                        modifier = Modifier
+                                            .weight(0.85f)
+                                            .fillMaxHeight(),
+                                    )
+                                }
+                            }
+                            else -> {
+                                VerseOfTheDay(
+                                    presentation = dailyVerse,
+                                    version = version,
+                                    onVerseClick = { dv -> openDailyVerseChapter(dv) },
+                                )
+                            }
+                        }
                     }
                 } else {
                     Column {
@@ -555,7 +724,7 @@ internal fun BibleHomeContent(
                             VerseOfTheDay(
                                 presentation = dailyVerse,
                                 version = version,
-                                onVerseClick = { dailyVerse -> openDailyVerseChapter(dailyVerse) },
+                                onVerseClick = { dv -> openDailyVerseChapter(dv) },
                             )
                         }
                         if (showShorts) {
@@ -564,6 +733,11 @@ internal fun BibleHomeContent(
                                     BibleState.resumeShortIdOnReturn = null
                                     BibleState.openBiblicalShorts()
                                 }
+                            )
+                        }
+                        if (showPlans) {
+                            ReadingPlanBannerCard(
+                                onOpenPlans = { BibleState.openReadingPlans() },
                             )
                         }
                     }
@@ -698,6 +872,14 @@ internal fun BibleBookList(
                                 ),
                                 modifier = Modifier.padding(top = 2.dp, bottom = 12.dp, start = 4.dp)
                             )
+                        }
+                        if (CloudSessionManager.elasticSearchEnabled) {
+                            item(key = "elastic_search_bar", span = { GridItemSpan(maxLineSpan) }) {
+                                ElasticSearchTriggerBar(
+                                    onActivateSearch = { BibleState.openSpotlightSearch() },
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                )
+                            }
                         }
                     }
 

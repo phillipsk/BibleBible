@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.media3.exoplayer)
             implementation(libs.play.integrity)
+            implementation(libs.mlkit.genai.prompt)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
             implementation(project.dependencies.platform(libs.firebase.bom))
@@ -142,7 +143,7 @@ val generateProtectedEndpoints = tasks.register("generateProtectedEndpoints") {
     val gatewayInput = cloudGatewayUrl
     val outputDir = protectedEndpointsDir
     inputs.property("gatewayUrl", gatewayInput)
-    inputs.property("schemaVersion", 3)
+    inputs.property("schemaVersion", 4)
     outputs.dir(outputDir)
     doLast {
         val outFile = outputDir.get()
@@ -174,6 +175,8 @@ val generateProtectedEndpoints = tasks.register("generateProtectedEndpoints") {
             "votdPreviewPath" to "/v1/notifications/preview",
             "pushRegisterPath" to "/v1/notifications/register",
             "pushUnregisterPath" to "/v1/notifications/unregister",
+            "searchPath" to "/v1/search",
+            "plansPath" to "/v1/plans",
             "headerClientPlatform" to "X-Client-Platform",
             "headerClientDeviceId" to "X-Client-Device-Id",
             "headerClientIntegrity" to "X-Client-Integrity",

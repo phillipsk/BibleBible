@@ -39,9 +39,11 @@ class ReadingSessionDatabaseTest {
         try {
             JdbcSqliteDriver("jdbc:sqlite:$path").use { driver ->
                 BibleBibleDatabase.Schema.create(driver)
-                // The released schema contains the same existing tables but no session or seen-words tables.
+                // The released schema contains the same existing tables but no session, seen-words, or reading-plans tables.
                 driver.execute(null, "DROP TABLE SavedReadingPosition", 0)
                 driver.execute(null, "DROP TABLE SeenBiblicalWords", 0)
+                driver.execute(null, "DROP TABLE ActiveReadingPlan", 0)
+                driver.execute(null, "DROP TABLE ReadingPlanProgress", 0)
                 driver.execute(null, "PRAGMA user_version = 6", 0)
                 val database = BibleBibleDatabase(driver)
                 database.bibleBibleDatabaseQueries.insertUserPrefs()
@@ -49,7 +51,7 @@ class ReadingSessionDatabaseTest {
                 database.bibleBibleDatabaseQueries.insertReadingHistory("2026-10-28 12:00:00", "19", "119")
             }
             openDesktopDatabase(path).use { driver ->
-                assertEquals(8L, BibleBibleDatabase.Schema.version)
+                assertEquals(9L, BibleBibleDatabase.Schema.version)
                 val database = BibleBibleDatabase(driver)
                 val preferences = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsOne()
                 assertEquals(30.0, preferences.fontSize)
@@ -61,6 +63,16 @@ class ReadingSessionDatabaseTest {
                 assertEquals(reading, store.read())
                 database.bibleBibleDatabaseQueries.insertSeenBiblicalWord("short-01", 1_800_000_000_000L)
                 assertEquals(listOf("short-01"), database.bibleBibleDatabaseQueries.selectSeenBiblicalWordIds().executeAsList())
+                database.bibleBibleDatabaseQueries.upsertActiveReadingPlan("peace_in_every_season", 1_800_000_000_000L)
+                database.bibleBibleDatabaseQueries.insertReadingPlanProgress(
+                    reading_id = "peace_in_every_season:d1:r1",
+                    plan_id = "peace_in_every_season",
+                    day_number = 1L,
+                    completed_at = 1_800_000_000_000L,
+                    source = "auto_scroll",
+                )
+                assertEquals("peace_in_every_season", database.bibleBibleDatabaseQueries.selectActiveReadingPlan().executeAsOne().plan_id)
+                assertEquals(1, database.bibleBibleDatabaseQueries.selectAllReadingPlanProgress().executeAsList().size)
             }
         } finally {
             Files.deleteIfExists(path)

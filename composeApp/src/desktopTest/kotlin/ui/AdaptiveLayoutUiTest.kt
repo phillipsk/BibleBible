@@ -69,6 +69,12 @@ class AdaptiveLayoutUiTest {
         val pixelTabletPortrait = computeAdaptiveWindowMetrics(834.dp, 1194.dp)
         assertEquals(BibleWindowLayoutClass.FOLDABLE_DUO_UNFOLDED, pixelTabletPortrait.layoutClass)
         assertTrue(pixelTabletPortrait.isDualPaneShorts)
+        assertFalse(pixelTabletPortrait.isLandscapePhone)
+
+        val phoneLandscape = computeAdaptiveWindowMetrics(844.dp, 390.dp)
+        assertTrue(phoneLandscape.isWideHome)
+        assertTrue(phoneLandscape.isLandscapePhone)
+        assertEquals(4, phoneLandscape.bookGridColumns)
     }
 
     @Test
