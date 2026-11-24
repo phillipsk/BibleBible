@@ -24,7 +24,8 @@
 
 5. **Reader Follow-up**:
    - Chapter pages use the AI loading card while AI mode is active and the chapter or its summary is pending. Scripture mode uses the scripture shimmer while its chapter loads.
-   - The reader top bar uses larger book titles. Reading Tips teaches pinch and double-tap and stays dismissed after either gesture or a tap on Got it.
+   - The reader top bar reserves a 48 dp back target and fits the book title in the space left by the action buttons. Extra letter spacing is applied when the full title fits, with compact spacing and a smaller title size available for tighter layouts.
+   - Reading Tips teaches pinch and double-tap and stays dismissed after either gesture or a tap on Got it.
 
 ## Reader Follow-up Verification
 - Desktop tests: 113 passed. Android host tests: 76 passed. Android debug APK built successfully.

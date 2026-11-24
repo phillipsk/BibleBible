@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.bible.BibleState
@@ -41,8 +40,6 @@ internal fun ChapterTopBar(
             showHomePage = showHomePage,
             titleColor = Color.White,
             iconTint = Color.White,
-            titleFontSize = if (bookTitle.length >= 14) 24.sp else 27.sp,
-            titleLetterSpacing = 0.4.sp,
             onClick = onBackClick,
             modifier = Modifier.weight(1f),
         )
