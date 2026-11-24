@@ -15,6 +15,7 @@ import data.config.CloudSessionManager
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.appPrefs.ReadingSession
+import data.notifications.PushDestinationKind
 import data.notifications.ScriptureDeepLink
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
@@ -140,6 +141,34 @@ internal object BibleState {
     ): Boolean {
         val link = pendingDeepLink ?: return false
         pendingDeepLink = null
+
+        when (link.destination) {
+            PushDestinationKind.BIBLICAL_WORDS -> {
+                showHomePage = true
+                openBiblicalShorts(link.shortsCategory ?: "All")
+                AnalyticsTracker.track(
+                    "push_deeplink_opened",
+                    "notifications",
+                    mapOf(
+                        "destination" to "biblical_words",
+                        "category" to (link.shortsCategory ?: "All"),
+                    ),
+                )
+                return true
+            }
+            PushDestinationKind.HOME -> {
+                returnToShortsOnBack = false
+                closeBiblicalShorts()
+                showHomePage = true
+                AnalyticsTracker.track(
+                    "push_deeplink_opened",
+                    "notifications",
+                    mapOf("destination" to "home"),
+                )
+                return true
+            }
+            PushDestinationKind.SCRIPTURE -> Unit
+        }
 
         val targetRef = if (link.fetchDailyIfMissing) {
             val requestedVersion = link.version ?: selectedVersion

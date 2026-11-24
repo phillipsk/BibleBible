@@ -36,3 +36,6 @@
     *** Companion;
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# Firebase Cloud Messaging service
+-keep class email.kevinphillips.biblebible.BibleFirebaseMessagingService { *; }

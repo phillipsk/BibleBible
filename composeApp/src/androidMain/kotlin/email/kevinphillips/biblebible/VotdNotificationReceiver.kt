@@ -14,7 +14,10 @@ import data.config.CloudSessionManager
 import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
@@ -46,6 +49,10 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 dailyMinLeadMillis = if (action == ACTION_DAILY_VOTD) RESCHEDULE_LEAD_MILLIS else 0L,
                 debugEveningMinLeadMillis = if (isDebugEvening) RESCHEDULE_LEAD_MILLIS else 0L,
             )
+        }
+
+        if (action == ACTION_DAILY_VOTD && wasVotdDeliveredToday(context.applicationContext)) {
+            return
         }
 
         val pendingResult = goAsync()
@@ -182,6 +189,9 @@ class VotdNotificationReceiver : BroadcastReceiver() {
 
     companion object {
         const val CHANNEL_ID = "verse_of_the_day"
+        const val CHANNEL_READING_ENGAGEMENT = "reading_engagement"
+        const val CHANNEL_BIBLICAL_WORDS = "biblical_words"
+        const val CHANNEL_ANNOUNCEMENTS = "announcements"
         const val ACTION_DAILY_VOTD = "email.kevinphillips.biblebible.ACTION_DAILY_VOTD"
         const val ACTION_DEBUG_EVENING_VOTD = "email.kevinphillips.biblebible.ACTION_DEBUG_EVENING_VOTD"
         const val EXTRA_TITLE = "votd_title"
@@ -207,6 +217,7 @@ class VotdNotificationReceiver : BroadcastReceiver() {
         private const val KEY_USER_ENABLED = "votd_notifications_enabled"
         private const val KEY_REMINDER_HOUR = "votd_reminder_hour"
         private const val KEY_REMINDER_MINUTE = "votd_reminder_minute"
+        private const val KEY_LAST_REMOTE_VOTD_DATE = "votd_last_remote_delivered_date"
 
         private val RESCHEDULE_ONLY_ACTIONS = setOf(
             Intent.ACTION_BOOT_COMPLETED,
@@ -214,6 +225,70 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
         )
+
+        private fun localDateKey(nowMillis: Long = System.currentTimeMillis()): String =
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(nowMillis))
+
+        fun markVotdDeliveredToday(context: Context, nowMillis: Long = System.currentTimeMillis()) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_LAST_REMOTE_VOTD_DATE, localDateKey(nowMillis))
+                .apply()
+        }
+
+        fun wasVotdDeliveredToday(context: Context, nowMillis: Long = System.currentTimeMillis()): Boolean {
+            val saved = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_LAST_REMOTE_VOTD_DATE, null)
+            return saved == localDateKey(nowMillis)
+        }
+
+        fun resolveChannelId(type: String?, explicitChannelId: String? = null): String {
+            val explicit = explicitChannelId?.trim().orEmpty()
+            if (explicit in setOf(CHANNEL_ID, CHANNEL_READING_ENGAGEMENT, CHANNEL_BIBLICAL_WORDS, CHANNEL_ANNOUNCEMENTS)) {
+                return explicit
+            }
+            return when (type?.trim()?.lowercase()) {
+                "reading_plan", "reading_nudge" -> CHANNEL_READING_ENGAGEMENT
+                "biblical_words", "inhouse_words" -> CHANNEL_BIBLICAL_WORDS
+                "announcement" -> CHANNEL_ANNOUNCEMENTS
+                else -> CHANNEL_ID
+            }
+        }
+
+        fun showRemoteNotification(
+            context: Context,
+            title: String,
+            body: String,
+            channelId: String,
+            dataExtras: Map<String, String>,
+            notificationId: Int,
+        ) {
+            ensureAllChannels(context)
+            val resolvedChannel = resolveChannelId(dataExtras["type"], channelId)
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                dataExtras.forEach { (k, v) -> putExtra(k, v) }
+            }
+            val contentPendingIntent = PendingIntent.getActivity(
+                context,
+                notificationId,
+                openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            val iconRes = context.applicationInfo.icon
+            val notification = NotificationCompat.Builder(context, resolvedChannel)
+                .setSmallIcon(iconRes)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(contentPendingIntent)
+                .build()
+
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.notify(notificationId, notification)
+        }
 
         internal fun remindersAvailable(context: Context): Boolean =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -260,16 +335,43 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         fun ensureChannel(context: Context) {
+            ensureAllChannels(context)
+        }
+
+        fun ensureAllChannels(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    "Verse of the Day",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    description = "Daily morning Verse of the Day scripture notification (6:00 AM)"
-                }
-                manager.createNotificationChannel(channel)
+                val channels = listOf(
+                    NotificationChannel(
+                        CHANNEL_ID,
+                        "Verse of the Day",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Daily morning Verse of the Day scripture notification"
+                    },
+                    NotificationChannel(
+                        CHANNEL_READING_ENGAGEMENT,
+                        "Reading Nudges & Plans",
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        description = "Daily scripture reading prompts and devotional nudges"
+                    },
+                    NotificationChannel(
+                        CHANNEL_BIBLICAL_WORDS,
+                        "Biblical Words",
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = "New Biblical Words video reflections and teachings"
+                    },
+                    NotificationChannel(
+                        CHANNEL_ANNOUNCEMENTS,
+                        "BibleBible Highlights",
+                        NotificationManager.IMPORTANCE_DEFAULT,
+                    ).apply {
+                        description = "Featured study notes and app updates"
+                    },
+                )
+                channels.forEach { manager.createNotificationChannel(it) }
             }
         }
 

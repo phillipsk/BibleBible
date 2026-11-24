@@ -11,14 +11,111 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
+import data.bible.BibleState
 import email.kevinphillips.biblebible.VotdNotificationReceiver
 import email.kevinphillips.biblebible.cache.DriverFactory
 import java.lang.ref.WeakReference
+import java.util.TimeZone
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 internal const val ANDROID_NOTIF_PREFS = "biblebible_notifications_prefs"
 internal const val KEY_NOTIF_ENABLED = "votd_notifications_enabled"
 internal const val KEY_PROMPT_DISMISSED = "votd_prompt_dismissed"
 internal const val KEY_OS_PERMISSION_ASKED = "votd_os_permission_asked"
+private const val KEY_FCM_TOKEN = "votd_fcm_token"
+
+private val androidPushSyncScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+internal object AndroidPushTokenStore {
+    fun getToken(context: Context): String? =
+        context.getSharedPreferences(ANDROID_NOTIF_PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_FCM_TOKEN, null)
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+    fun saveToken(context: Context, token: String) {
+        val clean = token.trim()
+        if (clean.isEmpty()) return
+        context.getSharedPreferences(ANDROID_NOTIF_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_FCM_TOKEN, clean)
+            .apply()
+    }
+}
+
+internal fun syncAndroidPushTopics(isDebug: Boolean, subscribe: Boolean) {
+    runCatching {
+        val messaging = FirebaseMessaging.getInstance()
+        val topics = if (subscribe) {
+            PushRegistrationRepository.defaultTopics(isDebug)
+        } else {
+            PushRegistrationRepository.allKnownTopics()
+        }
+        topics.forEach { topic ->
+            if (subscribe) {
+                messaging.subscribeToTopic(topic)
+            } else {
+                messaging.unsubscribeFromTopic(topic)
+            }
+        }
+    }
+}
+
+internal fun syncAndroidPushRegistration(context: Context) {
+    val appContext = context.applicationContext
+    if (!VotdNotificationReceiver.remindersAvailable(appContext) ||
+        !VotdNotificationReceiver.isUserNotificationsEnabled(appContext)
+    ) {
+        return
+    }
+    val isDebug = VotdNotificationReceiver.isDebugBuild(appContext)
+    val tz = TimeZone.getDefault().id
+    val hour = VotdNotificationReceiver.getReminderHour(appContext)
+    val minute = VotdNotificationReceiver.getReminderMinute(appContext)
+    val versionId = BibleState.selectedVersion
+
+    runCatching {
+        if (FirebaseApp.getApps(appContext).isEmpty()) return
+        syncAndroidPushTopics(isDebug = isDebug, subscribe = true)
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            if (token.isNullOrBlank()) return@addOnSuccessListener
+            AndroidPushTokenStore.saveToken(appContext, token)
+            androidPushSyncScope.launch {
+                PushRegistrationRepository.registerDeviceToken(
+                    token = token,
+                    platform = "android",
+                    isDebugBuild = isDebug,
+                    timezone = tz,
+                    reminderHour = hour,
+                    reminderMinute = minute,
+                    remindersEnabled = true,
+                    versionId = versionId,
+                )
+            }
+        }
+    }
+}
+
+internal fun unregisterAndroidPush(context: Context) {
+    val appContext = context.applicationContext
+    val cachedToken = AndroidPushTokenStore.getToken(appContext).orEmpty()
+    runCatching {
+        if (FirebaseApp.getApps(appContext).isNotEmpty()) {
+            syncAndroidPushTopics(isDebug = true, subscribe = false)
+        }
+    }
+    androidPushSyncScope.launch {
+        PushRegistrationRepository.unregisterDeviceToken(
+            token = cachedToken,
+            platform = "android",
+        )
+    }
+}
 
 internal object AndroidNotificationPermissionHost {
     private var activityRef: WeakReference<ComponentActivity>? = null
@@ -64,12 +161,14 @@ internal object AndroidNotificationPermissionHost {
             if (appContext != null) {
                 VotdNotificationReceiver.setUserNotificationsEnabled(appContext, true)
                 VotdNotificationReceiver.scheduleDailyVotd(appContext)
+                syncAndroidPushRegistration(appContext)
             }
             callback?.invoke(NotificationPermissionStatus.GRANTED)
         } else {
             if (appContext != null) {
                 VotdNotificationReceiver.setUserNotificationsEnabled(appContext, false)
                 VotdNotificationReceiver.cancelAllVotd(appContext)
+                unregisterAndroidPush(appContext)
             }
             val showRationale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 activity != null &&
@@ -136,6 +235,7 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         val ctx = context ?: return
         if (isUserEnabled()) {
             VotdNotificationReceiver.scheduleDailyVotd(ctx)
+            syncAndroidPushRegistration(ctx)
         }
     }
 
@@ -158,6 +258,7 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         }
         if (status == NotificationPermissionStatus.GRANTED && isUserEnabled()) {
             VotdNotificationReceiver.scheduleDailyVotd(ctx)
+            syncAndroidPushRegistration(ctx)
         }
         onResult(status)
     }
@@ -172,6 +273,7 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         if (currentStatus == NotificationPermissionStatus.GRANTED) {
             VotdNotificationReceiver.setUserNotificationsEnabled(ctx, true)
             VotdNotificationReceiver.scheduleDailyVotd(ctx)
+            syncAndroidPushRegistration(ctx)
             onResult(NotificationPermissionStatus.GRANTED)
             return
         }
@@ -190,6 +292,7 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
         val ctx = context ?: return
         VotdNotificationReceiver.setUserNotificationsEnabled(ctx, false)
         VotdNotificationReceiver.cancelAllVotd(ctx)
+        unregisterAndroidPush(ctx)
     }
 
     override fun openSystemNotificationSettings() {

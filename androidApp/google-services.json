@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "687901748717",
+    "project_id": "gen-lang-client-0150678391",
+    "storage_bucket": "gen-lang-client-0150678391.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687901748717:android:81cb9c557c9e1aa0084be4",
+        "android_client_info": {
+          "package_name": "email.kevinphillips.biblebible"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqg_wjF_wVB4al6uVGR0YUNY-ybHdN2uU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687901748717:android:e06f5c2b00be48a1084be4",
+        "android_client_info": {
+          "package_name": "email.kevinphillips.biblebible.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqg_wjF_wVB4al6uVGR0YUNY-ybHdN2uU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

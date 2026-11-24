@@ -1,15 +1,74 @@
 import SwiftUI
 import UIKit
 import UserNotifications
+import FirebaseCore
+import FirebaseMessaging
 import ComposeApp
 
-final class NotificationAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+final class NotificationAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
+    private var topicObserver: NSObjectProtocol?
+
+    private var isDebugBuild: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        configureFirebase()
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
+        application.registerForRemoteNotifications()
+
+        topicObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("BibleBiblePushTopicsChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.syncTopics()
+        }
         return true
+    }
+
+    private func configureFirebase() {
+        if FirebaseApp.app() != nil { return }
+        #if DEBUG
+        if let debugPath = Bundle.main.path(forResource: "GoogleService-Info-Debug", ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: debugPath) {
+            FirebaseApp.configure(options: options)
+            return
+        }
+        #endif
+        FirebaseApp.configure()
+    }
+
+    private func syncTopics() {
+        let messaging = Messaging.messaging()
+        let enabled = MainViewControllerKt.areIosNotificationsEnabled()
+        if enabled {
+            for topic in MainViewControllerKt.iosPushTopics(isDebug: isDebugBuild) {
+                messaging.subscribe(toTopic: topic)
+            }
+        } else {
+            for topic in MainViewControllerKt.iosAllPushTopics() {
+                messaging.unsubscribe(fromTopic: topic)
+            }
+        }
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let token = fcmToken, !token.isEmpty else { return }
+        MainViewControllerKt.handleIosPushTokenRefresh(token: token, isDebug: isDebugBuild)
+        syncTopics()
     }
 
     func userNotificationCenter(

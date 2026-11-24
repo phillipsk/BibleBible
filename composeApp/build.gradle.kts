@@ -62,6 +62,8 @@ kotlin {
             implementation(libs.play.integrity)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -140,7 +142,7 @@ val generateProtectedEndpoints = tasks.register("generateProtectedEndpoints") {
     val gatewayInput = cloudGatewayUrl
     val outputDir = protectedEndpointsDir
     inputs.property("gatewayUrl", gatewayInput)
-    inputs.property("schemaVersion", 2)
+    inputs.property("schemaVersion", 3)
     outputs.dir(outputDir)
     doLast {
         val outFile = outputDir.get()
@@ -170,6 +172,8 @@ val generateProtectedEndpoints = tasks.register("generateProtectedEndpoints") {
             "chapterCountPath" to "/GetChapterCount",
             "dailyVersePath" to "/GetVerseOfTheDay",
             "votdPreviewPath" to "/v1/notifications/preview",
+            "pushRegisterPath" to "/v1/notifications/register",
+            "pushUnregisterPath" to "/v1/notifications/unregister",
             "headerClientPlatform" to "X-Client-Platform",
             "headerClientDeviceId" to "X-Client-Device-Id",
             "headerClientIntegrity" to "X-Client-Integrity",

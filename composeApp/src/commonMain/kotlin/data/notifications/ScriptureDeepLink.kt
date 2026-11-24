@@ -1,5 +1,11 @@
 package data.notifications
 
+internal enum class PushDestinationKind {
+    SCRIPTURE,
+    BIBLICAL_WORDS,
+    HOME,
+}
+
 internal data class ScriptureDeepLink(
     val bookUsfm: String = "",
     val bookNumber: Int? = null,
@@ -7,6 +13,8 @@ internal data class ScriptureDeepLink(
     val verse: Int = 1,
     val version: String? = null,
     val fetchDailyIfMissing: Boolean = false,
+    val destination: PushDestinationKind = PushDestinationKind.SCRIPTURE,
+    val shortsCategory: String? = null,
 )
 
 private val canonicalBookUsfms = listOf(
@@ -34,6 +42,19 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
     }
 
     val type = normalized["type"]
+    val explicitDestination = normalized["destination"]
+    if (
+        type.equals("biblical_words", ignoreCase = true) ||
+        type.equals("inhouse_words", ignoreCase = true) ||
+        explicitDestination.equals("biblical_words", ignoreCase = true)
+    ) {
+        val category = normalized["category"]?.takeIf { it.isNotBlank() } ?: "All"
+        return ScriptureDeepLink(
+            destination = PushDestinationKind.BIBLICAL_WORDS,
+            shortsCategory = category,
+        )
+    }
+
     val rawUsfm = normalized["votd_book_usfm"]
         ?: normalized["bookusfm"]
         ?: normalized["book_usfm"]
@@ -69,6 +90,7 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
             verse = verse,
             version = version,
             fetchDailyIfMissing = false,
+            destination = PushDestinationKind.SCRIPTURE,
         )
     }
 
@@ -80,6 +102,16 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
             verse = 1,
             version = version,
             fetchDailyIfMissing = true,
+            destination = PushDestinationKind.SCRIPTURE,
+        )
+    }
+
+    if (
+        explicitDestination.equals("home", ignoreCase = true) ||
+        (type.equals("announcement", ignoreCase = true) && resolvedUsfm.isBlank() && chapter == null)
+    ) {
+        return ScriptureDeepLink(
+            destination = PushDestinationKind.HOME,
         )
     }
 

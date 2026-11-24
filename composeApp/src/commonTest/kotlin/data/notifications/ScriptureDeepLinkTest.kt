@@ -161,4 +161,52 @@ class ScriptureDeepLinkTest {
         assertEquals(31, BibleState.pendingTargetVerse)
         assertFalse(BibleState.showHomePage)
     }
+
+    @Test
+    fun parsesAndConsumesBiblicalWordsReadingNudgeAndAnnouncementPayloads() = runTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+
+        val wordsLink = parseVotdNotificationPayload(
+            mapOf(
+                "type" to "biblical_words",
+                "destination" to "biblical_words",
+                "category" to "Faith",
+            )
+        )
+        assertNotNull(wordsLink)
+        assertEquals(PushDestinationKind.BIBLICAL_WORDS, wordsLink.destination)
+        assertEquals("Faith", wordsLink.shortsCategory)
+
+        BibleState.enqueueDeepLink(wordsLink)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertTrue(BibleState.showBiblicalShorts)
+        assertEquals("Faith", BibleState.selectedShortsCategory)
+
+        val readingNudge = parseVotdNotificationPayload(
+            mapOf(
+                "type" to "reading_nudge",
+                "destination" to "scripture",
+                "bookNumber" to "19",
+                "bookUsfm" to "PSA",
+                "chapter" to "23",
+                "verse" to "1",
+                "versionId" to "KJV",
+            )
+        )
+        assertNotNull(readingNudge)
+        assertEquals(PushDestinationKind.SCRIPTURE, readingNudge.destination)
+        BibleState.enqueueDeepLink(readingNudge)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertFalse(BibleState.showBiblicalShorts)
+        assertEquals("Psalms", BibleState.selectedBook.name)
+        assertEquals(23, BibleState.bibleChapter?.chapterId)
+
+        val homeAnnouncement = parseVotdNotificationPayload(mapOf("type" to "announcement"))
+        assertNotNull(homeAnnouncement)
+        assertEquals(PushDestinationKind.HOME, homeAnnouncement.destination)
+        BibleState.enqueueDeepLink(homeAnnouncement)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertTrue(BibleState.showHomePage)
+    }
 }

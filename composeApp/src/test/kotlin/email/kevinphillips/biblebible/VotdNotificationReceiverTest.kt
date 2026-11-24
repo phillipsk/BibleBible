@@ -240,6 +240,44 @@ class VotdNotificationReceiverTest {
         }
     }
 
+    @Test
+    fun ensureAllChannelsCreatesDedicatedCategoriesAndDeduplicatesSameDayRemoteVotd() {
+        val app = RuntimeEnvironment.getApplication()
+        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
+        VotdNotificationReceiver.ensureAllChannels(app)
+
+        val notificationManager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channels = notificationManager.notificationChannels.map { it.id }.toSet()
+        assertTrue(VotdNotificationReceiver.CHANNEL_ID in channels)
+        assertTrue(VotdNotificationReceiver.CHANNEL_READING_ENGAGEMENT in channels)
+        assertTrue(VotdNotificationReceiver.CHANNEL_BIBLICAL_WORDS in channels)
+        assertTrue(VotdNotificationReceiver.CHANNEL_ANNOUNCEMENTS in channels)
+
+        assertEquals(
+            VotdNotificationReceiver.CHANNEL_READING_ENGAGEMENT,
+            VotdNotificationReceiver.resolveChannelId("reading_nudge", null),
+        )
+        assertEquals(
+            VotdNotificationReceiver.CHANNEL_BIBLICAL_WORDS,
+            VotdNotificationReceiver.resolveChannelId("biblical_words", null),
+        )
+
+        // Marking today's remote VOTD delivered prevents ACTION_DAILY_VOTD from double-posting locally.
+        VotdNotificationReceiver.markVotdDeliveredToday(app)
+        assertTrue(VotdNotificationReceiver.wasVotdDeliveredToday(app))
+        VotdNotificationReceiver().onReceive(
+            app,
+            Intent(app, VotdNotificationReceiver::class.java).apply {
+                action = VotdNotificationReceiver.ACTION_DAILY_VOTD
+                putExtra(VotdNotificationReceiver.EXTRA_TITLE, "Duplicate Local")
+                putExtra(VotdNotificationReceiver.EXTRA_BODY, "Should be skipped")
+            },
+        )
+        Thread.sleep(100)
+        assertTrue(Shadows.shadowOf(notificationManager).allNotifications.isEmpty())
+    }
+
     private fun calendarMillis(
         year: Int,
         month: Int,

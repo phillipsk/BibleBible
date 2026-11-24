@@ -2,8 +2,11 @@ import androidx.compose.ui.window.ComposeUIViewController
 import data.bible.BibleState
 import data.bible.bibleBooksFull
 import data.bible.fetchDailyVerse
+import data.notifications.IosPushTokenStore
+import data.notifications.PushRegistrationRepository
 import data.notifications.VotdNotificationController
 import data.notifications.parseVotdNotificationPayload
+import data.notifications.syncIosPushRegistration
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.Platform
 import kotlinx.coroutines.CoroutineScope
@@ -11,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import platform.Foundation.NSDateComponents
+import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSProcessInfo
 import platform.UIKit.UIColor
 import platform.UIKit.UIViewController
@@ -24,6 +28,30 @@ private const val LEGACY_DAILY_VOTD_ID = "biblebible_votd_daily_607am"
 private const val DAILY_VOTD_ID = "biblebible_votd_daily_600am"
 private const val DEBUG_EVENING_VOTD_ID = "biblebible_votd_debug_900pm"
 private val iosNotificationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+internal fun notifyIosTopicSync() {
+    NSNotificationCenter.defaultCenter.postNotificationName(
+        aName = "BibleBiblePushTopicsChanged",
+        `object` = null,
+    )
+}
+
+fun iosPushTopics(isDebug: Boolean): List<String> =
+    PushRegistrationRepository.defaultTopics(isDebug)
+
+fun iosAllPushTopics(): List<String> =
+    PushRegistrationRepository.allKnownTopics()
+
+fun areIosNotificationsEnabled(): Boolean =
+    IosPushTokenStore.isNotificationsEnabled()
+
+fun handleIosPushTokenRefresh(token: String, isDebug: Boolean) {
+    IosPushTokenStore.saveToken(token)
+    if (IosPushTokenStore.isNotificationsEnabled()) {
+        notifyIosTopicSync()
+    }
+    syncIosPushRegistration(isDebugOverride = isDebug)
+}
 
 fun handleIosNotificationTap(userInfo: Map<Any?, *>) {
     val extras = userInfo.entries.associate { (k, v) -> k?.toString().orEmpty() to v?.toString() }

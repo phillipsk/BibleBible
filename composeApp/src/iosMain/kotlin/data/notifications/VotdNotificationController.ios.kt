@@ -1,9 +1,19 @@
 package data.notifications
 
 import cancelIosDailyVotdNotifications
+import data.bible.BibleState
+import kotlin.experimental.ExperimentalNativeApi
+import kotlin.native.Platform
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import notifyIosTopicSync
+import platform.Foundation.NSTimeZone
 import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSURL
+import platform.Foundation.localTimeZone
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
 import platform.UserNotifications.UNAuthorizationOptionAlert
@@ -23,8 +33,76 @@ private const val KEY_IOS_ENABLED = "email.kevinphillips.biblebible.votd_notific
 private const val KEY_IOS_PROMPT_DISMISSED = "email.kevinphillips.biblebible.votd_prompt_dismissed"
 private const val KEY_IOS_REMINDER_HOUR = "email.kevinphillips.biblebible.votd_reminder_hour"
 private const val KEY_IOS_REMINDER_MINUTE = "email.kevinphillips.biblebible.votd_reminder_minute"
-
 private const val KEY_IOS_AVAILABLE = "email.kevinphillips.biblebible.votd_reminders_available"
+private const val KEY_IOS_FCM_TOKEN = "email.kevinphillips.biblebible.votd_fcm_token"
+
+private val iosPushSyncScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+internal object IosPushTokenStore {
+    private val defaults get() = NSUserDefaults.standardUserDefaults
+
+    fun getToken(): String? =
+        defaults.stringForKey(KEY_IOS_FCM_TOKEN)?.trim()?.takeIf { it.isNotEmpty() }
+
+    fun saveToken(token: String) {
+        val clean = token.trim()
+        if (clean.isEmpty()) return
+        defaults.setObject(clean, forKey = KEY_IOS_FCM_TOKEN)
+    }
+
+    fun isNotificationsEnabled(): Boolean {
+        val available = defaults.objectForKey(KEY_IOS_AVAILABLE) == null || defaults.boolForKey(KEY_IOS_AVAILABLE)
+        val enabled = defaults.objectForKey(KEY_IOS_ENABLED) != null && defaults.boolForKey(KEY_IOS_ENABLED)
+        return available && enabled
+    }
+}
+
+@OptIn(ExperimentalNativeApi::class)
+internal fun syncIosPushRegistration(isDebugOverride: Boolean? = null) {
+    val token = IosPushTokenStore.getToken() ?: return
+    val enabled = IosPushTokenStore.isNotificationsEnabled()
+    val defaults = NSUserDefaults.standardUserDefaults
+    val hour = if (defaults.objectForKey(KEY_IOS_REMINDER_HOUR) != null) {
+        defaults.integerForKey(KEY_IOS_REMINDER_HOUR).toInt().coerceIn(0, 23)
+    } else {
+        6
+    }
+    val minute = if (defaults.objectForKey(KEY_IOS_REMINDER_MINUTE) != null) {
+        defaults.integerForKey(KEY_IOS_REMINDER_MINUTE).toInt().coerceIn(0, 59)
+    } else {
+        0
+    }
+    val tz = NSTimeZone.localTimeZone.name
+    val isDebug = isDebugOverride ?: Platform.isDebugBinary
+    val versionId = BibleState.selectedVersion
+
+    if (enabled) {
+        notifyIosTopicSync()
+    }
+    iosPushSyncScope.launch {
+        PushRegistrationRepository.registerDeviceToken(
+            token = token,
+            platform = "ios",
+            isDebugBuild = isDebug,
+            timezone = tz,
+            reminderHour = hour,
+            reminderMinute = minute,
+            remindersEnabled = enabled,
+            versionId = versionId,
+        )
+    }
+}
+
+internal fun unregisterIosPush() {
+    notifyIosTopicSync()
+    val token = IosPushTokenStore.getToken().orEmpty()
+    iosPushSyncScope.launch {
+        PushRegistrationRepository.unregisterDeviceToken(
+            token = token,
+            platform = "ios",
+        )
+    }
+}
 
 private class IosNotificationBridge : NotificationPlatformBridge {
     private val defaults = NSUserDefaults.standardUserDefaults
@@ -77,6 +155,7 @@ private class IosNotificationBridge : NotificationPlatformBridge {
         if (remindersAvailable() && isUserEnabled()) {
             val (h, m) = getReminderTime()
             scheduleIosDailyVotdNotifications(h, m)
+            syncIosPushRegistration()
         }
     }
 
@@ -129,6 +208,7 @@ private class IosNotificationBridge : NotificationPlatformBridge {
     override fun disableAndCancel() {
         setUserEnabled(false)
         cancelIosDailyVotdNotifications()
+        unregisterIosPush()
     }
 
     @OptIn(ExperimentalForeignApi::class)
