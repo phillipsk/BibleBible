@@ -1,24 +1,25 @@
 package data.gemini
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class GeminiResponseDto(
-    val candidates: List<CandidateDto>? = null,
+internal data class GeminiResponseDto(
+    @SerialName("candidates") val candidates: List<CandidateDto>? = null,
 )
 
 @Serializable
-data class CandidateDto(
-    val content: ContentDto? = null
+internal data class CandidateDto(
+    @SerialName("content") val content: ContentDto? = null,
 )
 
 @Serializable
-data class ContentDto(
-    val parts: List<PartDto>? = null,
-    val role: String? = null
+internal data class ContentDto(
+    @SerialName("parts") val parts: List<PartDto>? = null,
+    @SerialName("role") val role: String? = null,
 )
 
 @Serializable
-data class PartDto(
-    val text: String? = null
+internal data class PartDto(
+    @SerialName("text") val text: String? = null,
 )

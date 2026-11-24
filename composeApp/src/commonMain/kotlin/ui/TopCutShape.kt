@@ -5,11 +5,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import ui.Orientation.TOP
 
-enum class Orientation {
+internal enum class Orientation {
     TOP, BOTTOM
 }
 
-class TopCutShape(private val orientation: Orientation) : Shape {
+internal class TopCutShape(private val orientation: Orientation) : Shape {
     private val cutWidth = 1f
     private val cutHeight = 20f
     override fun createOutline(

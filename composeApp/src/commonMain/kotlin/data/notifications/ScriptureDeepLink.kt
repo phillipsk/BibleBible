@@ -1,6 +1,6 @@
 package data.notifications
 
-data class ScriptureDeepLink(
+internal data class ScriptureDeepLink(
     val bookUsfm: String = "",
     val bookNumber: Int? = null,
     val chapter: Int = 1,
@@ -27,7 +27,7 @@ internal fun bookNumberForUsfm(bookUsfm: String?): Int? {
     return canonicalBookUsfms.indexOf(clean).takeIf { it >= 0 }?.plus(1)
 }
 
-fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLink? {
+internal fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLink? {
     if (extras.isEmpty()) return null
     val normalized = extras.entries.associate { (k, v) ->
         k.trim().lowercase() to v?.trim()
@@ -86,7 +86,7 @@ fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLin
     return null
 }
 
-fun findVerseCharacterOffset(
+internal fun findVerseCharacterOffset(
     chapterText: String,
     verseNumber: Int,
     version: String,
@@ -109,7 +109,7 @@ fun findVerseCharacterOffset(
     return if (bareIdx >= 0) bareIdx else null
 }
 
-fun parseVerseRange(
+internal fun parseVerseRange(
     scriptureReference: String,
     fallbackVerse: Int = 1,
 ): IntRange {
@@ -121,7 +121,7 @@ fun parseVerseRange(
     return start..end
 }
 
-fun findVerseCharacterRange(
+internal fun findVerseCharacterRange(
     chapterText: String,
     verseStart: Int,
     verseEnd: Int = verseStart,

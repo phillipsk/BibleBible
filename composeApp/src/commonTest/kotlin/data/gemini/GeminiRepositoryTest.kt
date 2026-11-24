@@ -42,23 +42,25 @@ class GeminiRepositoryTest {
     }
 
     @Test
-    fun requestSendsBearerSessionTokenAndExplicitTokenLimitToCloudGateway() = runTest {
+    fun requestSendsBearerSessionTokenAndStructuredChapterPayloadToCloudGateway() = runTest {
         val client = client(MockEngine { request ->
             assertEquals("/v1/gemini/summary", request.url.encodedPath)
             assertEquals("Bearer $sessionToken", request.headers[HttpHeaders.Authorization])
             assertFalse(request.url.parameters.contains("key"))
             assertEquals(ContentType.Application.Json, request.body.contentType)
             val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
-            val config = body.getValue("generationConfig").jsonObject
-            assertEquals(2048, config.getValue("maxOutputTokens").jsonPrimitive.int)
-            assertEquals(1, config.getValue("candidateCount").jsonPrimitive.int)
+            assertEquals("JHN", body.getValue("bookId").jsonPrimitive.content)
+            assertEquals(3, body.getValue("chapter").jsonPrimitive.int)
+            assertEquals("BSB", body.getValue("version").jsonPrimitive.content)
+            assertFalse(body.containsKey("prompt"))
+            assertFalse(body.containsKey("contents"))
             assertEquals(GEMINI_MODEL, body.getValue("model").jsonPrimitive.content)
             assertTrue(body.getValue("refresh").jsonPrimitive.boolean)
             respond(Json.encodeToString(summary("Summary")), HttpStatusCode.OK, jsonHeaders())
         })
         try {
             GeminiModel.showSummary = true
-            generateContent("Test prompt", client, refresh = true)
+            generateContent(SummaryTarget("JHN", 3, "BSB"), client, refresh = true)
             assertEquals("Summary", GeminiModel.geminiDataText)
             assertTrue(GeminiModel.isSuccessful)
             assertNull(GeminiModel.errorMessage)
@@ -110,7 +112,7 @@ class GeminiRepositoryTest {
         GeminiModel.updateGeminiData(summary("Old summary"))
         val client = client(MockEngine { error("sensitive-request-detail") })
         try {
-            generateContent("Test prompt", client)
+            generateContent(SummaryTarget("JHN", 3), client)
             assertNull(GeminiModel.geminiDataText)
             assertTrue(GeminiModel.errorMessage.orEmpty().contains("connection"))
             assertFalse(GeminiModel.errorMessage.orEmpty().contains("sensitive-request-detail"))
@@ -121,7 +123,7 @@ class GeminiRepositoryTest {
     fun coroutineCancellationIsPropagated() = runTest {
         val client = client(MockEngine { throw CancellationException("Cancelled") })
         try {
-            assertFailsWith<CancellationException> { generateContent("Test prompt", client) }
+            assertFailsWith<CancellationException> { generateContent(SummaryTarget("JHN", 3), client) }
             assertNull(GeminiModel.errorMessage)
         } finally { client.close() }
     }
@@ -135,7 +137,7 @@ class GeminiRepositoryTest {
             logger, true,
         )
         try {
-            generateContent("Test prompt", client)
+            generateContent(SummaryTarget("JHN", 3), client)
             assertFalse(messages.joinToString().contains(sessionToken))
         } finally { client.close() }
     }
@@ -157,6 +159,6 @@ class GeminiRepositoryTest {
 
     private suspend fun request(status: HttpStatusCode, content: String) {
         val client = client(MockEngine { respond(content, status, jsonHeaders()) })
-        try { generateContent("Test prompt", client) } finally { client.close() }
+        try { generateContent(SummaryTarget("JHN", 3), client) } finally { client.close() }
     }
 }

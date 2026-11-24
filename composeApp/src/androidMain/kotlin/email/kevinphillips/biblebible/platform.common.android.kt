@@ -7,14 +7,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.runtime.Composable
 
-actual fun isDesktopPlatform(): Boolean {
+internal actual fun isDesktopPlatform(): Boolean {
     return false
 }
 
-actual fun getPlatformName(): String = "android"
+internal actual fun getPlatformName(): String = "android"
 
 @Composable
-actual fun SetSystemBarColor(darkColor: Color) {
+internal actual fun SetSystemBarColor(darkColor: Color) {
     val activity = LocalContext.current as Activity
     activity.window.apply {
         navigationBarColor = darkColor.toArgb()

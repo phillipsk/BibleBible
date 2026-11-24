@@ -1,47 +1,48 @@
 package data.shorts
 
-import data.bible.GetBiblicalShorts
+import data.bible.getBiblicalShorts
 import data.config.CloudSessionManager
 import data.httpClientCloudGateway
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 internal data class BiblicalShortSceneDto(
-    val index: Int,
-    val startSeconds: Int,
-    val endSeconds: Int,
-    val heading: String,
-    val caption: String,
+    @SerialName("index") val index: Int,
+    @SerialName("startSeconds") val startSeconds: Int,
+    @SerialName("endSeconds") val endSeconds: Int,
+    @SerialName("heading") val heading: String,
+    @SerialName("caption") val caption: String,
 )
 
 @Serializable
 internal data class BiblicalShortDto(
-    val id: String,
-    val order: Int,
-    val title: String,
-    val category: String,
-    val durationSeconds: Int,
-    val scriptureReference: String,
-    val bookId: Int,
-    val bookUsfm: String,
-    val chapter: Int,
-    val verse: Int,
-    val keyVerseText: String,
-    val narrative: String,
-    val lesson: String,
-    val accentColorHex: String = "#3A5F8F",
-    val videoUrl: String = "",
-    val bodyDurationSeconds: Double? = null,
-    val promoEndCardSeconds: Double = 0.0,
-    val scene2StartSeconds: Int? = null,
-    val scenes: List<BiblicalShortSceneDto> = emptyList(),
+    @SerialName("id") val id: String,
+    @SerialName("order") val order: Int,
+    @SerialName("title") val title: String,
+    @SerialName("category") val category: String,
+    @SerialName("durationSeconds") val durationSeconds: Int,
+    @SerialName("scriptureReference") val scriptureReference: String,
+    @SerialName("bookId") val bookId: Int,
+    @SerialName("bookUsfm") val bookUsfm: String,
+    @SerialName("chapter") val chapter: Int,
+    @SerialName("verse") val verse: Int,
+    @SerialName("keyVerseText") val keyVerseText: String,
+    @SerialName("narrative") val narrative: String,
+    @SerialName("lesson") val lesson: String,
+    @SerialName("accentColorHex") val accentColorHex: String = "#3A5F8F",
+    @SerialName("videoUrl") val videoUrl: String = "",
+    @SerialName("bodyDurationSeconds") val bodyDurationSeconds: Double? = null,
+    @SerialName("promoEndCardSeconds") val promoEndCardSeconds: Double = 0.0,
+    @SerialName("scene2StartSeconds") val scene2StartSeconds: Int? = null,
+    @SerialName("scenes") val scenes: List<BiblicalShortSceneDto> = emptyList(),
 ) {
     /**
      * Returns the playback timestamp (in seconds) right before a social promotional end card,
@@ -70,11 +71,11 @@ internal data class BiblicalShortDto(
 
 @Serializable
 internal data class BiblicalShortsFeedDto(
-    val schemaVersion: Int = 1,
-    val totalCount: Int = 10,
-    val maxDurationSeconds: Int = 30,
-    val categories: List<String> = emptyList(),
-    val shorts: List<BiblicalShortDto> = emptyList(),
+    @SerialName("schemaVersion") val schemaVersion: Int = 1,
+    @SerialName("totalCount") val totalCount: Int = 10,
+    @SerialName("maxDurationSeconds") val maxDurationSeconds: Int = 30,
+    @SerialName("categories") val categories: List<String> = emptyList(),
+    @SerialName("shorts") val shorts: List<BiblicalShortDto> = emptyList(),
 )
 
 internal val biblicalShortsCategories = listOf(
@@ -113,7 +114,7 @@ private fun shortItem(
     val resolvedVideoUrl = directVideoUrl.trim().ifEmpty {
         if (cleanBase.isNotEmpty() && !cleanBase.contains("unconfigured.invalid")) {
             val prefix = if ("://" in cleanBase) cleanBase else "https://$cleanBase"
-            "$prefix/v1/shorts/media/$id.mp4"
+            "$prefix${ProtectedEndpoints.shortsMediaPrefix()}$id.mp4"
         } else {
             ""
         }
@@ -689,7 +690,7 @@ internal class BiblicalShortsRepository(
 internal suspend fun fetchBiblicalShortsFeed(
     client: HttpClient = httpClientCloudGateway,
 ): BiblicalShortsFeedDto {
-    val response = client.get(GetBiblicalShorts())
+    val response = client.getBiblicalShorts()
     check(response.status.isSuccess()) {
         "Biblical Shorts unavailable (${response.status.value})."
     }

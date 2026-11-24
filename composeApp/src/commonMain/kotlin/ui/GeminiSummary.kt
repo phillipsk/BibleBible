@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
+internal fun GeminiSummary(scrollState: ScrollState, selectedFontSize: Float) {
     val summaryText = GeminiModel.geminiDataText
     val refreshScope = rememberCoroutineScope()
     var refreshing by remember { mutableStateOf(false) }

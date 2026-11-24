@@ -26,4 +26,4 @@ private class DesktopShortsPrefsBacking : ShortsPrefsBacking {
     }
 }
 
-actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = DesktopShortsPrefsBacking()
+internal actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = DesktopShortsPrefsBacking()

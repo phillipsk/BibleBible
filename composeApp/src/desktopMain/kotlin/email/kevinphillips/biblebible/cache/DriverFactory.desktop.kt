@@ -7,7 +7,7 @@ import email.kevinphillips.biblebible.db.BibleBibleDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 
-actual object DriverFactory {
+internal actual object DriverFactory {
     private val driver: SqlDriver by lazy {
         val path = System.getProperty("biblebible.database.path")?.let(Path::of)
             ?: Path.of(System.getProperty("user.home"), ".biblebible", "BibleBibleDB.db")

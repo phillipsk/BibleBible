@@ -13,7 +13,6 @@ import email.kevinphillips.biblebible.db.SelectReadingHistory
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
@@ -30,9 +29,9 @@ const val DATABASE_RETENTION_READING_HISTORY = 500L
 
 @Serializable
 private data class VerseFormatMeta(
-    val v: String,
-    val p: Boolean = false,
-    val r: List<List<Int>> = emptyList(),
+    @kotlinx.serialization.SerialName("v") val v: String,
+    @kotlinx.serialization.SerialName("p") val p: Boolean = false,
+    @kotlinx.serialization.SerialName("r") val r: List<List<Int>> = emptyList(),
 )
 
 private val chapterFormatJson = Json { ignoreUnknownKeys = true }
@@ -93,12 +92,10 @@ internal suspend fun fetchBibleChapter(
         if (cachedData.isNullOrEmpty()) {
             withContext(Dispatchers.IO) {
                 chapterVerses =
-                    client.get(
-                        GetChapter(
-                            bookId = bookId,
-                            chapterId = chapter.toString(),
-                            versionId = version.lowercase(),
-                        )
+                    client.getBibleChapter(
+                        bookId = bookId,
+                        chapterId = chapter.toString(),
+                        versionId = version.lowercase(),
                     ).body<List<BibleChapter>>()
                 if (chapterVerses.isEmpty()) {
                     throw IOException("Error fetching chapter")
@@ -127,12 +124,10 @@ internal suspend fun fetchBibleChapter(
                 // Legacy cached chapter lacks paragraph/red-letter metadata; quietly refresh when online
                 withContext(Dispatchers.IO) {
                     runCatching {
-                        val refreshed = client.get(
-                            GetChapter(
-                                bookId = bookId,
-                                chapterId = chapter.toString(),
-                                versionId = version.lowercase(),
-                            )
+                        val refreshed = client.getBibleChapter(
+                            bookId = bookId,
+                            chapterId = chapter.toString(),
+                            versionId = version.lowercase(),
                         ).body<List<BibleChapter>>()
                         if (refreshed.isNotEmpty()) {
                             saveChapterFormatMeta(bookId, chapter, version, refreshed)
@@ -160,7 +155,7 @@ internal suspend fun fetchBibleChapter(
     }
 }
 
-suspend fun fetchReadingHistory() {
+internal suspend fun fetchReadingHistory() {
     var filteredReadingHistory = emptyList<SelectReadingHistory>()
     try {
         withContext(Dispatchers.IO) {
@@ -236,7 +231,7 @@ internal suspend fun insertChapterCount(chapterCount: ChapterCount?, bookId: Int
 
 private suspend fun fetchChapterCount(bookId: Int, client: HttpClient) = coroutineScope {
     async(Dispatchers.IO) {
-        client.get(GetChapterCount(bookId)).body<ChapterCount>()
+        client.getChapterCount(bookId).body<ChapterCount>()
     }
 }
 

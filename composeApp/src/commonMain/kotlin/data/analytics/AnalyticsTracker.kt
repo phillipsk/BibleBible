@@ -5,6 +5,7 @@ import data.httpClientCloudGateway
 import data.shorts.BiblicalShortDto
 import data.shorts.platformShortsPrefsBacking
 import email.kevinphillips.biblebible.getPlatformName
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.expectSuccess
@@ -27,30 +28,31 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
 
 @Serializable
 internal data class AnalyticsEventDto(
-    val name: String,
-    val category: String,
-    val platform: String,
-    val sessionId: String,
-    val deviceId: String = "",
-    val timestamp: String,
-    val properties: Map<String, String> = emptyMap(),
+    @SerialName("name") val name: String,
+    @SerialName("category") val category: String,
+    @SerialName("platform") val platform: String,
+    @SerialName("sessionId") val sessionId: String,
+    @SerialName("deviceId") val deviceId: String = "",
+    @SerialName("timestamp") val timestamp: String,
+    @SerialName("properties") val properties: Map<String, String> = emptyMap(),
 )
 
 @Serializable
 internal data class AnalyticsBatchRequestDto(
-    val events: List<AnalyticsEventDto>,
+    @SerialName("events") val events: List<AnalyticsEventDto>,
 )
 
 @Serializable
 internal data class AnalyticsAckResponseDto(
-    val status: String = "",
-    val ingested: Int = 0,
-    val totalEvents: Long = 0,
+    @SerialName("status") val status: String = "",
+    @SerialName("ingested") val ingested: Int = 0,
+    @SerialName("totalEvents") val totalEvents: Long = 0,
 )
 
 /**
@@ -295,15 +297,16 @@ internal object AnalyticsTracker {
         val baseUrl = CloudSessionManager.configuredGatewayUrl
             .takeIf { CloudSessionManager.parseSecureGatewayUrl(it) != null }
             ?: return 0
-        val endpoint = if ("://" in baseUrl) "$baseUrl/v1/analytics/events" else "https://$baseUrl/v1/analytics/events"
+        val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
+        val endpoint = "$prefix${ProtectedEndpoints.analyticsEventsPath()}"
 
         return try {
             val response = withContext(Dispatchers.IO) {
                 client.post {
                     expectSuccess = false
                     url(endpoint)
-                    header("X-Client-Platform", platformName)
-                    header("X-Client-Device-Id", resolveDeviceId())
+                    header(ProtectedEndpoints.headerClientPlatform(), platformName)
+                    header(ProtectedEndpoints.headerClientDeviceId(), resolveDeviceId())
                     contentType(ContentType.Application.Json)
                     setBody(AnalyticsBatchRequestDto(batch))
                 }

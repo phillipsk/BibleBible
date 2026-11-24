@@ -13,13 +13,13 @@ internal const val SWIPE_HINT_COOLDOWN_MS = 7L * 24L * 60L * 60L * 1000L
 internal const val GESTURE_LEGEND_MAX_PER_DAY = 2
 internal const val SHORTS_AUTO_ADVANCE_AFTER_PLAYS = 2
 
-interface SeenWordsStore {
+internal interface SeenWordsStore {
     fun getSeenIds(): Set<String>
     fun markSeen(shortId: String, seenAtMillis: Long)
     fun clearAll()
 }
 
-class InMemorySeenWordsStore(initialSeen: Set<String> = emptySet()) : SeenWordsStore {
+internal class InMemorySeenWordsStore(initialSeen: Set<String> = emptySet()) : SeenWordsStore {
     private val seen = initialSeen.toMutableSet()
     override fun getSeenIds(): Set<String> = seen.toSet()
     override fun markSeen(shortId: String, seenAtMillis: Long) {

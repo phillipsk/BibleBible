@@ -61,7 +61,7 @@ internal fun ChapterTopBar(
 }
 
 @Composable
-fun BottomSheetToggle(showBottomSheet: () -> Unit) {
+internal fun BottomSheetToggle(showBottomSheet: () -> Unit) {
     Icon(
         imageVector = Icons.Default.Settings,
         contentDescription = "Open Bottom Drawer",

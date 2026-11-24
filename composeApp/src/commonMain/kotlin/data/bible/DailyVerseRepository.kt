@@ -3,7 +3,6 @@ package data.bible
 import data.httpClientCloudGateway
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.resources.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
@@ -25,15 +24,15 @@ internal data class DailyVerseData(
     @SerialName("book_number") val bookNumber: Int,
     @SerialName("chapter_number") val chapter: Int,
     @SerialName("verse_number") val verse: Int,
-    val text: String,
+    @SerialName("text") val text: String,
     @SerialName("book_usfm") val bookUsfm: String? = null,
 )
 
 @Serializable
 internal data class DailyVerse(
-    val version: String,
-    val date: String,
-    val data: DailyVerseData,
+    @SerialName("version") val version: String,
+    @SerialName("date") val date: String,
+    @SerialName("data") val data: DailyVerseData,
 )
 
 internal fun utcToday(): String =
@@ -78,7 +77,7 @@ internal suspend fun fetchDailyVerse(
     after: DailyVerseData? = null,
 ): DailyVerse {
     val selected = normalizedTranslation(version)
-    val response = client.get(GetVerseOfTheDay(versionId = selected.lowercase(), after = after?.reference)) {
+    val response = client.getVerseOfTheDay(versionId = selected.lowercase(), after = after?.reference) {
         if (after != null) header(HttpHeaders.CacheControl, "no-cache")
     }
     check(response.status.isSuccess()) {

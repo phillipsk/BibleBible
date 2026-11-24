@@ -142,4 +142,4 @@ private class IosNotificationBridge : NotificationPlatformBridge {
     }
 }
 
-actual fun platformNotificationBridge(): NotificationPlatformBridge = IosNotificationBridge()
+internal actual fun platformNotificationBridge(): NotificationPlatformBridge = IosNotificationBridge()

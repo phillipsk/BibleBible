@@ -19,13 +19,16 @@ import data.config.CloudSessionManager
 import email.kevinphillips.biblebible.SetSystemBarColor
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 import ui.LoadingScreen
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalObjCRefinement::class)
+@HiddenFromObjC
 @Composable
 fun App(modifier: Modifier = Modifier) {
     BibleBibleTheme {

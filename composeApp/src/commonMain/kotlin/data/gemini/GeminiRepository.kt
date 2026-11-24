@@ -6,6 +6,7 @@ import data.config.CloudSessionManager
 import data.httpClientGemini
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -21,18 +22,17 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 
-
 /** Default cloud model used for chapter summaries. */
-const val GEMINI_MODEL = "gemini-3.5-flash"
+internal const val GEMINI_MODEL = "gemini-3.5-flash"
 
-suspend fun generateContent(
-    content: String,
+internal suspend fun generateContent(
+    target: SummaryTarget,
     client: HttpClient = httpClientGemini,
     refresh: Boolean = false,
 ) {
@@ -43,10 +43,11 @@ suspend fun generateContent(
         }
     }
     val activeModel = CloudSessionManager.geminiModel.ifBlank { GEMINI_MODEL }
-    val parts = mutableListOf(RequestPart(text = content))
-    val requestBody = RequestBody(
-        contents = listOf(ContentItem(parts = parts)),
-        generationConfig = GenerationConfig(maxOutputTokens = 2048, candidateCount = 1),
+    val summaryPath = ProtectedEndpoints.geminiSummaryPath()
+    val requestBody = SummaryRequestDto(
+        bookId = target.bookId,
+        chapter = target.chapter,
+        version = target.version,
         model = activeModel,
         refresh = if (refresh) true else null,
     )
@@ -54,7 +55,8 @@ suspend fun generateContent(
 
     try {
         var response = withContext(Dispatchers.IO) {
-            client.post("/v1/gemini/summary") {
+            client.post {
+                url(path = summaryPath)
                 expectSuccess = false
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
@@ -65,7 +67,8 @@ suspend fun generateContent(
             val refreshedToken = CloudSessionManager.refreshSessionToken()
             if (!refreshedToken.isNullOrBlank()) {
                 response = withContext(Dispatchers.IO) {
-                    client.post("/v1/gemini/summary") {
+                    client.post {
+                        url(path = summaryPath)
                         expectSuccess = false
                         header(HttpHeaders.Authorization, "Bearer $refreshedToken")
                         contentType(ContentType.Application.Json)
@@ -117,7 +120,7 @@ suspend fun generateContent(
     }
 }
 
-suspend fun checkAnimationLastCalled(): Boolean {
+internal suspend fun checkAnimationLastCalled(): Boolean {
     var showAnimation = false
     try {
         withContext(Dispatchers.IO) {

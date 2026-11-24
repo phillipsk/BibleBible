@@ -49,7 +49,7 @@ class GeminiNavigationTest {
             GeminiModel.showSummary = true
             GeminiModel.isLoading = true
             val request = launch {
-                GeminiModel.generateAISummary(pullToRefresh = true, available = true) { prompt -> generateContent(prompt, client) }
+                GeminiModel.generateAISummary(pullToRefresh = true, available = true) { target -> generateContent(target, client) }
             }
             started.await()
             BibleState.onHomeClick()
@@ -87,8 +87,8 @@ class GeminiNavigationTest {
             GeminiModel.showSummary = true
             GeminiModel.isLoading = true
             val request = launch {
-                GeminiModel.generateAISummary(pullToRefresh = true, available = true) { prompt ->
-                    generateContent(prompt, client)
+                GeminiModel.generateAISummary(pullToRefresh = true, available = true) { target ->
+                    generateContent(target, client)
                 }
             }
             started.await()

@@ -27,7 +27,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
-object BibleState {
+internal object BibleState {
     val RELEASE_BUILD: Boolean get() = !BuildKonfig.ENABLE_DIAGNOSTIC_LOGGING
     const val DEFAULT_BIBLE_ID = "kjv"
     val singleChapterBooksOrdinal = setOf("31", "57", "63", "64", "65")

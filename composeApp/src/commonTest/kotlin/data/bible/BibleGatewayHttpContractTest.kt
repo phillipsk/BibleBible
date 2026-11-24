@@ -6,7 +6,6 @@ import data.createHttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.resources.get
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -49,7 +48,7 @@ class BibleGatewayHttpContractTest {
             enableLogging = false,
         )
         try {
-            val verse = client.get(GetChapter(43, "3", "bsb")).body<List<BibleChapter>>().single()
+            val verse = client.getBibleChapter(43, "3", "bsb").body<List<BibleChapter>>().single()
             assertEquals("43003016", verse.id)
             assertEquals("16", verse.v)
             assertEquals("For God so loved the world", verse.t)
@@ -71,7 +70,7 @@ class BibleGatewayHttpContractTest {
             enableLogging = false,
         )
         try {
-            assertEquals(150L, client.get(GetChapterCount(19)).body<ChapterCount>().chapterCount)
+            assertEquals(150L, client.getChapterCount(19).body<ChapterCount>().chapterCount)
         } finally {
             client.close()
         }

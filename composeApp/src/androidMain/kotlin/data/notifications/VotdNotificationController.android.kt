@@ -243,4 +243,4 @@ private class AndroidNotificationBridge : NotificationPlatformBridge {
     }
 }
 
-actual fun platformNotificationBridge(): NotificationPlatformBridge = AndroidNotificationBridge()
+internal actual fun platformNotificationBridge(): NotificationPlatformBridge = AndroidNotificationBridge()

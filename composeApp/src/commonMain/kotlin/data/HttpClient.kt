@@ -2,6 +2,7 @@ package data
 
 import data.bible.BibleState
 import data.config.CloudSessionManager
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
@@ -13,14 +14,13 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.plugins.logging.SIMPLE
-import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
-data class AppHttpClientConfig(
+internal data class AppHttpClientConfig(
     val baseUrl: String,
     val apiKeyHeader: String = "",
     val apiKey: String = "",
@@ -28,8 +28,8 @@ data class AppHttpClientConfig(
     val tokenProvider: () -> String = { CloudSessionManager.sessionToken },
 )
 
-const val TIMEOUT_LIMIT = 20_000L
-const val TIMEOUT_LIMIT_GEMINI = 30_000L
+internal const val TIMEOUT_LIMIT = 20_000L
+internal const val TIMEOUT_LIMIT_GEMINI = 30_000L
 
 internal fun createHttpClient(
     config: AppHttpClientConfig,
@@ -38,6 +38,7 @@ internal fun createHttpClient(
     logger: Logger = Logger.SIMPLE,
     enableLogging: Boolean = !BibleState.RELEASE_BUILD,
 ): HttpClient {
+    val integrityHeader = ProtectedEndpoints.headerClientIntegrity()
     val configure: HttpClientConfig<*>.() -> Unit = {
         followRedirects = false
         install(HttpTimeout) {
@@ -45,7 +46,6 @@ internal fun createHttpClient(
             connectTimeoutMillis = timeout
             socketTimeoutMillis = timeout
         }
-        install(Resources)
         if (enableLogging) {
             install(Logging) {
                 this.logger = logger
@@ -55,6 +55,7 @@ internal fun createHttpClient(
                         it.equals("X-RapidAPI-Key", ignoreCase = true) ||
                         it.equals("api-key", ignoreCase = true) ||
                         it.equals("X-Firebase-AppCheck", ignoreCase = true) ||
+                        it.equals(integrityHeader, ignoreCase = true) ||
                         it.equals(HttpHeaders.Authorization, ignoreCase = true)
                 }
             }
@@ -85,14 +86,14 @@ internal fun createHttpClient(
     return if (engine == null) HttpClient(configure) else HttpClient(engine, configure)
 }
 
-val httpClientCloudGateway: HttpClient by lazy {
+internal val httpClientCloudGateway: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = CloudSessionManager.gatewayHost,
     )
     createHttpClient(config)
 }
 
-val httpClientGemini: HttpClient by lazy {
+internal val httpClientGemini: HttpClient by lazy {
     val config = AppHttpClientConfig(
         baseUrl = CloudSessionManager.gatewayHost,
     )

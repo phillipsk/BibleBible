@@ -11,6 +11,7 @@ import android.content.pm.ApplicationInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import data.config.CloudSessionManager
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Calendar
@@ -103,10 +104,10 @@ class VotdNotificationReceiver : BroadcastReceiver() {
 
     private fun fetchLiveVotdPayload(): VotdPayload? {
         val gateway = CloudSessionManager.configuredGatewayUrl
-            .ifBlank { "https://biblebible-api-5jdy3d7zua-uc.a.run.app" }
+            .ifBlank { ProtectedEndpoints.gatewayUrl() }
             .trimEnd('/')
         return runCatching {
-            val conn = (URL("$gateway/v1/notifications/preview?versionId=KJV").openConnection() as HttpURLConnection).apply {
+            val conn = (URL("$gateway${ProtectedEndpoints.votdPreviewPath()}?versionId=KJV").openConnection() as HttpURLConnection).apply {
                 connectTimeout = 3000
                 readTimeout = 3000
             }
@@ -114,8 +115,8 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             val raw = if (code in 200..299) {
                 conn.inputStream.bufferedReader().use { it.readText() }
             } else {
-                // Fallback to /GetVerseOfTheDay if gateway hasn't deployed /v1/notifications/preview yet
-                val fallbackConn = (URL("$gateway/GetVerseOfTheDay?versionId=KJV").openConnection() as HttpURLConnection).apply {
+                // Fallback to daily verse endpoint if preview route is unavailable
+                val fallbackConn = (URL("$gateway${ProtectedEndpoints.dailyVersePath()}?versionId=KJV").openConnection() as HttpURLConnection).apply {
                     connectTimeout = 3000
                     readTimeout = 3000
                 }
