@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,10 +74,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -371,21 +379,108 @@ internal fun BiblicalShortsScreen(
                 val isPortraitTablet = maxHeight > maxWidth && !isCompactLandscape
                 val isLargeTablet = maxWidth >= 780.dp && maxHeight >= 580.dp
 
-                if (windowMetrics.isDualPaneShorts) {
+                if (windowMetrics.isDualPaneShorts && isPortraitTablet) {
+                    val topBarReserve = if (isLargeTablet) 68.dp else 56.dp
+                    val horizontalInset = if (isLargeTablet) 20.dp else 14.dp
+                    val bottomInset = if (isLargeTablet) 16.dp else 12.dp
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                            .padding(
+                                start = horizontalInset,
+                                end = horizontalInset,
+                                top = topBarReserve,
+                                bottom = bottomInset,
+                            )
+                            .testTag("shorts_adaptive_dual_pane"),
+                    ) {
+                        // Top 75%: tall generous video clip with overlaid controls & seek bar
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(0.75f)
+                                .fillMaxWidth(),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(9f / 16f, matchHeightConstraintsFirst = true)
+                                    .clip(RoundedCornerShape(22.dp))
+                                    .border(
+                                        1.dp,
+                                        Color(0x44FBD38D),
+                                        RoundedCornerShape(22.dp),
+                                    )
+                                    .then(tapGestureModifier)
+                                    .testTag("shorts_theater_video_frame"),
+                            ) {
+                                if (videoPreviewOverride != null) {
+                                    videoPreviewOverride(shortItem, Modifier.fillMaxSize())
+                                } else {
+                                    ShortsVideoPlayer(
+                                        shortItem = shortItem,
+                                        isActive = isCurrentPage && isAppInForeground,
+                                        isMuted = isMuted,
+                                        isPaused = isPaused,
+                                        elapsedSeconds = pageElapsed,
+                                        seekTargetSeconds = seekTargetSeconds,
+                                        seekRequestId = seekRequestId,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                                ShortsPauseOverlayBadge(
+                                    visible = isCurrentPage && isPaused,
+                                    isLargeTablet = isLargeTablet,
+                                    modifier = Modifier.align(Alignment.Center),
+                                )
+                                ShortsSoundToastPill(
+                                    visible = isCurrentPage && soundToastLabel != null,
+                                    label = soundToastLabel.orEmpty(),
+                                    modifier = Modifier.align(Alignment.Center),
+                                )
+                                ShortsClipBottomOverlay(
+                                    isCurrentPage = isCurrentPage,
+                                    showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                    onReadNowClick = readChapterHandler,
+                                    showSwipeHint = false,
+                                    hintOffsetPx = 0,
+                                    onSwipeHintClick = null,
+                                    pageElapsed = pageElapsed,
+                                    maxDuration = maxDuration,
+                                    onSeekSeconds = seekHandler,
+                                    isLargeTablet = isLargeTablet,
+                                    modifier = Modifier.align(Alignment.BottomCenter),
+                                )
+                            }
+                        }
+
+                        // Bottom 25%: crisp Scripture verse card + pinned Read CTA + persistent next-clip pill
+                        ShortsPortraitTabletBottomCard(
+                            shortItem = shortItem,
+                            onReadChapter = readChapterHandler,
+                            isLargeTablet = isLargeTablet,
+                            hintOffsetPx = hintBounceOffsetPx,
+                            onNextShort = nextShortHandler,
+                            showSwipeHint = isCurrentPage,
+                            modifier = Modifier
+                                .weight(0.25f)
+                                .fillMaxWidth(),
+                        )
+                    }
+                } else if (windowMetrics.isDualPaneShorts) {
                     val topBarReserve = when {
                         isCompactLandscape -> 48.dp
                         isLargeTablet -> 72.dp
                         else -> 60.dp
                     }
-                    val horizontalInset = when {
-                        isCompactLandscape -> 14.dp
-                        isPortraitTablet -> 18.dp
-                        else -> 24.dp
-                    }
-                    val bottomInset = if (isCompactLandscape) 10.dp else 20.dp
+                    val horizontalInset = if (isCompactLandscape) 14.dp else 24.dp
+                    val bottomInset = if (isCompactLandscape) 10.dp else 18.dp
                     val availableTheaterHeight = (maxHeight - topBarReserve - bottomInset - 8.dp).coerceAtLeast(250.dp)
-                    val paneWidthShare = if (isPortraitTablet) 0.48f else 0.44f
-                    val constrainedPaneWidth = ((minOf(maxWidth, 1240.dp) - (horizontalInset * 2) - windowMetrics.hingeSafeGap) * paneWidthShare)
+                    val constrainedPaneWidth = ((minOf(maxWidth, 1240.dp) - (horizontalInset * 2) - windowMetrics.hingeSafeGap) * 0.44f)
                         .coerceAtLeast(160.dp)
                     val normalizedTheaterHeight = minOf(availableTheaterHeight, constrainedPaneWidth * (16f / 9f))
 
@@ -409,7 +504,7 @@ internal fun BiblicalShortsScreen(
                                 .testTag("shorts_adaptive_dual_pane"),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            // Left theater pane matches right study pane height cleanly on tablet & landscape screens
+                            // Left theater pane holds the 9:16 video clip with overlaid gesture legend and seek bar
                             Box(
                                 modifier = Modifier
                                     .weight(0.92f)
@@ -443,74 +538,48 @@ internal fun BiblicalShortsScreen(
                                             modifier = Modifier.fillMaxSize(),
                                         )
                                     }
+                                    ShortsPauseOverlayBadge(
+                                        visible = isCurrentPage && isPaused,
+                                        isLargeTablet = isLargeTablet,
+                                        modifier = Modifier.align(Alignment.Center),
+                                    )
                                     ShortsSoundToastPill(
                                         visible = isCurrentPage && soundToastLabel != null,
                                         label = soundToastLabel.orEmpty(),
                                         modifier = Modifier.align(Alignment.Center),
                                     )
-                                    ShortsCard2ReadNowButton(
-                                        visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
-                                        onClick = readChapterHandler,
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
+                                    ShortsClipBottomOverlay(
+                                        isCurrentPage = isCurrentPage,
+                                        showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                        onReadNowClick = readChapterHandler,
+                                        showSwipeHint = false,
+                                        hintOffsetPx = 0,
+                                        onSwipeHintClick = null,
+                                        pageElapsed = pageElapsed,
+                                        maxDuration = maxDuration,
+                                        onSeekSeconds = seekHandler,
+                                        isLargeTablet = isLargeTablet,
+                                        isCompactLandscape = isCompactLandscape,
+                                        modifier = Modifier.align(Alignment.BottomCenter),
                                     )
                                 }
                             }
 
                             Spacer(modifier = Modifier.width(windowMetrics.hingeSafeGap))
 
-                            // Right scripture study & controls pane fills height proportionally across tablet & landscape
-                            Column(
+                            // Right scripture study card fills the entire pane height cleanly
+                            ShortsDualPaneMetadataCard(
+                                shortItem = shortItem,
+                                onReadChapter = readChapterHandler,
+                                isLargeTablet = isLargeTablet,
+                                isCompactLandscape = isCompactLandscape,
+                                showSwipeHint = isCurrentPage && !isCompactLandscape,
+                                hintOffsetPx = hintBounceOffsetPx,
+                                onNextShort = nextShortHandler,
                                 modifier = Modifier
                                     .weight(1.08f)
                                     .height(normalizedTheaterHeight),
-                                verticalArrangement = Arrangement.spacedBy(if (isCompactLandscape) 8.dp else 14.dp),
-                            ) {
-                                ShortsDualPaneMetadataCard(
-                                    shortItem = shortItem,
-                                    onReadChapter = readChapterHandler,
-                                    isLargeTablet = isLargeTablet,
-                                    isCompactLandscape = isCompactLandscape,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxWidth(),
-                                )
-
-                                Surface(
-                                    shape = RoundedCornerShape(if (isCompactLandscape) 14.dp else 20.dp),
-                                    color = Color(0xFF131E30),
-                                    border = BorderStroke(1.dp, Color(0x28FFFFFF)),
-                                    elevation = 0.dp,
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(if (isCompactLandscape) 4.dp else 10.dp),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(
-                                                horizontal = if (isLargeTablet) 20.dp else 14.dp,
-                                                vertical = if (isCompactLandscape) 8.dp else if (isLargeTablet) 16.dp else 12.dp,
-                                            ),
-                                    ) {
-                                        ShortsSwipeHintBadge(
-                                            visible = isCurrentPage,
-                                            hintOffsetPx = hintBounceOffsetPx,
-                                            isLargeTablet = isLargeTablet,
-                                            isCompactLandscape = isCompactLandscape,
-                                            label = "Swipe or tap for next clip",
-                                            onClick = nextShortHandler,
-                                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                                        )
-                                        ShortsScrubberRow(
-                                            pageElapsed = pageElapsed,
-                                            maxDuration = maxDuration,
-                                            onSeekSeconds = seekHandler,
-                                            isLargeTablet = isLargeTablet,
-                                        )
-                                    }
-                                }
-                            }
+                            )
                         }
                     }
                 } else {
@@ -520,8 +589,8 @@ internal fun BiblicalShortsScreen(
                             .statusBarsPadding()
                             .navigationBarsPadding(),
                     ) {
-                        // Reserve dedicated space for the top header bar so controls never cover video titles
-                        Spacer(modifier = Modifier.height(54.dp))
+                        // Reserve dedicated space for the top header bar so back + Speaker-X never overlap video captions
+                        Spacer(modifier = Modifier.height(52.dp))
 
                         Box(
                             modifier = Modifier
@@ -545,37 +614,28 @@ internal fun BiblicalShortsScreen(
                                 )
                             }
 
+                            ShortsPauseOverlayBadge(
+                                visible = isCurrentPage && isPaused,
+                                isLargeTablet = false,
+                                modifier = Modifier.align(Alignment.Center),
+                            )
                             ShortsSoundToastPill(
                                 visible = isCurrentPage && soundToastLabel != null,
                                 label = soundToastLabel.orEmpty(),
                                 modifier = Modifier.align(Alignment.Center),
                             )
-                            ShortsCard2ReadNowButton(
-                                visible = isCurrentPage && pageElapsed >= shortItem.effectiveScene2StartSeconds(),
-                                onClick = readChapterHandler,
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 18.dp, start = 20.dp, end = 20.dp),
-                            )
-                        }
-
-                        // Compact bottom dock keeps swipe hint and scrubber clear of full-screen video captions
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF09111E))
-                                .padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 6.dp),
-                        ) {
-                            ShortsSwipeHintBadge(
-                                visible = isCurrentPage && showSwipeHint,
+                            ShortsClipBottomOverlay(
+                                isCurrentPage = isCurrentPage,
+                                showReadNowButton = pageElapsed >= shortItem.effectiveScene2StartSeconds(),
+                                onReadNowClick = readChapterHandler,
+                                showSwipeHint = showSwipeHint,
                                 hintOffsetPx = hintBounceOffsetPx,
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                            )
-                            ShortsScrubberRow(
+                                onSwipeHintClick = nextShortHandler,
                                 pageElapsed = pageElapsed,
                                 maxDuration = maxDuration,
                                 onSeekSeconds = seekHandler,
+                                isLargeTablet = false,
+                                modifier = Modifier.align(Alignment.BottomCenter),
                             )
                         }
                     }
@@ -583,14 +643,13 @@ internal fun BiblicalShortsScreen(
             }
         }
 
-        val headerIsLargeTablet = maxWidth >= 820.dp && maxHeight >= 580.dp
+        val headerIsLargeTablet = maxWidth >= 780.dp && maxHeight >= 580.dp
         val headerTitleSize = if (headerIsLargeTablet) 22.sp else 17.sp
         val headerSubSize = if (headerIsLargeTablet) 13.5.sp else 11.sp
-        val pillTextSize = if (headerIsLargeTablet) 13.sp else 11.sp
-        val pillHorizPad = if (headerIsLargeTablet) 14.dp else 10.dp
-        val pillVertPad = if (headerIsLargeTablet) 8.dp else 6.dp
+        val soundBtnSize = if (headerIsLargeTablet) 44.dp else 38.dp
+        val soundDesc = if (isMuted) "Sound Off" else "Sound On"
 
-        // Top header uses weight + ellipsis so Sound Off and Pause never clip on 360dp compact widths
+        // Top header uses clean single Speaker-X / Speaker-On icon circle in top-right (Option 1)
         Row(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -636,60 +695,31 @@ internal fun BiblicalShortsScreen(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(
-                    onClick = {
-                        isMuted = !isMuted
-                        AnalyticsTracker.track(
-                            "short_mute_toggled",
-                            "biblical_shorts",
-                            mapOf("muted" to isMuted.toString()),
-                        )
-                    },
-                    shape = CircleShape,
-                    color = Color(0x66000000),
-                    border = BorderStroke(1.dp, Color(0x44FFFFFF)),
-                    elevation = 0.dp,
-                    modifier = Modifier.testTag("shorts_mute_toggle"),
-                ) {
-                    Text(
-                        text = if (isMuted) "Sound Off" else "Sound On",
-                        color = Color.White,
-                        fontSize = pillTextSize,
-                        modifier = Modifier.padding(horizontal = pillHorizPad, vertical = pillVertPad),
+            Surface(
+                onClick = {
+                    isMuted = !isMuted
+                    soundToastLabel = if (isMuted) "Sound Off" else "Sound On"
+                    AnalyticsTracker.track(
+                        "short_mute_toggled",
+                        "biblical_shorts",
+                        mapOf("muted" to isMuted.toString()),
                     )
-                }
-
-                Surface(
-                    onClick = {
-                        isPaused = !isPaused
-                        AnalyticsTracker.track(
-                            "short_pause_toggled",
-                            "biblical_shorts",
-                            mapOf("paused" to isPaused.toString()),
-                        )
-                    },
-                    shape = CircleShape,
-                    color = Color(0x66000000),
-                    border = BorderStroke(1.dp, Color(0x44FFFFFF)),
-                    elevation = 0.dp,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = pillHorizPad, vertical = pillVertPad),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = if (isPaused) "Play" else "Pause",
-                            tint = Color(0xFFFBD38D),
-                            modifier = Modifier.size(if (headerIsLargeTablet) 16.dp else 14.dp),
-                        )
-                        Text(
-                            text = if (isPaused) "Play" else "Pause",
-                            color = Color.White,
-                            fontSize = pillTextSize,
-                        )
-                    }
+                },
+                shape = CircleShape,
+                color = if (isMuted) Color(0x8809111E) else Color(0x33FBD38D),
+                border = BorderStroke(1.dp, if (isMuted) Color(0x44FFFFFF) else Color(0xFFFBD38D)),
+                elevation = 0.dp,
+                modifier = Modifier
+                    .size(soundBtnSize)
+                    .semantics { contentDescription = soundDesc }
+                    .testTag("shorts_mute_toggle"),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    ShortsSpeakerIcon(
+                        isMuted = isMuted,
+                        tint = if (isMuted) Color.White else Color(0xFFFBD38D),
+                        modifier = Modifier.size(if (headerIsLargeTablet) 21.dp else 18.dp),
+                    )
                 }
             }
         }
@@ -776,6 +806,239 @@ internal fun BiblicalShortsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShortsSpeakerIcon(
+    isMuted: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val speakerPath = Path().apply {
+            moveTo(w * 0.14f, h * 0.37f)
+            lineTo(w * 0.31f, h * 0.37f)
+            lineTo(w * 0.50f, h * 0.20f)
+            lineTo(w * 0.50f, h * 0.80f)
+            lineTo(w * 0.31f, h * 0.63f)
+            lineTo(w * 0.14f, h * 0.63f)
+            close()
+        }
+        drawPath(
+            path = speakerPath,
+            color = tint,
+            style = Stroke(width = w * 0.09f, join = StrokeJoin.Round, cap = StrokeCap.Round),
+        )
+        if (isMuted) {
+            val strokeWidth = w * 0.10f
+            drawLine(
+                color = tint,
+                start = Offset(w * 0.66f, h * 0.34f),
+                end = Offset(w * 0.90f, h * 0.66f),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = tint,
+                start = Offset(w * 0.90f, h * 0.34f),
+                end = Offset(w * 0.66f, h * 0.66f),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+        } else {
+            val waveStroke = Stroke(width = w * 0.085f, cap = StrokeCap.Round)
+            drawArc(
+                color = tint,
+                startAngle = -52f,
+                sweepAngle = 104f,
+                useCenter = false,
+                topLeft = Offset(w * 0.54f, h * 0.32f),
+                size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.36f),
+                style = waveStroke,
+            )
+            drawArc(
+                color = tint,
+                startAngle = -56f,
+                sweepAngle = 112f,
+                useCenter = false,
+                topLeft = Offset(w * 0.60f, h * 0.18f),
+                size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.64f),
+                style = waveStroke,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShortsPauseOverlayBadge(
+    visible: Boolean,
+    isLargeTablet: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(140)),
+        exit = fadeOut(tween(140)),
+        modifier = modifier,
+    ) {
+        val badgeSize = if (isLargeTablet) 76.dp else 64.dp
+        Surface(
+            shape = CircleShape,
+            color = Color(0xCC09111E),
+            border = BorderStroke(1.dp, Color(0x88FBD38D)),
+            elevation = 6.dp,
+            modifier = Modifier
+                .size(badgeSize)
+                .testTag("shorts_pause_overlay_badge"),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Paused, tap to resume",
+                    tint = Color(0xFFFBD38D),
+                    modifier = Modifier.size(if (isLargeTablet) 32.dp else 28.dp),
+                )
+                Text(
+                    text = "PAUSED",
+                    color = Color(0xFFFBD38D),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.6.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShortsGestureLegendRow(
+    isLargeTablet: Boolean = false,
+    isCompactLandscape: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val dotSize = if (isLargeTablet) 6.dp else 5.dp
+    val fontSize = when {
+        isLargeTablet -> 12.sp
+        isCompactLandscape -> 10.sp
+        else -> 11.sp
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.testTag("shorts_gesture_legend"),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(dotSize)
+                    .background(Color(0xFFFBD38D), CircleShape),
+            )
+            Text(
+                text = "1x Pause",
+                color = Color(0xFFE2E8F0),
+                fontSize = fontSize,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+
+        Text(
+            text = "·",
+            color = Color(0xFF94A3B8),
+            fontSize = fontSize,
+            fontWeight = FontWeight.Bold,
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .background(Color(0xFFFBD38D), CircleShape),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(dotSize)
+                        .background(Color(0xFFFBD38D), CircleShape),
+                )
+            }
+            Text(
+                text = "2x Sound",
+                color = Color(0xFFE2E8F0),
+                fontSize = fontSize,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShortsClipBottomOverlay(
+    isCurrentPage: Boolean,
+    showReadNowButton: Boolean,
+    onReadNowClick: () -> Unit,
+    showSwipeHint: Boolean,
+    hintOffsetPx: Int,
+    onSwipeHintClick: (() -> Unit)?,
+    pageElapsed: Int,
+    maxDuration: Int,
+    onSeekSeconds: (Int) -> Unit,
+    isLargeTablet: Boolean,
+    isCompactLandscape: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val bottomBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.Transparent,
+            Color(0x9909111E),
+            Color(0xDE09111E),
+        )
+    )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(if (isCompactLandscape) 3.dp else 6.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .background(bottomBrush)
+            .padding(
+                start = if (isCompactLandscape) 10.dp else 14.dp,
+                end = if (isCompactLandscape) 10.dp else 14.dp,
+                top = if (isCompactLandscape) 14.dp else 24.dp,
+                bottom = if (isCompactLandscape) 4.dp else 8.dp,
+            ),
+    ) {
+        ShortsCard2ReadNowButton(
+            visible = isCurrentPage && showReadNowButton,
+            onClick = onReadNowClick,
+        )
+        ShortsSwipeHintBadge(
+            visible = isCurrentPage && showSwipeHint,
+            hintOffsetPx = hintOffsetPx,
+            isLargeTablet = isLargeTablet,
+            isCompactLandscape = isCompactLandscape,
+            onClick = onSwipeHintClick,
+        )
+        ShortsGestureLegendRow(
+            isLargeTablet = isLargeTablet,
+            isCompactLandscape = isCompactLandscape,
+        )
+        ShortsScrubberRow(
+            pageElapsed = pageElapsed,
+            maxDuration = maxDuration,
+            onSeekSeconds = onSeekSeconds,
+            isLargeTablet = isLargeTablet,
+        )
     }
 }
 
@@ -989,11 +1252,159 @@ private fun ShortsCard2ReadNowButton(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
+private fun ShortsPortraitTabletBottomCard(
+    shortItem: BiblicalShortDto,
+    onReadChapter: () -> Unit,
+    isLargeTablet: Boolean,
+    hintOffsetPx: Int,
+    onNextShort: () -> Unit,
+    showSwipeHint: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF131E30),
+        border = BorderStroke(1.dp, Color(0x33FBD38D)),
+        elevation = 0.dp,
+        modifier = modifier,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = if (isLargeTablet) 20.dp else 14.dp, vertical = 12.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color(0x2AFBD38D),
+                        border = BorderStroke(1.dp, Color(0x55FBD38D)),
+                        elevation = 0.dp,
+                    ) {
+                        Text(
+                            text = shortItem.scriptureReference,
+                            color = Color(0xFFFBD38D),
+                            fontSize = if (isLargeTablet) 13.5.sp else 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                        )
+                    }
+                    Text(
+                        text = shortItem.title,
+                        fontFamily = MaterialTheme.typography.h1.fontFamily,
+                        color = Color.White,
+                        fontSize = if (isLargeTablet) 22.sp else 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .height(42.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFFFBD38D)),
+                    )
+                    Text(
+                        text = "“${shortItem.keyVerseText}”",
+                        color = Color(0xFFF1F5F9),
+                        fontSize = if (isLargeTablet) 15.sp else 13.5.sp,
+                        fontStyle = FontStyle.Italic,
+                        lineHeight = if (isLargeTablet) 21.sp else 19.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                if (shortItem.lesson.isNotBlank()) {
+                    Text(
+                        text = "Practice: ${shortItem.lesson}",
+                        color = Color(0xFF9AE6B4),
+                        fontSize = if (isLargeTablet) 13.sp else 12.sp,
+                        lineHeight = if (isLargeTablet) 18.sp else 16.sp,
+                    )
+                }
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                modifier = Modifier.widthIn(min = 160.dp, max = 216.dp),
+            ) {
+                Surface(
+                    onClick = onReadChapter,
+                    shape = CircleShape,
+                    color = Color(0xFFFBD38D),
+                    border = BorderStroke(1.dp, Color(0xFFFFE8B3)),
+                    elevation = 4.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("dual_pane_read_chapter_btn"),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
+                    ) {
+                        Text(
+                            text = "Read ${shortItem.scriptureReference}",
+                            color = Color(0xFF09111E),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = if (isLargeTablet) 14.5.sp else 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = Color(0xFF09111E),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+
+                ShortsSwipeHintBadge(
+                    visible = showSwipeHint,
+                    hintOffsetPx = hintOffsetPx,
+                    isLargeTablet = isLargeTablet,
+                    isCompactLandscape = false,
+                    label = "Swipe or tap for next clip",
+                    onClick = onNextShort,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
 private fun ShortsDualPaneMetadataCard(
     shortItem: BiblicalShortDto,
     onReadChapter: () -> Unit,
     isLargeTablet: Boolean,
     isCompactLandscape: Boolean,
+    showSwipeHint: Boolean,
+    hintOffsetPx: Int,
+    onNextShort: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cardPad = when {
@@ -1177,6 +1588,18 @@ private fun ShortsDualPaneMetadataCard(
                         modifier = Modifier.size(if (isLargeTablet) 22.dp else 18.dp),
                     )
                 }
+            }
+
+            if (showSwipeHint) {
+                ShortsSwipeHintBadge(
+                    visible = true,
+                    hintOffsetPx = hintOffsetPx,
+                    isLargeTablet = isLargeTablet,
+                    isCompactLandscape = isCompactLandscape,
+                    label = "Swipe or tap for next clip",
+                    onClick = onNextShort,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
             }
         }
     }

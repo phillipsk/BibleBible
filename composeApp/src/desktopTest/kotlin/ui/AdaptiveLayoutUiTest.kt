@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -123,9 +124,10 @@ class AdaptiveLayoutUiTest {
         onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
         onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
         onAllNodesWithText(sampleShorts.first().title).onFirst().assertIsDisplayed()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
-        onNodeWithText("Sound Off").assertIsDisplayed()
+        onNodeWithTag("shorts_mute_toggle").assertContentDescriptionEquals("Sound Off")
 
         onNodeWithTag("biblical_shorts_pager").performTouchInput { swipeUp() }
         waitForIdle()
@@ -137,6 +139,37 @@ class AdaptiveLayoutUiTest {
         }
         onNodeWithTag("short_card2_read_now_button", useUnmergedTree = true).performClick()
         runOnIdle { assertEquals(sampleShorts[1].id, clickedChapter?.id) }
+    }
+
+    @Test
+    fun tabletPortraitUsesStacked7525LayoutWithOverlaidScrubberAndLegend() = runComposeUiTest {
+        val sampleShorts = defaultBiblicalShortsCatalog("")
+        val progressManager = dismissedTutorialManager()
+        var clickedChapter: BiblicalShortDto? = null
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(800.dp, 1280.dp)) {
+                    BiblicalShortsScreen(
+                        initialShorts = sampleShorts,
+                        onBack = {},
+                        onReadChapter = { clickedChapter = it },
+                        enablePlaybackTimer = false,
+                        progressManager = progressManager,
+                    )
+                }
+            }
+        }
+
+        onNodeWithTag("shorts_adaptive_dual_pane").assertIsDisplayed()
+        onNodeWithTag("shorts_theater_video_frame").assertIsDisplayed()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("dual_pane_read_chapter_btn", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .performClick()
+        runOnIdle { assertEquals(sampleShorts.first().id, clickedChapter?.id) }
     }
 
     @Test
@@ -166,7 +199,8 @@ class AdaptiveLayoutUiTest {
         onNodeWithTag("shorts_category_row").assertDoesNotExist()
         onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}").assertDoesNotExist()
         onNodeWithTag("next_short_btn_${sampleShorts.first().id}").assertDoesNotExist()
-        onNodeWithTag("shorts_progress_scrubber").assertIsDisplayed()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
+        onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_mute_toggle").assertIsDisplayed()
     }
 

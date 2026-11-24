@@ -80,50 +80,60 @@ internal fun ShortsStoryboardBackdrop(
         contentAlignment = Alignment.Center,
     ) {
         val isCompact = maxHeight < 380.dp
-        val isLargeFrame = maxWidth >= 460.dp && maxHeight >= 520.dp
+        val isTabletPortraitTheater = maxWidth >= 420.dp && maxHeight >= 760.dp
+        val isTabletLandscapeTheater = !isCompact && !isTabletPortraitTheater &&
+            ((maxWidth in 280.dp..419.dp && maxHeight >= 480.dp) || (maxWidth >= 420.dp && maxHeight < 760.dp))
         val showVerse = maxHeight >= 280.dp
 
-        val outerHPad = if (isCompact) 14.dp else 20.dp
-        val outerVPad = if (isCompact) 14.dp else 28.dp
+        val outerHPad = if (isCompact) 12.dp else 18.dp
+        val outerVPad = if (isCompact) 12.dp else 22.dp
         val cardPad = when {
-            isCompact -> 16.dp
-            isLargeFrame -> 28.dp
-            else -> 24.dp
+            isCompact -> 14.dp
+            isTabletPortraitTheater -> 26.dp
+            isTabletLandscapeTheater -> 20.dp
+            else -> 22.dp
         }
         val pillFontSize = when {
-            isCompact -> 11.5.sp
-            isLargeFrame -> 15.5.sp
+            isCompact -> 11.sp
+            isTabletPortraitTheater -> 15.sp
+            isTabletLandscapeTheater -> 13.sp
             else -> 14.sp
         }
         val titleFontSize = when {
-            isCompact -> 20.sp
-            isLargeFrame -> 32.sp
-            else -> 28.sp
+            isCompact -> 18.sp
+            isTabletPortraitTheater -> 29.sp
+            isTabletLandscapeTheater -> 23.sp
+            else -> 26.sp
         }
         val titleLineHeight = when {
-            isCompact -> 24.sp
-            isLargeFrame -> 38.sp
-            else -> 34.sp
+            isCompact -> 22.sp
+            isTabletPortraitTheater -> 35.sp
+            isTabletLandscapeTheater -> 28.sp
+            else -> 32.sp
         }
         val hookFontSize = when {
-            isCompact -> 15.sp
-            isLargeFrame -> 23.sp
-            else -> 21.sp
+            isCompact -> 14.sp
+            isTabletPortraitTheater -> 21.5.sp
+            isTabletLandscapeTheater -> 17.5.sp
+            else -> 19.5.sp
         }
         val hookLineHeight = when {
-            isCompact -> 21.sp
-            isLargeFrame -> 31.sp
-            else -> 29.sp
+            isCompact -> 19.sp
+            isTabletPortraitTheater -> 29.sp
+            isTabletLandscapeTheater -> 24.sp
+            else -> 27.sp
         }
         val verseFontSize = when {
-            isCompact -> 13.5.sp
-            isLargeFrame -> 18.5.sp
-            else -> 17.sp
+            isCompact -> 12.5.sp
+            isTabletPortraitTheater -> 17.sp
+            isTabletLandscapeTheater -> 14.5.sp
+            else -> 16.sp
         }
         val verseLineHeight = when {
-            isCompact -> 19.sp
-            isLargeFrame -> 26.sp
-            else -> 24.sp
+            isCompact -> 17.sp
+            isTabletPortraitTheater -> 24.sp
+            isTabletLandscapeTheater -> 20.sp
+            else -> 23.sp
         }
 
         Column(

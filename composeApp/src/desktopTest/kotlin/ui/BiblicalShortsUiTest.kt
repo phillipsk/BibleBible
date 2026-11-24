@@ -2,6 +2,7 @@ package ui
 
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -75,15 +76,18 @@ class BiblicalShortsUiTest {
         onNodeWithText("Welcome to Biblical Words").assertDoesNotExist()
 
         onNodeWithText("Biblical Words").assertIsDisplayed()
-        // Sound defaults to OFF and toggles cleanly
-        onNodeWithText("Sound Off").assertIsDisplayed()
-        onNodeWithTag("shorts_mute_toggle").performClick()
-        onNodeWithText("Sound On").assertIsDisplayed()
+        // Sound defaults to OFF (Speaker-X icon) and toggles cleanly
+        onNodeWithTag("shorts_mute_toggle")
+            .assertIsDisplayed()
+            .assertContentDescriptionEquals("Sound Off")
+            .performClick()
+            .assertContentDescriptionEquals("Sound On")
 
-        // Decluttered bottom: Key Lesson, category chips, and bottom CTA buttons removed; scrubber + weekly hint present
+        // Decluttered bottom: Key Lesson, category chips, and bottom CTA buttons removed; overlaid legend, scrubber + hint present
         onNodeWithText("Key Lesson:", substring = true, useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag("shorts_category_row", useUnmergedTree = true).assertDoesNotExist()
         onNodeWithTag("read_chapter_btn_${sampleShorts.first().id}", useUnmergedTree = true).assertDoesNotExist()
+        onNodeWithTag("shorts_gesture_legend", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_progress_scrubber", useUnmergedTree = true).assertIsDisplayed()
         onNodeWithTag("shorts_swipe_hint", useUnmergedTree = true).assertIsDisplayed()
 
