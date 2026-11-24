@@ -95,10 +95,16 @@ internal object PushRegistrationRepository {
                     setBody(request)
                 }
             }
+            if (isDebugBuild) {
+                println("[Push] registerDeviceToken status=${response.status.value}")
+            }
             response.status.isSuccess()
         } catch (ce: CancellationException) {
             throw ce
         } catch (err: Exception) {
+            if (isDebugBuild) {
+                println("[Push] registerDeviceToken error=${err::class.simpleName}: ${err.message}")
+            }
             Napier.w("Push registration sync failed: ${err.message}")
             false
         }
