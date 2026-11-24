@@ -66,12 +66,18 @@ internal fun BibleScriptures(
     selectedFontSize: Float,
     onFontSizeChanged: (Float) -> Unit,
     readingState: ScriptureReadingState = rememberScriptureReadingState(),
+    onFontGestureUsed: () -> Unit = {},
 ) {
-    var previousFontSize by remember { mutableStateOf(selectedFontSize) }
+    var previousFontSize by remember {
+        mutableStateOf(
+            if (selectedFontSize >= 29.5f) CloudSessionManager.readerDefaultFontSizeSp else selectedFontSize
+        )
+    }
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
     var viewportSize by remember { mutableStateOf(IntSize.Zero) }
     val currentFontSize by rememberUpdatedState(selectedFontSize)
     val changeFontSize by rememberUpdatedState(onFontSizeChanged)
+    val notifyFontGestureUsed by rememberUpdatedState(onFontGestureUsed)
     readingState.contentInset = with(LocalDensity.current) { 12.dp.roundToPx() }
 
     val layoutStyle = CloudSessionManager.readerLayoutStyle
@@ -264,6 +270,7 @@ internal fun BibleScriptures(
                                             "preferences",
                                             mapOf("fontSize" to gestureFontSize.toInt().toString()),
                                         )
+                                        notifyFontGestureUsed()
                                     }
                                     readingState.endZoom()
                                 }
@@ -276,9 +283,13 @@ internal fun BibleScriptures(
                 }
                 .pointerInput(Unit) {
                     detectTapGestures(onDoubleTap = {
-                        val nextSize = if (currentFontSize == 30f) previousFontSize else {
+                        val largeFontSize = 30f
+                        val fallbackNormalSize = CloudSessionManager.readerDefaultFontSizeSp
+                        val nextSize = if (currentFontSize >= 29.5f) {
+                            previousFontSize.takeIf { it < 29.5f } ?: fallbackNormalSize
+                        } else {
                             previousFontSize = currentFontSize
-                            30f
+                            largeFontSize
                         }
                         AnalyticsTracker.track(
                             "scripture_double_tap_zoom",
@@ -286,6 +297,7 @@ internal fun BibleScriptures(
                             mapOf("fontSize" to nextSize.toInt().toString()),
                         )
                         changeFontSize(nextSize)
+                        notifyFontGestureUsed()
                     })
                 }
         ) {

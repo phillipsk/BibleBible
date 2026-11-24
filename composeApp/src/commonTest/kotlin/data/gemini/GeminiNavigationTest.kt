@@ -1,9 +1,11 @@
 package data.gemini
 
 import data.GeminiModel
+import data.appPrefs.ReaderTutorialPrefs
 import data.bible.BibleState
 import data.bible.BookData
 import data.bible.Chapter
+import data.shorts.InMemoryShortsPrefsBacking
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import ui.SummaryBlock
 import ui.parseMarkdownSummaryBlocks
+import ui.resolveReaderPageMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -169,5 +172,37 @@ class GeminiNavigationTest {
             ),
             blocks,
         )
+    }
+
+    @Test
+    fun resolveReaderPageModePrefersAiLoadingWheneverAiModeIsActive() {
+        assertEquals(
+            "summary_loading",
+            resolveReaderPageMode(showAISummary = true, isSummaryReady = false, isChapterReady = false),
+        )
+        assertEquals(
+            "summary_loading",
+            resolveReaderPageMode(showAISummary = true, isSummaryReady = false, isChapterReady = true),
+        )
+        assertEquals(
+            "summary",
+            resolveReaderPageMode(showAISummary = true, isSummaryReady = true, isChapterReady = true),
+        )
+        assertEquals(
+            "loading",
+            resolveReaderPageMode(showAISummary = false, isSummaryReady = false, isChapterReady = false),
+        )
+        assertEquals(
+            "scripture",
+            resolveReaderPageMode(showAISummary = false, isSummaryReady = false, isChapterReady = true),
+        )
+    }
+
+    @Test
+    fun readerTutorialPrefsPersistsDismissalOnce() {
+        val backing = InMemoryShortsPrefsBacking()
+        assertTrue(ReaderTutorialPrefs.shouldShow(backing))
+        ReaderTutorialPrefs.markDismissed(backing)
+        assertFalse(ReaderTutorialPrefs.shouldShow(backing))
     }
 }

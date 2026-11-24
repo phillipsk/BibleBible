@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.rememberBottomSheetScaffoldState
 import androidx.compose.material.rememberBottomSheetState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -324,5 +325,109 @@ class ReaderPolishAndDeepLinkUiTest {
             highlightEnd = null,
         )!!
         assertEquals("1\u00A0The LORD is my shepherd.\n2\u00A0He maketh me to lie down.", psalmFallback.text.text)
+    }
+
+    @Test
+    fun aiLockedChapterLoadingShowsAiCardInsteadOfScriptureShimmer() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        val deutBook = BookData(
+            id = "DEU",
+            name = "Deuteronomy",
+            chapters = (1..3).map { ch ->
+                Chapter(name = "DEU.$ch", bookId = "DEU", number = ch.toString(), position = ch)
+            },
+        )
+        BibleState.updateSelectedBook(deutBook)
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(412.dp, 860.dp)) {
+                    BibleScripturesPager(
+                        chapters = BibleChapterUIState(
+                            bookId = 5,
+                            chapterId = null,
+                            chapterList = listOf(1, 2, 3),
+                            version = "KJV",
+                            text = null,
+                        ),
+                        bibleVersion = "KJV",
+                        selectedBook = deutBook,
+                        isAISummaryLoading = true,
+                        showAISummary = true,
+                        bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
+                        ),
+                        loadChapter = { _, _, _, _ -> },
+                        initialShowGestureTutorial = true,
+                        onDismissGestureTutorial = {},
+                    )
+                }
+            }
+        }
+
+        mainClock.advanceTimeBy(120)
+        onNodeWithTag("ai_summary_loading_view").assertIsDisplayed()
+        onNodeWithTag("scripture_shimmer_loading").assertDoesNotExist()
+        onNodeWithTag("reader_gesture_tutorial_card").assertDoesNotExist()
+    }
+
+    @Test
+    fun readerGestureTutorialCardDisplaysAndDismissesOnGotItTap() = runComposeUiTest {
+        val deutBook = BookData(
+            id = "DEU",
+            name = "Deuteronomy",
+            chapters = (1..3).map { ch ->
+                Chapter(name = "DEU.$ch", bookId = "DEU", number = ch.toString(), position = ch)
+            },
+        )
+        BibleState.updateSelectedBook(deutBook)
+        var dismissedCount = 0
+
+        setContent {
+            BibleBibleTheme {
+                Box(modifier = Modifier.size(412.dp, 860.dp)) {
+                    BibleScripturesPager(
+                        chapters = BibleChapterUIState(
+                            bookId = 5,
+                            chapterId = 2,
+                            chapterList = listOf(1, 2, 3),
+                            version = "KJV",
+                            text = "[1] Then we turned, and took our journey into the wilderness.",
+                            verses = listOf(
+                                BibleChapter(
+                                    id = "1",
+                                    b = "5",
+                                    c = "2",
+                                    v = "1",
+                                    t = "Then we turned, and took our journey into the wilderness.",
+                                )
+                            ),
+                        ),
+                        bibleVersion = "KJV",
+                        selectedBook = deutBook,
+                        isAISummaryLoading = false,
+                        showAISummary = false,
+                        bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
+                        ),
+                        loadChapter = { _, _, _, _ -> },
+                        initialShowGestureTutorial = true,
+                        onDismissGestureTutorial = { dismissedCount++ },
+                    )
+                }
+            }
+        }
+
+        waitForIdle()
+        onNodeWithTag("reader_gesture_tutorial_card").assertIsDisplayed()
+        onNodeWithText("Pinch to zoom").assertIsDisplayed()
+        onNodeWithText("Double-tap text").assertIsDisplayed()
+
+        onNodeWithTag("reader_tutorial_dismiss_btn").performClick()
+        mainClock.advanceTimeBy(300)
+        waitForIdle()
+
+        runOnIdle { assertEquals(1, dismissedCount) }
+        onNodeWithTag("reader_gesture_tutorial_card").assertDoesNotExist()
     }
 }

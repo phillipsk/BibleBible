@@ -41,7 +41,8 @@ internal fun ChapterTopBar(
             showHomePage = showHomePage,
             titleColor = Color.White,
             iconTint = Color.White,
-            titleFontSize = 23.sp,
+            titleFontSize = if (bookTitle.length >= 14) 24.sp else 27.sp,
+            titleLetterSpacing = 0.4.sp,
             onClick = onBackClick,
             modifier = Modifier.weight(1f),
         )

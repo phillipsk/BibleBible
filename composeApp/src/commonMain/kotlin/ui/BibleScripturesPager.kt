@@ -2,6 +2,9 @@ package ui
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,11 +13,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -22,22 +30,31 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffoldState
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,6 +63,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
+import data.appPrefs.ReaderTutorialPrefs
 import data.appPrefs.ReadingSession
 import data.appPrefs.canonicalBookKey
 import data.bible.BibleChapterUIState
@@ -55,6 +73,17 @@ import data.bible.currentTimeMillis
 import data.bible.fetchBibleChapter
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
+
+internal fun resolveReaderPageMode(
+    showAISummary: Boolean,
+    isSummaryReady: Boolean,
+    isChapterReady: Boolean,
+): String = when {
+    showAISummary && (!isChapterReady || !isSummaryReady) -> "summary_loading"
+    showAISummary -> "summary"
+    !isChapterReady -> "loading"
+    else -> "scripture"
+}
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -68,10 +97,21 @@ internal fun BibleScripturesPager(
     loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
         fetchBibleChapter(book, chapter, version, history)
     },
+    initialShowGestureTutorial: Boolean = ReaderTutorialPrefs.shouldShow(),
+    onDismissGestureTutorial: () -> Unit = { ReaderTutorialPrefs.markDismissed() },
 ) {
     val bookId = BibleState.getBookOrdinal(selectedBook.remoteKey).coerceAtLeast(1)
     val sameBook = chapters.bookId == bookId
     val chapterCount = if (sameBook) chapters.chapterList?.size?.coerceAtLeast(1) ?: 1 else 1
+    var showGestureTutorial by remember { mutableStateOf(initialShowGestureTutorial) }
+
+    fun dismissGestureTutorial(method: String) {
+        if (showGestureTutorial) {
+            showGestureTutorial = false
+            onDismissGestureTutorial()
+            AnalyticsTracker.track("reader_tutorial_dismissed", "reading", mapOf("method" to method))
+        }
+    }
 
     key(selectedBook.bookId, bibleVersion) {
         val scope = rememberCoroutineScope()
@@ -312,41 +352,176 @@ internal fun BibleScripturesPager(
                 }
             }
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.Top,
-                userScrollEnabled = !isDesktopPlatform()
-            ) { page ->
-                val targetChapter = page + 1
-                val pageMode = when {
-                    !sameBook || chapters.chapterId != targetChapter || chapters.text == null -> "loading"
-                    isAISummaryLoading && showAISummary -> "summary_loading"
-                    showAISummary -> "summary"
-                    else -> "scripture"
-                }
-                Crossfade(
-                    targetState = pageMode,
-                    animationSpec = tween(durationMillis = 180),
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                HorizontalPager(
+                    state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    label = "chapter_page_crossfade",
-                ) { mode ->
-                    when (mode) {
-                        "loading" -> ScriptureShimmerLoading()
-                        "summary_loading" -> AiSummaryLoadingView()
-                        "summary" -> key(chapters.bookId, chapters.chapterId, bibleVersion) {
-                            GeminiSummary(summaryScrollState, BibleState.selectedFontSize)
+                    verticalAlignment = Alignment.Top,
+                    userScrollEnabled = !isDesktopPlatform()
+                ) { page ->
+                    val targetChapter = page + 1
+                    val isChapterReady = sameBook && chapters.chapterId == targetChapter &&
+                        chapters.version.equals(bibleVersion, ignoreCase = true) && chapters.text != null
+                    val pageMode = resolveReaderPageMode(
+                        showAISummary = showAISummary,
+                        isSummaryReady = !isAISummaryLoading && !GeminiModel.geminiDataText.isNullOrBlank(),
+                        isChapterReady = isChapterReady,
+                    )
+                    key(showAISummary) {
+                        Crossfade(
+                            targetState = pageMode,
+                            animationSpec = tween(durationMillis = 180),
+                            modifier = Modifier.fillMaxSize(),
+                            label = "chapter_page_crossfade",
+                        ) { mode ->
+                            when (mode) {
+                                "loading" -> ScriptureShimmerLoading()
+                                "summary_loading" -> AiSummaryLoadingView()
+                                "summary" -> key(chapters.bookId, chapters.chapterId, bibleVersion) {
+                                    GeminiSummary(summaryScrollState, BibleState.selectedFontSize)
+                                }
+                                else -> BibleScriptures(
+                                    chapters,
+                                    scriptureScrollState,
+                                    BibleState.selectedFontSize,
+                                    onFontSizeChanged = { BibleState.selectedFontSize = it },
+                                    readingState = readingState,
+                                    onFontGestureUsed = { dismissGestureTutorial("gesture") },
+                                )
+                            }
                         }
-                        else -> BibleScriptures(
-                            chapters,
-                            scriptureScrollState,
-                            BibleState.selectedFontSize,
-                            onFontSizeChanged = { BibleState.selectedFontSize = it },
-                            readingState = readingState
-                        )
                     }
                 }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showGestureTutorial &&
+                        !showAISummary &&
+                        sameBook &&
+                        chapters.text != null &&
+                        !BibleState.autoDemoTourEnabled,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    ReaderGestureTutorialCard(
+                        onDismiss = { dismissGestureTutorial("button") },
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReaderGestureTutorialCard(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xF015243A),
+        border = BorderStroke(1.dp, Color(0x66FBD38D)),
+        elevation = 8.dp,
+        modifier = modifier
+            .widthIn(max = 420.dp)
+            .fillMaxWidth()
+            .testTag("reader_gesture_tutorial_card"),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Reading Tips",
+                    color = Color(0xFFFBD38D),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Button(
+                    onClick = onDismiss,
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color(0xFFFBD38D),
+                        contentColor = Color(0xFF0F172A),
+                    ),
+                    modifier = Modifier
+                        .height(30.dp)
+                        .testTag("reader_tutorial_dismiss_btn"),
+                ) {
+                    Text(
+                        text = "Got it",
+                        color = Color(0xFF0F172A),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            ReaderTutorialTipRow(
+                badge = "Pinch",
+                title = "Pinch to zoom",
+                subtitle = "Spread or pinch two fingers to resize text",
+            )
+            ReaderTutorialTipRow(
+                badge = "2×",
+                title = "Double-tap text",
+                subtitle = "Cycle quickly between normal and large font",
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReaderTutorialTipRow(
+    badge: String,
+    title: String,
+    subtitle: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .width(50.dp)
+                .height(30.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0x28FBD38D)),
+        ) {
+            Text(
+                text = badge,
+                color = Color(0xFFFBD38D),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = subtitle,
+                color = Color(0xFFCBD5E1),
+                fontSize = 12.sp,
+            )
         }
     }
 }

@@ -27,6 +27,7 @@ internal fun TopBarTitle(
     titleColor: Color = Color.White,
     iconTint: Color = Color.White,
     titleFontSize: TextUnit = 20.sp,
+    titleLetterSpacing: TextUnit = 0.8.sp,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -50,7 +51,7 @@ internal fun TopBarTitle(
                 fontFamily = MaterialTheme.typography.h1.fontFamily,
                 fontSize = titleFontSize,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
+                letterSpacing = titleLetterSpacing,
                 color = titleColor,
             ),
             maxLines = 1,

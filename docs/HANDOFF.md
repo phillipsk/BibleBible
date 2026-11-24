@@ -1,7 +1,7 @@
 # HANDOFF.md: Current Development State
 
 ## Current Branch & Release Artifacts
-- **Active Release Branch**: `release/3.1` (latest commit `5ed533b`)
+- **Active Release Branch**: `release/3.1` (open PR #63 into `main`)
 - **Android Release Version**: `versionName = "3.1"`, `versionCode = 23`
 - **iOS Release Version**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 19`
 - **CI Test Release Run**: `.github/workflows/mobile-test-release.yml` run `#63` (`45394576867`) uploading Android `3.1 (23)` to Google Play Internal Testing and iOS `5.8 (19)` to TestFlight.
@@ -21,6 +21,15 @@
 4. **Device & Reading Analytics + GitHub Actions Hardening**:
    - Added persistent app-scoped `deviceId` (`X-Client-Device-Id`), per-book and per-chapter active reading time tracking, and Shorts autoplay idle detection aggregated in backend `/v1/analytics/summary` and `/analytics`.
    - Added `release/**` trigger and `verify_no_client_secrets.py` step to `.github/workflows/build.yml`.
+
+5. **Reader Follow-up**:
+   - Chapter pages use the AI loading card while AI mode is active and the chapter or its summary is pending. Scripture mode uses the scripture shimmer while its chapter loads.
+   - The reader top bar uses larger book titles. Reading Tips teaches pinch and double-tap and stays dismissed after either gesture or a tap on Got it.
+
+## Reader Follow-up Verification
+- Desktop tests: 113 passed. Android host tests: 76 passed. Android debug APK built successfully.
+- Smoke test the side-by-side BibleBible Dev build on both phones. Open Deuteronomy 2 and Genesis 23, swipe between chapters with AI locked, then return to scripture and try both font gestures. Confirm the tip remains dismissed when reopening the reader.
+- Wait for physical-device smoke-test feedback before preparing new Google Play and TestFlight builds.
 
 ## Verified Results
 - `cd backend && npm test`: **24/24 passed**.
