@@ -5,8 +5,8 @@ Long-term architectural context, module responsibilities, constraints, and techn
 ## 1. Platform & Toolchain Baseline
 - **Kotlin Multiplatform**: `2.1.21`
 - **Compose Multiplatform**: `1.7.3` (Compose Material + Material3 dependencies)
-- **Android SDK**: `minSdk = 24`, `compileSdk = 37`, `targetSdk = 37` (`versionCode = 23`, `versionName = "3.1"`)
-- **iOS Target**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 19`
+- **Android SDK**: `minSdk = 24`, `compileSdk = 37`, `targetSdk = 37` (`versionCode = 24`, `versionName = "3.1"`)
+- **iOS Target**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 20`
 - **Networking**: Ktor `2.3.12` (`okhttp` on Android, `darwin` on iOS, `cio` on Desktop) with `Resources`, `ContentNegotiation` (`kotlinx-serialization-json` `1.11.0`), and `X-Client-Device-Id` / HMAC `Authorization` headers
 - **Persistence**: SQLDelight `2.3.2` (`BibleBibleDatabase`, schema version `8`) storing cached chapters, chapter counts, reading history, user preferences, and `ChapterFormatMeta` (literary paragraph breaks & red-letter `wordsOfJesus` ranges)
 - **Build Configuration**: `BuildKonfig` `0.15.1` injects `CLOUD_GATEWAY_URL`, `AI_SUMMARIES_ENABLED`, and `ENABLE_DIAGNOSTIC_LOGGING` (no secrets); Debug builds use `.debug` applicationId suffix for side-by-side installation

@@ -2,10 +2,10 @@
 
 ## Current Branch & Release Artifacts
 - **Active Release Branch**: `release/3.1` (open PR #63 into `main`)
-- **Android Release Version**: `versionName = "3.1"`, `versionCode = 23`
-- **iOS Release Version**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 19`
-- **CI Test Release Run**: `.github/workflows/mobile-test-release.yml` run `#63` (`45394576867`) uploading Android `3.1 (23)` to Google Play Internal Testing and iOS `5.8 (19)` to TestFlight.
-- **Cloud Run Backend**: `biblebible-api` revision `biblebible-api-00017-vw9` (`us-central1`) at `https://biblebible-api-687901748717.us-central1.run.app`.
+- **Android Release Version**: `versionName = "3.1"`, `versionCode = 24` (uploaded to Google Play `internal` and submitted to `production`)
+- **iOS Release Version**: `MARKETING_VERSION = 5.8`, `CURRENT_PROJECT_VERSION = 20` (submitted to App Store Connect with `releaseType = MANUAL`, `WAITING_FOR_REVIEW`)
+- **Prior CI Test Release Run**: `.github/workflows/mobile-test-release.yml` run `#63` (`45394576867`) uploaded Android `3.1 (23)` to Google Play Internal Testing and iOS `5.8 (19)` to TestFlight.
+- **Cloud Run Backend**: `biblebible-api` revision `biblebible-api-00018-9kp` (`us-central1`) at `https://biblebible-api-687901748717.us-central1.run.app`.
 
 ## Completed Work on `release/3.1`
 1. **Literary Serif Bible Reader & Cloud Config Flags**:
@@ -64,7 +64,25 @@
   - `desktopTest`: **109 tests, 0 failed, 0 skipped**.
   - `compileKotlinIosArm64` and `assembleDebug`: **BUILD SUCCESSFUL**.
 
+## Home Pull-to-Refresh Polish & Store Review Submissions
+- **Home Pull-to-Refresh Indicator & Card Transition**:
+  - Replaced unused Material pull-refresh indicator with custom `HomePullRefreshBox` (`composeApp/src/commonMain/kotlin/ui/HomePullRefresh.kt`) triggered anywhere on Home when the book grid is scrolled to the top, with a frosted glowing gold arc chip, haptic tick at the threshold, and generic `"Pull to refresh"` / `"Release to refresh"` / `"Refreshing"` labels.
+  - Added `DailyVerseRefreshMinimum` (`1600 ms`) in `composeApp/src/commonMain/kotlin/ui/VerseOfTheDayCard.kt`, capitalized the `"Verse of the Day"` badge, and added two `1600 ms` post-refresh wall-clock sheen passes with smooth alpha recovery (`0.72f` to `1f` over `350 ms`) and quadratic gold-to-blue veil fade so the card returns smoothly to its original blue background without popping.
+- **Cloud Run Gateway Deployed**:
+  - Deployed `biblebible-api` revision `biblebible-api-00018-9kp` (`us-central1`) and verified `/v1/health`, `/v1/config` (including `readerTutorial*` and `biblicalShortsTutorial*` flags), and `/v1/bible/verse-of-the-day?versionId=kjv&after=23.40.31`.
+- **Store Submissions & Credential Standardization**:
+  - Standardized App Store Connect automation (`ASC_KEY_ID` and `ASC_PRIVATE_KEY` in GitHub Actions, plus local signing configuration) on the **Admin** role App Store Connect API key for all uploads, version creation, and App Review submissions.
+  - **Android (`3.1`, `versionCode 24`)**: Uploaded signed AAB to Google Play `internal` and committed to `production` (edit `09604665141732483050`, `status: completed`; note Managed Publishing was toggled off in Play Console prior to submission).
+  - **iOS (`5.8`, build `20`)**: Archived and uploaded via `xcodebuild -exportArchive`, created App Store version `5.8` with `releaseType = MANUAL`, attached build `20` (`VALID`), set `en-US` release notes, and submitted for App Review (`159a3f83-113f-45d6-bd04-c2a7d2b49c6a`, verified `WAITING_FOR_REVIEW`).
+
+## Latest Verified Results
+- `python3 tools/verify_no_client_secrets.py`: **256 files scanned, 0 leaks found**.
+- `./gradlew :composeApp:testAndroidHostTest :composeApp:desktopTest :composeApp:compileKotlinIosArm64`:
+  - `desktopTest`: **123 tests, 0 failures**.
+  - `testAndroidHostTest`: **81 tests, 0 failures**.
+  - `compileKotlinIosArm64`: **BUILD SUCCESSFUL**.
+- `cd backend && npm test`: **25/25 passed**.
+
 ## Remaining Next Steps
-1. Complete manual smoke testing on Google Play Internal Testing (`3.1 (23)`) and Apple TestFlight (`5.8 (19)`).
-2. Confirm Google Play **Managed Publishing** is enabled in Play Console before promoting/submitting Production review, and set App Store Connect `5.8 (19)` to **Manually release this version** when submitting to App Review.
-3. Open/merge PR from `release/3.1` to `main` once approved and released.
+1. Monitor Google Play `3.1 (24)` (`production`) and App Store Connect `5.8 (20)` (`WAITING_FOR_REVIEW`, `MANUAL` release). Re-enable Google Play **Managed Publishing** in Play Console before approval if manual release gating is desired.
+2. Open/merge PR from `release/3.1` to `main` once approved and released.
