@@ -133,7 +133,7 @@ internal fun BibleScripturesPager(
         }
     }
 
-    key(selectedBook.bookId, bibleVersion) {
+    key(selectedBook.bookId) {
         val scope = rememberCoroutineScope()
         val pagerState = rememberPagerState(
             initialPage = if (sameBook) ((chapters.chapterId ?: 1) - 1).coerceIn(0, chapterCount - 1) else 0,
@@ -155,6 +155,12 @@ internal fun BibleScripturesPager(
         // (rotation, foregrounding) must not reload chapter 1 or add history.
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
             val chapter = pagerState.settledPage + 1
+            if (sameBook) {
+                val settledSelectedChapter = "${selectedBook.bookId}.$chapter"
+                if (BibleState.selectedChapter != settledSelectedChapter) {
+                    BibleState.updateSelectedChapter(settledSelectedChapter)
+                }
+            }
             BibleState.clearDailyVerseSwipeOriginIfMoved(selectedBook, chapter)
             ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
             AnalyticsTracker.track(

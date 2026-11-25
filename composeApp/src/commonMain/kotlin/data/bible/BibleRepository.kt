@@ -24,7 +24,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-const val DATABASE_RETENTION = 30_000L
+const val DATABASE_RETENTION = 65_000L
 const val DATABASE_RETENTION_READING_HISTORY = 500L
 
 @Serializable

@@ -632,4 +632,73 @@ class ReaderPolishAndDeepLinkUiTest {
         runOnIdle { assertEquals(0f, homeBarGlassProgress(grid, 48f)) }
     }
 
+    @Test
+    fun switchingVersionPreservesCurrentChapterAfterSwiping() = runComposeUiTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+        val john = books.data!!.first { it.bookId == "JHN" }
+        val chapterList = (1L..21L).toList()
+
+        fun buildChapterState(chapter: Int, version: String) = BibleChapterUIState(
+            bookId = 43,
+            chapterId = chapter,
+            chapterList = chapterList,
+            version = version,
+            text = "[1] $version John chapter $chapter verse 1.",
+            verses = listOf(BibleChapter(id = "1", v = "1", t = "$version John chapter $chapter verse 1.")),
+        )
+
+        val loadRequests = mutableListOf<Triple<Int, String, Boolean>>()
+        val currentVersion = androidx.compose.runtime.mutableStateOf("KJV")
+        val currentChapters = androidx.compose.runtime.mutableStateOf(buildChapterState(1, "KJV"))
+
+        BibleState.restoreReadingLocation(john, 1)
+
+        setContent {
+            BibleBibleTheme {
+                Box(Modifier.size(400.dp, 760.dp)) {
+                    BibleScripturesPager(
+                        chapters = currentChapters.value,
+                        bibleVersion = currentVersion.value,
+                        selectedBook = john,
+                        isAISummaryLoading = false,
+                        showAISummary = false,
+                        bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
+                        ),
+                        loadChapter = { _, chapter, version, updateHistory ->
+                            loadRequests.add(Triple(chapter, version, updateHistory))
+                            currentChapters.value = buildChapterState(chapter, version)
+                        },
+                        initialShowGestureTutorial = false,
+                    )
+                }
+            }
+        }
+
+        waitForIdle()
+        onNodeWithText("KJV John chapter 1 verse 1.", substring = true).assertIsDisplayed()
+
+        // Navigate to chapter 4 via chapter strip (simulating user continuing through chapters)
+        onNodeWithText("4").performClick()
+        waitForIdle()
+
+        runOnIdle {
+            assertEquals("JHN.4", BibleState.selectedChapter)
+            assertTrue(loadRequests.any { it.first == 4 && it.second == "KJV" })
+        }
+        onNodeWithText("KJV John chapter 4 verse 1.", substring = true).assertIsDisplayed()
+
+        // Switch Bible version from KJV to BBE while on Chapter 4
+        val requestCountBeforeSwitch = loadRequests.size
+        runOnIdle { currentVersion.value = "BBE" }
+        waitForIdle()
+
+        val requestsAfterSwitch = loadRequests.drop(requestCountBeforeSwitch)
+        assertEquals(listOf(Triple(4, "BBE", false)), requestsAfterSwitch)
+        assertFalse(requestsAfterSwitch.any { it.first == 1 }, "Must not reset back to chapter 1 on version switch")
+        assertEquals("JHN.4", BibleState.selectedChapter)
+        onNodeWithText("BBE John chapter 4 verse 1.", substring = true).assertIsDisplayed()
+    }
+
 }

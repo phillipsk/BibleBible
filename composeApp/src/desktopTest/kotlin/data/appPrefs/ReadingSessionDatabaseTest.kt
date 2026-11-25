@@ -52,7 +52,7 @@ class ReadingSessionDatabaseTest {
                 database.bibleBibleDatabaseQueries.insertReadingHistory("2026-10-28 12:00:00", "19", "119")
             }
             openDesktopDatabase(path).use { driver ->
-                assertEquals(10L, BibleBibleDatabase.Schema.version)
+                assertEquals(11L, BibleBibleDatabase.Schema.version)
                 val database = BibleBibleDatabase(driver)
                 val preferences = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsOne()
                 assertEquals(30.0, preferences.fontSize)
@@ -87,6 +87,43 @@ class ReadingSessionDatabaseTest {
                 val engagement = database.bibleBibleDatabaseQueries.selectShortEngagementById("short-01").executeAsOne()
                 assertEquals(3L, engagement.view_count)
                 assertEquals(42_000L, engagement.total_watch_time_ms)
+
+                // Re-inserting existing primary keys must upsert cleanly rather than throw PK errors.
+                database.bibleBibleDatabaseQueries.insertVerse(
+                    uuid = "43003016-kjv",
+                    id = "43003016",
+                    b = "43",
+                    c = "3",
+                    v = "16",
+                    t = "For God so loved the world",
+                    version = "kjv",
+                    chapterCount = 21L,
+                    created_at = "2026-11-25 07:00:00",
+                    updated_at = "2026-11-25 07:00:00",
+                )
+                database.bibleBibleDatabaseQueries.insertVerse(
+                    uuid = "43003016-kjv",
+                    id = "43003016",
+                    b = "43",
+                    c = "3",
+                    v = "16",
+                    t = "For God so loved the world (updated)",
+                    version = "kjv",
+                    chapterCount = 21L,
+                    created_at = "2026-11-25 07:00:00",
+                    updated_at = "2026-11-25 07:05:00",
+                )
+                assertEquals(
+                    "For God so loved the world (updated)",
+                    database.bibleBibleDatabaseQueries.selectVersesByBookId("43", "3", "kjv").executeAsOne().t,
+                )
+                database.bibleBibleDatabaseQueries.insertChapterCount("43-kjv", "43", "kjv", 21L, "2026-11-25")
+                database.bibleBibleDatabaseQueries.insertChapterCount("43-kjv", "43", "kjv", 21L, "2026-11-26")
+                assertEquals(21L, database.bibleBibleDatabaseQueries.countVersesByBookId("43", "kjv").executeAsOne().chapterCount)
+
+                database.bibleBibleDatabaseQueries.insertLastCalled(1000L)
+                database.bibleBibleDatabaseQueries.insertLastCalled(2000L)
+                assertEquals(2000L, database.bibleBibleDatabaseQueries.getLastCalled().executeAsOne().time)
             }
         } finally {
             Files.deleteIfExists(path)
