@@ -3,6 +3,9 @@ package ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -21,8 +24,8 @@ import ui.plans.PlanReaderTopStrip
 import ui.plans.ReadingPlanBannerCard
 import ui.plans.ReadingPlanTwinCard
 import ui.plans.ReadingPlansScreen
-import ui.search.ElasticSearchTriggerBar
-import ui.search.SpotlightSearchScreen
+import ui.search.InlineElasticSearchBox
+import ui.search.InlineElasticSearchResults
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,46 +41,51 @@ class SearchAndReadingPlansUiTest {
     }
 
     @Test
-    fun elasticSearchTriggerOpensAndSpotlightFiltersBooksTopicsAndVerses() = runComposeUiTest {
-        var triggerTapped = false
+    fun inlineElasticSearchFiltersPinnedStripMasonryWallAndVerses() = runComposeUiTest {
         var jumpedRef = ""
+
+        var query by mutableStateOf("")
+        var focused by mutableStateOf(false)
 
         setContent {
             BibleBibleTheme {
-                Box(modifier = Modifier.size(412.dp, 880.dp)) {
+                Box(modifier = Modifier.size(412.dp, 980.dp)) {
                     Column {
-                        ElasticSearchTriggerBar(onActivateSearch = { triggerTapped = true })
-                        SpotlightSearchScreen(
-                            onBack = {},
-                            onSelectBook = {},
-                            onJumpToReference = { bookId, _, _, chapter, verseStart, _, _ ->
-                                jumpedRef = "$bookId $chapter:$verseStart"
-                            },
-                            onOpenPlan = {},
-                            autoFocusInput = false,
+                        InlineElasticSearchBox(
+                            query = query,
+                            isFocused = focused,
+                            onQueryChange = { query = it },
+                            onFocusChanged = { focused = it },
                         )
+                        if (query.trim().isNotEmpty()) {
+                            InlineElasticSearchResults(
+                                query = query,
+                                onSelectBook = {},
+                                onJumpToReference = { bookId, _, _, chapter, verseStart, _, _ ->
+                                    jumpedRef = "$bookId $chapter:$verseStart"
+                                },
+                                onOpenPlan = {},
+                            )
+                        }
                     }
                 }
             }
         }
 
-        onNodeWithTag("elastic_search_trigger").performClick()
-        runOnIdle { assertTrue(triggerTapped) }
-
-        onNodeWithTag("spotlight_search_screen").assertIsDisplayed()
-        onNodeWithTag("search_pinned_book_strip").assertIsDisplayed()
-        onNodeWithTag("spotlight_search_input").performTextInput("John 3:16")
+        onNodeWithTag("elastic_search_box").assertIsDisplayed()
+        onNodeWithTag("inline_search_input").performTextInput("John 3:16")
         waitForIdle()
 
-        onNodeWithTag("search_direct_ref_card").assertIsDisplayed()
+        onNodeWithTag("inline_search_results").assertIsDisplayed()
         onNodeWithTag("search_pinned_book_strip").assertIsDisplayed()
         onNodeWithTag("search_book_tile_JHN").assertIsDisplayed()
+        onNodeWithTag("search_direct_ref_card").assertIsDisplayed()
         onNodeWithTag("search_masonry_wall").assertIsDisplayed()
         onNodeWithTag("search_direct_ref_card").performClick()
         runOnIdle { assertEquals("JHN 3:16", jumpedRef) }
 
-        onNodeWithTag("spotlight_clear_btn").performClick()
-        onNodeWithTag("spotlight_search_input").performTextInput("peace")
+        onNodeWithTag("inline_search_clear_btn").performClick()
+        onNodeWithTag("inline_search_input").performTextInput("peace")
         waitForIdle()
 
         onNodeWithTag("spotlight_filter_topics").performClick()

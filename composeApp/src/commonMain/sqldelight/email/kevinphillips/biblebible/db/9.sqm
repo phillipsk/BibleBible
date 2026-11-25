@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS BiblicalShortEngagement (
+    short_id TEXT PRIMARY KEY NOT NULL,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    same_session_replay_count INTEGER NOT NULL DEFAULT 0,
+    manual_revisit_count INTEGER NOT NULL DEFAULT 0,
+    pause_count INTEGER NOT NULL DEFAULT 0,
+    total_watch_time_ms INTEGER NOT NULL DEFAULT 0,
+    last_watched_at INTEGER NOT NULL DEFAULT 0,
+    cycle_seen INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO BiblicalShortEngagement (
+    short_id, view_count, same_session_replay_count, manual_revisit_count,
+    pause_count, total_watch_time_ms, last_watched_at, cycle_seen
+)
+SELECT short_id, 1, 0, 0, 0, 0, seen_at, 1
+FROM SeenBiblicalWords;

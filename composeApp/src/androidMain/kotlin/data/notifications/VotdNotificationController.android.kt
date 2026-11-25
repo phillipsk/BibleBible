@@ -86,7 +86,7 @@ internal fun syncAndroidPushRegistration(context: Context) {
             if (token.isNullOrBlank()) return@addOnSuccessListener
             AndroidPushTokenStore.saveToken(appContext, token)
             androidPushSyncScope.launch {
-                PushRegistrationRepository.registerDeviceToken(
+                val registered = PushRegistrationRepository.registerDeviceToken(
                     token = token,
                     platform = "android",
                     isDebugBuild = isDebug,
@@ -96,6 +96,9 @@ internal fun syncAndroidPushRegistration(context: Context) {
                     remindersEnabled = true,
                     versionId = versionId,
                 )
+                if (registered) {
+                    VotdNotificationReceiver.scheduleDailyVotd(appContext)
+                }
             }
         }
     }

@@ -29,6 +29,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
@@ -53,14 +55,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +92,339 @@ private fun parseAccentColor(hex: String?, fallback: Color = Color(0xFF24426B)):
     if (clean.length != 6) return fallback
     val rgb = clean.toLongOrNull(16) ?: return fallback
     return Color((0xFF000000L or rgb).toInt())
+}
+
+@Composable
+internal fun InlineElasticSearchBox(
+    query: String,
+    isFocused: Boolean,
+    onQueryChange: (String) -> Unit,
+    onFocusChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val focusManager = LocalFocusManager.current
+    val active = isFocused || query.isNotEmpty()
+    val quickPrompts = remember {
+        listOf("Peace", "Anxiety", "Grace", "Overwhelmed at work", "Wisdom", "John 3:16")
+    }
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = DeepNavy,
+        border = BorderStroke(
+            width = if (active) 1.8.dp else 1.4.dp,
+            color = if (active) GoldAccent else Color(0x88FBD38D),
+        ),
+        elevation = if (active) 6.dp else 3.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .testTag("elastic_search_box"),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 32.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search Bible",
+                    tint = GoldAccent,
+                    modifier = Modifier.size(22.dp),
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Book, verse (John 3:16), topic, or mood...",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 15.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    BasicTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = Color.White,
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                        cursorBrush = SolidColor(GoldAccent),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { onFocusChanged(it.isFocused) }
+                            .testTag("inline_search_input"),
+                    )
+                }
+                if (query.isNotEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x28FFFFFF))
+                            .clickable { onQueryChange("") }
+                            .testTag("inline_search_clear_btn"),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear search",
+                            tint = GoldAccent,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+                if (active) {
+                    Text(
+                        text = "Done",
+                        color = GoldAccent,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onFocusChanged(false)
+                                focusManager.clearFocus()
+                            }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .testTag("inline_search_done_btn"),
+                    )
+                }
+            }
+
+            if (isFocused && query.isBlank()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    quickPrompts.forEach { label ->
+                        Surface(
+                            onClick = { onQueryChange(label) },
+                            shape = RoundedCornerShape(50),
+                            color = Color(0x1EFBD38D),
+                            border = BorderStroke(1.dp, Color(0x4DFBD38D)),
+                            elevation = 0.dp,
+                        ) {
+                            Text(
+                                text = label,
+                                color = GoldAccent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun InlineElasticSearchResults(
+    query: String,
+    onSelectBook: (BookData) -> Unit,
+    onJumpToReference: (bookId: String, bookNumber: Int, bookName: String, chapter: Int, verseStart: Int, verseEnd: Int, source: String) -> Unit,
+    onOpenPlan: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var activeFilter by remember { mutableStateOf(SearchFilterTab.ALL) }
+    var searchState by remember { mutableStateOf(SearchResultUiState()) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(
+        query,
+        BibleState.selectedVersion,
+        CloudSessionManager.onDeviceAiEnabled,
+        CloudSessionManager.cloudSearchAiFallbackEnabled,
+        CloudSessionManager.searchMasonryTopicsEnabled,
+    ) {
+        val clean = query.trim()
+        if (clean.isEmpty()) {
+            searchState = SearchResultUiState()
+            return@LaunchedEffect
+        }
+
+        val immediate = SearchRepository.searchImmediateLocal(
+            query = clean,
+            availableBooks = BibleState.uiBooks.data.orEmpty(),
+            includeMasonry = CloudSessionManager.searchMasonryTopicsEnabled,
+        )
+        searchState = immediate.copy(isLoadingCloud = CloudSessionManager.isGatewayConfigured)
+
+        delay(160L)
+        val enriched = SearchRepository.searchEnriched(
+            query = clean,
+            versionId = BibleState.selectedVersion,
+            availableBooks = BibleState.uiBooks.data.orEmpty(),
+        )
+        searchState = enriched
+    }
+
+    val clean = query.trim()
+    val showBooks = activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.BOOKS
+    val showVerses = activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.VERSES
+    val showTopics = (activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.TOPICS || activeFilter == SearchFilterTab.VERSES) &&
+        CloudSessionManager.searchMasonryTopicsEnabled
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("inline_search_results"),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            SearchFilterTab.entries.forEach { tab ->
+                val selected = activeFilter == tab
+                Surface(
+                    onClick = { activeFilter = tab },
+                    shape = RoundedCornerShape(50),
+                    color = if (selected) GoldAccent else Color(0x16FFFFFF),
+                    border = if (selected) null else BorderStroke(1.dp, Color(0x33FBD38D)),
+                    elevation = 0.dp,
+                    modifier = Modifier.testTag("spotlight_filter_${tab.name.lowercase()}"),
+                ) {
+                    Text(
+                        text = tab.label,
+                        color = if (selected) Color(0xFF09111E) else Color(0xFFE2E8F0),
+                        fontSize = 12.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
+
+        if (searchState.isLoadingCloud) {
+            LinearProgressIndicator(
+                color = GoldAccent,
+                backgroundColor = Color(0x22FBD38D),
+                modifier = Modifier.fillMaxWidth().height(2.dp),
+            )
+        }
+
+        if (showBooks && searchState.books.isNotEmpty()) {
+            PinnedHorizontalBookStrip(
+                books = searchState.books,
+                isFiltered = clean.isNotEmpty(),
+                onSelectBook = onSelectBook,
+            )
+        }
+
+        if (searchState.mappedTopics.isNotEmpty() && showTopics) {
+            SearchAiRoutingPill(
+                aiSource = searchState.aiSource,
+                providerLabel = searchState.aiProviderLabel,
+                mappedTopics = searchState.mappedTopics,
+            )
+        }
+
+        if (showVerses && searchState.directReference != null) {
+            DirectReferenceJumpCard(
+                ref = searchState.directReference!!,
+                onClick = {
+                    val r = searchState.directReference!!
+                    AnalyticsTracker.track(
+                        "search_direct_ref_clicked",
+                        "search",
+                        mapOf("reference" to r.reference),
+                    )
+                    onJumpToReference(
+                        r.bookId,
+                        r.bookNumber,
+                        r.bookName,
+                        r.chapter,
+                        r.verseStart,
+                        r.verseEnd,
+                        "search_direct_ref",
+                    )
+                },
+            )
+        }
+
+        if (showTopics && searchState.masonryCards.isNotEmpty()) {
+            val filteredCards = when (activeFilter) {
+                SearchFilterTab.VERSES -> searchState.masonryCards.filter { it.kind == "verse" || it.reference.isNotBlank() }
+                else -> searchState.masonryCards
+            }
+            if (filteredCards.isNotEmpty()) {
+                StaggeredMasonryWall(
+                    heading = "Topics & Passages",
+                    cards = filteredCards,
+                    onCardClick = { card ->
+                        AnalyticsTracker.track(
+                            "search_masonry_card_clicked",
+                            "search",
+                            mapOf("id" to card.id, "ref" to card.reference),
+                        )
+                        if (card.size == "wide" && !card.planId.isNullOrBlank() && CloudSessionManager.readingPlansEnabled) {
+                            scope.launch { ReadingPlanRepository.selectActivePlan(card.planId) }
+                            onOpenPlan(card.planId)
+                        } else {
+                            onJumpToReference(
+                                card.bookId,
+                                card.bookNumber,
+                                card.reference.substringBeforeLast(" ").ifBlank { card.bookId },
+                                card.chapter,
+                                card.verseStart,
+                                card.verseEnd,
+                                "search_masonry",
+                            )
+                        }
+                    },
+                )
+            }
+        }
+
+        val hasAnyResults = (showVerses && searchState.directReference != null) ||
+            (showBooks && searchState.books.isNotEmpty()) ||
+            (showTopics && searchState.masonryCards.isNotEmpty())
+
+        if (!hasAnyResults && !searchState.isLoadingCloud) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0x16FFFFFF),
+                border = BorderStroke(1.dp, Color(0x28FBD38D)),
+                modifier = Modifier.fillMaxWidth().testTag("search_empty_results"),
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(18.dp),
+                ) {
+                    Text(
+                        text = "No exact matches yet for \"$clean\"",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Try a book name (John, Psalms), a topic (Peace, Grace, Wisdom), or a verse reference (Philippians 4:6).",
+                        color = Color(0xFFCBD5E1),
+                        fontSize = 12.5.sp,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

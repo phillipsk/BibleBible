@@ -19,6 +19,8 @@ import data.notifications.parseVotdNotificationPayload
 import email.kevinphillips.biblebible.cache.DriverFactory
 
 class MainActivity : ComponentActivity() {
+    private var skipNextResumeRefresh = false
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             AndroidNotificationPermissionHost.onPermissionResult(granted)
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
         DriverFactory.context = applicationContext
         AndroidNotificationPermissionHost.attach(this, notificationPermissionLauncher)
         VotdNotificationController.refresh()
+        skipNextResumeRefresh = true
         applyLaunchIntent(intent)
 
         setContent {
@@ -42,7 +45,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        VotdNotificationController.refresh()
+        if (skipNextResumeRefresh) {
+            skipNextResumeRefresh = false
+        } else {
+            VotdNotificationController.refresh()
+        }
     }
 
     override fun onDestroy() {

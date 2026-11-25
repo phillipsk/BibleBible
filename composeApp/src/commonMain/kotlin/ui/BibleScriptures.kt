@@ -88,11 +88,12 @@ internal fun BibleScriptures(
     val verseGapDp = CloudSessionManager.readerVerseGapDp
     val redLetterEnabled = CloudSessionManager.readerRedLetterEnabled
 
-    val isHighlightedChapter =
-        BibleState.highlightedVerseBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
-            BibleState.highlightedVerseChapter == chapters.chapterId
-    val highlightStart = if (isHighlightedChapter) BibleState.highlightedVerseStart else null
-    val highlightEnd = if (isHighlightedChapter) BibleState.highlightedVerseEnd else null
+    val effectiveHighlight = BibleState.effectiveHighlightRangeForChapter(
+        bookId = BibleState.selectedBook.bookId,
+        chapter = chapters.chapterId ?: -1,
+    )
+    val highlightStart = effectiveHighlight?.first
+    val highlightEnd = effectiveHighlight?.last
     val activeVersion = chapters.version ?: BibleState.selectedVersion
 
     val activePlanContext = BibleState.activePlanReading?.takeIf {

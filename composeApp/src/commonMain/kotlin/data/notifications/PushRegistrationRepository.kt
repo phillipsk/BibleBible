@@ -1,6 +1,7 @@
 package data.notifications
 
 import data.analytics.AnalyticsTracker
+import data.bible.currentTimeMillis
 import data.config.CloudSessionManager
 import data.httpClientCloudGateway
 import email.kevinphillips.biblebible.security.ProtectedEndpoints
@@ -17,6 +18,8 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
@@ -40,6 +43,18 @@ internal data class PushDeviceUnregisterRequest(
     val deviceId: String = "",
 )
 
+internal object NotificationDeliveryPolicy {
+    /**
+     * Only schedule the local daily Verse of the Day fallback when reminders are enabled
+     * and the device does not yet hold an active remote push token, preventing duplicate
+     * local + server 6:00 AM notifications.
+     */
+    fun shouldScheduleLocalDailyVotd(
+        remindersEnabled: Boolean,
+        hasRemotePushToken: Boolean,
+    ): Boolean = remindersEnabled && !hasRemotePushToken
+}
+
 internal object PushRegistrationRepository {
     private val baseTopics = listOf(
         "votd_daily",
@@ -48,10 +63,24 @@ internal object PushRegistrationRepository {
         "reading_engagement",
     )
 
+    private val registrationMutex = Mutex()
+    private var lastSuccessfulFingerprint: String? = null
+    private var lastRegisteredAtMs: Long = 0L
+
+    internal var dedupeWindowMs: Long = 5L * 60L * 1000L
+    internal var nowProvider: () -> Long = { currentTimeMillis() }
+
     fun defaultTopics(isDebugBuild: Boolean): List<String> =
         if (isDebugBuild) baseTopics + "debug_test" else baseTopics
 
     fun allKnownTopics(): List<String> = baseTopics + "debug_test"
+
+    internal fun resetForTesting() {
+        lastSuccessfulFingerprint = null
+        lastRegisteredAtMs = 0L
+        dedupeWindowMs = 5L * 60L * 1000L
+        nowProvider = { currentTimeMillis() }
+    }
 
     suspend fun registerDeviceToken(
         token: String,
@@ -84,29 +113,52 @@ internal object PushRegistrationRepository {
             remindersEnabled = remindersEnabled,
             topics = defaultTopics(isDebugBuild),
         )
-        return try {
-            val response = withContext(Dispatchers.IO) {
-                client.post {
-                    expectSuccess = false
-                    url(endpoint)
-                    header(ProtectedEndpoints.headerClientPlatform(), platform.lowercase())
-                    header(ProtectedEndpoints.headerClientDeviceId(), deviceId)
-                    contentType(ContentType.Application.Json)
-                    setBody(request)
+        val fingerprint = buildString {
+            append(request.token).append('|')
+            append(request.deviceId).append('|')
+            append(request.platform).append('|')
+            append(request.appBuild).append('|')
+            append(request.versionId).append('|')
+            append(request.timezone).append('|')
+            append(request.reminderHour).append(':').append(request.reminderMinute).append('|')
+            append(request.remindersEnabled).append('|')
+            append(request.topics.joinToString(","))
+        }
+        return registrationMutex.withLock {
+            val nowMs = nowProvider()
+            val elapsedMs = nowMs - lastRegisteredAtMs
+            if (fingerprint == lastSuccessfulFingerprint && elapsedMs in 0L..dedupeWindowMs) {
+                return@withLock true
+            }
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    client.post {
+                        expectSuccess = false
+                        url(endpoint)
+                        header(ProtectedEndpoints.headerClientPlatform(), platform.lowercase())
+                        header(ProtectedEndpoints.headerClientDeviceId(), deviceId)
+                        contentType(ContentType.Application.Json)
+                        setBody(request)
+                    }
                 }
+                if (isDebugBuild) {
+                    println("[Push] registerDeviceToken status=${response.status.value}")
+                }
+                val ok = response.status.isSuccess()
+                if (ok) {
+                    lastSuccessfulFingerprint = fingerprint
+                    lastRegisteredAtMs = nowProvider()
+                }
+                ok
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (err: Exception) {
+                if (isDebugBuild) {
+                    println("[Push] registerDeviceToken error=${err::class.simpleName}: ${err.message}")
+                }
+                Napier.w("Push registration sync failed: ${err.message}")
+                false
             }
-            if (isDebugBuild) {
-                println("[Push] registerDeviceToken status=${response.status.value}")
-            }
-            response.status.isSuccess()
-        } catch (ce: CancellationException) {
-            throw ce
-        } catch (err: Exception) {
-            if (isDebugBuild) {
-                println("[Push] registerDeviceToken error=${err::class.simpleName}: ${err.message}")
-            }
-            Napier.w("Push registration sync failed: ${err.message}")
-            false
         }
     }
 
@@ -123,23 +175,27 @@ internal object PushRegistrationRepository {
             ?: return false
         val path = ProtectedEndpoints.pushUnregisterPath()
         val endpoint = if ("://" in baseUrl) "$baseUrl$path" else "https://$baseUrl$path"
-        return try {
-            val response = withContext(Dispatchers.IO) {
-                client.post {
-                    expectSuccess = false
-                    url(endpoint)
-                    header(ProtectedEndpoints.headerClientPlatform(), platform.lowercase())
-                    header(ProtectedEndpoints.headerClientDeviceId(), deviceId)
-                    contentType(ContentType.Application.Json)
-                    setBody(PushDeviceUnregisterRequest(token = cleanToken, deviceId = deviceId))
+        return registrationMutex.withLock {
+            lastSuccessfulFingerprint = null
+            lastRegisteredAtMs = 0L
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    client.post {
+                        expectSuccess = false
+                        url(endpoint)
+                        header(ProtectedEndpoints.headerClientPlatform(), platform.lowercase())
+                        header(ProtectedEndpoints.headerClientDeviceId(), deviceId)
+                        contentType(ContentType.Application.Json)
+                        setBody(PushDeviceUnregisterRequest(token = cleanToken, deviceId = deviceId))
+                    }
                 }
+                response.status.isSuccess()
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (err: Exception) {
+                Napier.w("Push unregistration failed: ${err.message}")
+                false
             }
-            response.status.isSuccess()
-        } catch (ce: CancellationException) {
-            throw ce
-        } catch (err: Exception) {
-            Napier.w("Push unregistration failed: ${err.message}")
-            false
         }
     }
 }

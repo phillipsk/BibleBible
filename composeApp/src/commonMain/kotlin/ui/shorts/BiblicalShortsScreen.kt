@@ -222,19 +222,91 @@ internal fun BiblicalShortsScreen(
         null
     }
 
+    var previousPageIndex by remember { mutableStateOf(-1) }
+    val sessionViewedIds = remember(selectedCategory, initialShorts) { mutableSetOf<String>() }
+    var activeWatchShort by remember { mutableStateOf<BiblicalShortDto?>(null) }
+    var activeWatchSegmentStartMs by remember { mutableStateOf<Long?>(null) }
+    var accumulatedWatchMs by remember { mutableStateOf(0L) }
+    var pausesOnCurrentClip by remember { mutableStateOf(0) }
+    var currentClipManualRevisit by remember { mutableStateOf(false) }
+
+    val pauseWatchSegment: () -> Unit = {
+        activeWatchSegmentStartMs?.let { started ->
+            accumulatedWatchMs += (currentTimeMillis() - started).coerceIn(0L, 3_600_000L)
+            activeWatchSegmentStartMs = null
+        }
+    }
+
+    val resumeWatchSegment: () -> Unit = {
+        if (enablePlaybackTimer &&
+            activeWatchShort != null &&
+            !isPaused &&
+            isAppInForeground &&
+            !showTutorialOverlay &&
+            activeWatchSegmentStartMs == null
+        ) {
+            activeWatchSegmentStartMs = currentTimeMillis()
+        }
+    }
+
+    val flushCurrentShortWatch: (String) -> Unit = { exitReason ->
+        pauseWatchSegment()
+        val clip = activeWatchShort
+        val watchMs = accumulatedWatchMs
+        if (clip != null && (watchMs > 0L || completedPlaysOnCurrentShort > 0 || pausesOnCurrentClip > 0)) {
+            val updated = if (!useDeterministicOrder && watchMs > 0L) {
+                progressManager.recordShortWatchTime(clip.id, watchMs)
+            } else {
+                progressManager.getEngagement(clip.id)
+            }
+            AnalyticsTracker.trackShortWatchSummary(
+                shortItem = clip,
+                watchTimeMs = watchMs,
+                completedLoops = completedPlaysOnCurrentShort,
+                pauseCountInSession = pausesOnCurrentClip,
+                wasManualRevisit = currentClipManualRevisit,
+                lifetimeViews = updated?.viewCount ?: 1L,
+                lifetimeWatchTimeMs = updated?.totalWatchTimeMs ?: watchMs,
+                exitReason = exitReason,
+            )
+        }
+        activeWatchShort = null
+        activeWatchSegmentStartMs = null
+        accumulatedWatchMs = 0L
+        pausesOnCurrentClip = 0
+        currentClipManualRevisit = false
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            flushCurrentShortWatch("closed")
+        }
+    }
+
+    LaunchedEffect(isPaused, isAppInForeground, showTutorialOverlay, activeWatchShort?.id, enablePlaybackTimer) {
+        if (enablePlaybackTimer && activeWatchShort != null && !isPaused && isAppInForeground && !showTutorialOverlay) {
+            resumeWatchSegment()
+        } else {
+            pauseWatchSegment()
+        }
+    }
+
     LaunchedEffect(selectedCategory) {
+        flushCurrentShortWatch("category_changed")
         markUserInteraction()
         pendingAutoAdvance = false
+        previousPageIndex = -1
         pagerState.scrollToPage(0)
         elapsedSeconds = 0
         completedPlaysOnCurrentShort = 0
         lastLoopEventMs = 0L
     }
 
-    // Immediately cache each visible Biblical Word ID in SQLDelight so it won't repeat until all others are seen
+    // Track impressions, manual revisits, and cache engagement state in SQLDelight
     LaunchedEffect(pagerState.currentPage, activeShort?.id) {
         val wasAutoAdvance = pendingAutoAdvance
         pendingAutoAdvance = false
+        flushCurrentShortWatch(if (wasAutoAdvance) "auto_advanced" else "swiped")
         if (!wasAutoAdvance) {
             markUserInteraction()
         }
@@ -242,14 +314,44 @@ internal fun BiblicalShortsScreen(
         completedPlaysOnCurrentShort = 0
         lastLoopEventMs = 0L
         isPaused = false
+        val isManualBack = previousPageIndex >= 0 && pagerState.currentPage < previousPageIndex
+        val isManualRevisit = !wasAutoAdvance && (isManualBack || (activeShort != null && activeShort.id in sessionViewedIds))
+        val advanceSource = when {
+            previousPageIndex < 0 -> "initial"
+            wasAutoAdvance -> "auto"
+            isManualBack -> "manual_back"
+            else -> "manual_next"
+        }
+        previousPageIndex = pagerState.currentPage
+
         activeShort?.let { short ->
+            sessionViewedIds.add(short.id)
+            val priorEngagement = progressManager.getEngagement(short.id)
+            val isRepeat = (priorEngagement?.viewCount ?: 0L) > 0L
+            val updatedEngagement = if (!useDeterministicOrder) {
+                progressManager.recordShortImpression(short.id, isManualRevisit = isManualRevisit)
+            } else {
+                priorEngagement
+            }
+            val unseenRemaining = if (!useDeterministicOrder) {
+                progressManager.unseenCount(filteredShorts.map { it.id })
+            } else {
+                0
+            }
             AnalyticsTracker.trackShortViewed(
                 shortItem = short,
-                advanceSource = if (wasAutoAdvance) "auto" else "manual",
+                advanceSource = advanceSource,
+                viewCount = updatedEngagement?.viewCount ?: 1L,
+                isRepeat = isRepeat,
+                isManualRevisit = isManualRevisit,
+                unseenRemaining = unseenRemaining,
             )
-            if (!useDeterministicOrder) {
-                progressManager.markShortSeen(short.id)
-            }
+            activeWatchShort = short
+            accumulatedWatchMs = 0L
+            pausesOnCurrentClip = 0
+            currentClipManualRevisit = isManualRevisit
+            activeWatchSegmentStartMs = null
+            resumeWatchSegment()
         }
         val shouldHint = progressManager.shouldShowSwipeHint(pagerState.currentPage)
         showSwipeHint = shouldHint
@@ -300,6 +402,17 @@ internal fun BiblicalShortsScreen(
             lastLoopEventMs = nowMs
             completedPlaysOnCurrentShort += 1
             elapsedSeconds = 0
+            val updatedReplay = if (!useDeterministicOrder) {
+                progressManager.recordShortLoopReplay(currentItem.id)
+            } else {
+                progressManager.getEngagement(currentItem.id)
+            }
+            AnalyticsTracker.trackShortReplayed(
+                shortItem = currentItem,
+                loopsInSession = completedPlaysOnCurrentShort,
+                lifetimeReplays = updatedReplay?.sameSessionReplayCount ?: completedPlaysOnCurrentShort.toLong(),
+                lifetimeViews = updatedReplay?.viewCount ?: 1L,
+            )
             if (CloudSessionManager.featureFlags.shortsAutoAdvanceEnabled &&
                 ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(completedPlaysOnCurrentShort) &&
                 filteredShorts.size > 1
@@ -372,6 +485,7 @@ internal fun BiblicalShortsScreen(
                         if (onBackSwipeFinish != null) {
                             onBackSwipeFinish(false)
                         } else if (totalHorizontalDrag > 72.dp.toPx()) {
+                            flushCurrentShortWatch("swipe_back")
                             AnalyticsTracker.track("short_swipe_back_home", "biblical_shorts")
                             onBack()
                         }
@@ -423,6 +537,23 @@ internal fun BiblicalShortsScreen(
                             if (isCurrentPage) {
                                 markUserInteraction()
                                 isPaused = !isPaused
+                                if (isPaused) {
+                                    pauseWatchSegment()
+                                    pausesOnCurrentClip += 1
+                                    val updatedPause = if (!useDeterministicOrder) {
+                                        progressManager.recordShortPause(shortItem.id)
+                                    } else {
+                                        progressManager.getEngagement(shortItem.id)
+                                    }
+                                    AnalyticsTracker.trackShortPaused(
+                                        shortItem = shortItem,
+                                        elapsedSeconds = elapsedSeconds,
+                                        pauseCountInSession = pausesOnCurrentClip,
+                                        lifetimePauses = updatedPause?.pauseCount ?: pausesOnCurrentClip.toLong(),
+                                    )
+                                } else {
+                                    resumeWatchSegment()
+                                }
                             }
                         },
                         onDoubleTap = {
@@ -452,6 +583,7 @@ internal fun BiblicalShortsScreen(
 
                 val readChapterHandler: () -> Unit = {
                     markUserInteraction()
+                    flushCurrentShortWatch("read_chapter")
                     AnalyticsTracker.track(
                         "short_read_chapter_clicked",
                         "biblical_shorts",
@@ -782,7 +914,12 @@ internal fun BiblicalShortsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f),
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(
+                    onClick = {
+                        flushCurrentShortWatch("back_button")
+                        onBack()
+                    },
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back to Home",

@@ -15,6 +15,7 @@ internal data class ScriptureDeepLink(
     val fetchDailyIfMissing: Boolean = false,
     val destination: PushDestinationKind = PushDestinationKind.SCRIPTURE,
     val shortsCategory: String? = null,
+    val isDailyVerse: Boolean = false,
 )
 
 private val canonicalBookUsfms = listOf(
@@ -82,6 +83,10 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
             ?: normalized["version"]
         )?.takeIf { it.isNotBlank() }?.uppercase()
 
+    val isDailyVersePayload = type.equals("votd", ignoreCase = true) ||
+        normalized.containsKey("votd_book_usfm") ||
+        normalized.containsKey("votd_chapter")
+
     if ((resolvedUsfm.isNotBlank() || rawBookNumber != null) && chapter != null) {
         return ScriptureDeepLink(
             bookUsfm = resolvedUsfm,
@@ -91,6 +96,7 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
             version = version,
             fetchDailyIfMissing = false,
             destination = PushDestinationKind.SCRIPTURE,
+            isDailyVerse = isDailyVersePayload,
         )
     }
 
@@ -103,6 +109,7 @@ internal fun parseVotdNotificationPayload(extras: Map<String, String?>): Scriptu
             version = version,
             fetchDailyIfMissing = true,
             destination = PushDestinationKind.SCRIPTURE,
+            isDailyVerse = true,
         )
     }
 

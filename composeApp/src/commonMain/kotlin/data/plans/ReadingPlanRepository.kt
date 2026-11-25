@@ -19,6 +19,8 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import kotlin.native.concurrent.ThreadLocal
@@ -33,6 +35,11 @@ internal object ReadingPlanRepository {
 
     var completedReadingIds: Set<String> by mutableStateOf(emptySet())
         private set
+
+    private val localLoadMutex = Mutex()
+    private val catalogRefreshMutex = Mutex()
+    private var localLoadedFromDb = false
+    private var remoteCatalogLoaded = false
 
     var isLoaded: Boolean by mutableStateOf(false)
         private set
@@ -96,7 +103,8 @@ internal object ReadingPlanRepository {
         )
     }
 
-    suspend fun loadLocalState() {
+    suspend fun loadLocalState() = localLoadMutex.withLock {
+        if (localLoadedFromDb) return@withLock
         try {
             val (loadedActiveId, loadedCompleted) = withContext(Dispatchers.IO) {
                 val driver = DriverFactory.createDriver() ?: return@withContext (null to emptySet<String>())
@@ -115,6 +123,7 @@ internal object ReadingPlanRepository {
             }
             activePlanId = loadedActiveId
             completedReadingIds = loadedCompleted
+            localLoadedFromDb = true
         } catch (_: Exception) {
             // Keep safe in-memory state if DB unavailable in unit tests
         } finally {
@@ -122,11 +131,12 @@ internal object ReadingPlanRepository {
         }
     }
 
-    suspend fun refreshRemoteCatalog(client: HttpClient = httpClientCloudGateway) {
-        if (!CloudSessionManager.readingPlansEnabled || !CloudSessionManager.isGatewayConfigured) return
+    suspend fun refreshRemoteCatalog(client: HttpClient = httpClientCloudGateway) = catalogRefreshMutex.withLock {
+        if (remoteCatalogLoaded && client === httpClientCloudGateway) return@withLock
+        if (!CloudSessionManager.readingPlansEnabled || !CloudSessionManager.isGatewayConfigured) return@withLock
         val baseUrl = CloudSessionManager.configuredGatewayUrl
             .takeIf { CloudSessionManager.parseSecureGatewayUrl(it) != null }
-            ?: return
+            ?: return@withLock
         val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
         val endpoint = "$prefix${ProtectedEndpoints.plansPath()}"
         try {
@@ -136,11 +146,12 @@ internal object ReadingPlanRepository {
                     url(endpoint)
                 }
             }
-            if (!response.status.isSuccess()) return
+            if (!response.status.isSuccess()) return@withLock
             val catalog = response.body<ReadingPlansCatalogResponseDto>()
             if (catalog.plans.isNotEmpty()) {
                 plans = catalog.plans
             }
+            remoteCatalogLoaded = true
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -251,6 +262,8 @@ internal object ReadingPlanRepository {
         plans = starter
         activePlanId = activeId
         completedReadingIds = completedIds
+        localLoadedFromDb = false
+        remoteCatalogLoaded = false
         isLoaded = true
     }
 }

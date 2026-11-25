@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -89,6 +90,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.hideFromAccessibility
@@ -130,8 +132,8 @@ import ui.configs.HomeTopBarHeight
 import ui.plans.ReadingPlanBannerCard
 import ui.plans.ReadingPlanTwinCard
 import ui.plans.ReadingPlansScreen
-import ui.search.ElasticSearchTriggerBar
-import ui.search.SpotlightSearchScreen
+import ui.search.InlineElasticSearchBox
+import ui.search.InlineElasticSearchResults
 import ui.shorts.BiblicalShortsEntryCard
 import ui.shorts.BiblicalShortsScreen
 
@@ -142,6 +144,7 @@ internal fun BibleHomeScreen(
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
     val localScaffoldState = remember { scaffoldState }
     val channel = remember { BibleState.snackBarChannel }
 
@@ -284,8 +287,8 @@ internal fun BibleHomeScreen(
     val isBottomSheetExpanded = localScaffoldState.bottomSheetState.isExpanded
     val isHome = BibleState.showHomePage &&
         !BibleState.showBiblicalShorts &&
-        !BibleState.isSearchActive &&
         !BibleState.showReadingPlans
+    val hasActiveInlineSearch = BibleState.isInlineSearchFocused || BibleState.inlineSearchQuery.isNotBlank()
     val homeBackSwipe = remember(scope) { SwipeTransition(scope) }
     val animateHomeRightSwipe = CloudSessionManager.featureFlags.homeSwipePreviewEnabled
     val horizontalHomeOffset by remember(homeBackSwipe, animateHomeRightSwipe) {
@@ -322,7 +325,7 @@ internal fun BibleHomeScreen(
         }
     }
     LaunchedEffect(flags.elasticSearchEnabled) {
-        if (!flags.elasticSearchEnabled && BibleState.isSearchActive) {
+        if (!flags.elasticSearchEnabled) {
             BibleState.closeSpotlightSearch()
         }
     }
@@ -351,14 +354,20 @@ internal fun BibleHomeScreen(
             isBottomSheetExpanded -> scope.launch {
                 localScaffoldState.bottomSheetState.collapse()
             }
-            BibleState.isSearchActive -> BibleState.closeSpotlightSearch()
+            isHome && hasActiveInlineSearch -> {
+                BibleState.closeSpotlightSearch()
+                focusManager.clearFocus()
+            }
             BibleState.showReadingPlans -> BibleState.exitReadingPlansToHome()
             BibleState.showBiblicalShorts -> navigateBackFromShorts()
             !isHome -> navigateBackFromReader()
         }
     }
 
-    PlatformBackHandler(enabled = isBottomSheetExpanded || !isHome, onBack = handleBackNavigation)
+    PlatformBackHandler(
+        enabled = isBottomSheetExpanded || !isHome || hasActiveInlineSearch,
+        onBack = handleBackNavigation,
+    )
 
     BottomSheetScaffold(
         snackbarHost = {
@@ -442,60 +451,7 @@ internal fun BibleHomeScreen(
                             .background(MaterialTheme.colors.background),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        if (BibleState.isSearchActive) {
-                            SpotlightSearchScreen(
-                                onBack = { BibleState.closeSpotlightSearch() },
-                                onSelectBook = { book ->
-                                    AnalyticsTracker.trackBookSelected(
-                                        bookId = book.bookId,
-                                        bookName = book.name ?: book.bookId,
-                                        source = "spotlight_search",
-                                    )
-                                    BibleState.closeSpotlightSearch()
-                                    BibleState.returnToShortsOnBack = false
-                                    BibleState.returnToPlansOnBack = false
-                                    BibleState.activePlanReading = null
-                                    BibleState.restoreReadingLocation(book, 1)
-                                },
-                                onJumpToReference = { bookId, bookNumber, bookName, chapter, verseStart, verseEnd, source ->
-                                    val targetBook = BibleState.resolveBookData(
-                                        bookId = bookId,
-                                        bookNumber = bookNumber,
-                                        fallbackName = bookName,
-                                        minChapters = chapter,
-                                    )
-                                    AnalyticsTracker.trackBookSelected(
-                                        bookId = targetBook.bookId,
-                                        bookName = targetBook.name ?: targetBook.bookId,
-                                        source = source,
-                                    )
-                                    BibleState.closeSpotlightSearch()
-                                    BibleState.returnToShortsOnBack = false
-                                    BibleState.returnToPlansOnBack = false
-                                    BibleState.activePlanReading = null
-                                    val safeChapter = chapter.coerceAtLeast(1)
-                                    BibleState.restoreReadingLocation(targetBook, safeChapter)
-                                    if (verseStart >= 1) {
-                                        BibleState.focusScriptureVerse(
-                                            bookId = targetBook.bookId,
-                                            chapter = safeChapter,
-                                            verseStart = verseStart,
-                                            verseEnd = verseEnd.coerceAtLeast(verseStart),
-                                        )
-                                    } else {
-                                        BibleState.clearHighlightedVerse()
-                                        BibleState.clearPendingTargetVerse()
-                                    }
-                                },
-                                onOpenPlan = { planId ->
-                                    scope.launch {
-                                        ReadingPlanRepository.selectActivePlan(planId)
-                                    }
-                                    BibleState.closeSpotlightSearch()
-                                    BibleState.openReadingPlans()
-                                },
-                            )
-                        } else if (BibleState.showReadingPlans) {
+                        if (BibleState.showReadingPlans) {
                             ReadingPlansScreen(
                                 onBack = { BibleState.exitReadingPlansToHome() },
                                 onOpenReading = { context -> BibleState.openPlanReading(context) },
@@ -599,7 +555,7 @@ internal fun BibleHomeContent(
     val refreshing = dailyVerse?.refreshing == true
     Box(Modifier.fillMaxSize()) {
     HomePullRefreshBox(
-        enabled = interactive && dailyVerse != null,
+        enabled = interactive && dailyVerse != null && !BibleState.isInlineSearchFocused && BibleState.inlineSearchQuery.isBlank(),
         refreshing = refreshing,
         onRefresh = { dailyVerse?.refresh() },
         indicatorTop = topInset + HomeTopBarHeight + 8.dp,
@@ -815,6 +771,11 @@ internal fun BibleBookList(
         }
     }
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    val effectiveBottomPadding = maxOf(20.dp + navBarBottomPadding, imeBottomPadding + 28.dp)
+    val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
 
     AnimatedVisibility(
         visible = visible,
@@ -845,6 +806,20 @@ internal fun BibleBookList(
                 val flatSections = remember(indexedAll, activeBreakIds, applySectionBreaks) {
                     partitionBookSections(indexedAll, activeBreakIds, applySectionBreaks)
                 }
+                val activeInlineQuery = BibleState.inlineSearchQuery.trim()
+                val showInlineResults = CloudSessionManager.elasticSearchEnabled &&
+                    header != null &&
+                    activeInlineQuery.isNotEmpty()
+
+                LaunchedEffect(BibleState.isInlineSearchFocused, header != null) {
+                    if (header != null && BibleState.isInlineSearchFocused) {
+                        val anchorOffsetPx = -with(density) { (maxHeight * 0.14f).roundToPx() }
+                        lazyGridState.animateScrollToItem(
+                            index = 2,
+                            scrollOffset = anchorOffsetPx,
+                        )
+                    }
+                }
 
                 LazyVerticalGrid(
                     state = lazyGridState,
@@ -853,7 +828,7 @@ internal fun BibleBookList(
                         start = 12.dp,
                         end = 12.dp,
                         top = 12.dp + topChromePadding,
-                        bottom = 20.dp + navBarBottomPadding,
+                        bottom = effectiveBottomPadding,
                     ),
                     userScrollEnabled = true,
                 ) {
@@ -874,15 +849,79 @@ internal fun BibleBookList(
                         }
                         if (CloudSessionManager.elasticSearchEnabled) {
                             item(key = "elastic_search_bar", span = { GridItemSpan(maxLineSpan) }) {
-                                ElasticSearchTriggerBar(
-                                    onActivateSearch = { BibleState.openSpotlightSearch() },
+                                InlineElasticSearchBox(
+                                    query = BibleState.inlineSearchQuery,
+                                    isFocused = BibleState.isInlineSearchFocused,
+                                    onQueryChange = { BibleState.inlineSearchQuery = it },
+                                    onFocusChanged = { focused -> BibleState.isInlineSearchFocused = focused },
                                     modifier = Modifier.padding(bottom = 12.dp),
                                 )
                             }
                         }
                     }
 
-                    if (useSplitTestaments) {
+                    if (showInlineResults) {
+                        item(
+                            key = "inline_elastic_search_results",
+                            span = { GridItemSpan(maxLineSpan) },
+                        ) {
+                            InlineElasticSearchResults(
+                                query = activeInlineQuery,
+                                onSelectBook = { book ->
+                                    AnalyticsTracker.trackBookSelected(
+                                        bookId = book.bookId,
+                                        bookName = book.name ?: book.bookId,
+                                        source = "inline_elastic_search",
+                                    )
+                                    BibleState.isInlineSearchFocused = false
+                                    focusManager.clearFocus()
+                                    BibleState.returnToShortsOnBack = false
+                                    BibleState.returnToPlansOnBack = false
+                                    BibleState.activePlanReading = null
+                                    BibleState.restoreReadingLocation(book, 1)
+                                },
+                                onJumpToReference = { bookId, bookNumber, bookName, chapter, verseStart, verseEnd, source ->
+                                    val targetBook = BibleState.resolveBookData(
+                                        bookId = bookId,
+                                        bookNumber = bookNumber,
+                                        fallbackName = bookName,
+                                        minChapters = chapter,
+                                    )
+                                    AnalyticsTracker.trackBookSelected(
+                                        bookId = targetBook.bookId,
+                                        bookName = targetBook.name ?: targetBook.bookId,
+                                        source = source,
+                                    )
+                                    BibleState.isInlineSearchFocused = false
+                                    focusManager.clearFocus()
+                                    BibleState.returnToShortsOnBack = false
+                                    BibleState.returnToPlansOnBack = false
+                                    BibleState.activePlanReading = null
+                                    val safeChapter = chapter.coerceAtLeast(1)
+                                    BibleState.restoreReadingLocation(targetBook, safeChapter)
+                                    if (verseStart >= 1) {
+                                        BibleState.focusScriptureVerse(
+                                            bookId = targetBook.bookId,
+                                            chapter = safeChapter,
+                                            verseStart = verseStart,
+                                            verseEnd = verseEnd.coerceAtLeast(verseStart),
+                                        )
+                                    } else {
+                                        BibleState.clearHighlightedVerse()
+                                        BibleState.clearPendingTargetVerse()
+                                    }
+                                },
+                                onOpenPlan = { planId ->
+                                    scope.launch {
+                                        ReadingPlanRepository.selectActivePlan(planId)
+                                    }
+                                    BibleState.isInlineSearchFocused = false
+                                    focusManager.clearFocus()
+                                    BibleState.openReadingPlans()
+                                },
+                            )
+                        }
+                    } else if (useSplitTestaments) {
                         item(
                             span = { GridItemSpan(maxLineSpan) },
                             key = "tablet_split_testaments_grid",
@@ -1347,6 +1386,7 @@ private fun openShortScriptureChapter(shortItem: BiblicalShortDto) {
 }
 
 private fun openDailyVerseChapter(dailyVerse: DailyVerse) {
+    BibleState.setActiveDailyVerse(dailyVerse)
     val data = dailyVerse.data
     val targetUsfm = data.bookUsfm.orEmpty()
     val targetBook = BibleState.bibleBooks.data?.let { books ->

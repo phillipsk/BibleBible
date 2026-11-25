@@ -26,6 +26,7 @@ class PushRegistrationRepositoryTest {
 
     @AfterTest
     fun tearDown() {
+        PushRegistrationRepository.resetForTesting()
         CloudSessionManager.resetForTesting()
     }
 
@@ -116,5 +117,123 @@ class PushRegistrationRepositoryTest {
         )
         assertTrue(ok)
         assertEquals("/v1/notifications/unregister", capturedPath)
+    }
+
+    @Test
+    fun registerDeviceTokenDebouncesIdenticalCallsAndAllowsUpdates() = runTest {
+        CloudSessionManager.overrideGatewayUrlForTesting("https://gateway.example.test")
+        var fakeNow = 1_000_000L
+        PushRegistrationRepository.nowProvider = { fakeNow }
+        PushRegistrationRepository.dedupeWindowMs = 300_000L
+
+        var postCount = 0
+        val engine = MockEngine {
+            postCount += 1
+            respond(
+                content = """{"registered":true}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = createHttpClient(
+            AppHttpClientConfig(baseUrl = "gateway.example.test"),
+            engine = engine,
+            enableLogging = false,
+        )
+
+        // Repeated identical registrations within the dedupe window execute only once.
+        assertTrue(
+            PushRegistrationRepository.registerDeviceToken(
+                token = "ios_token_repeat_1234",
+                platform = "ios",
+                isDebugBuild = true,
+                timezone = "America/New_York",
+                reminderHour = 6,
+                reminderMinute = 0,
+                remindersEnabled = true,
+                versionId = "KJV",
+                deviceId = "ios-device-dedupe",
+                client = client,
+            )
+        )
+        assertTrue(
+            PushRegistrationRepository.registerDeviceToken(
+                token = "ios_token_repeat_1234",
+                platform = "ios",
+                isDebugBuild = true,
+                timezone = "America/New_York",
+                reminderHour = 6,
+                reminderMinute = 0,
+                remindersEnabled = true,
+                versionId = "KJV",
+                deviceId = "ios-device-dedupe",
+                client = client,
+            )
+        )
+        assertEquals(1, postCount)
+
+        // Changing reminder time bypasses dedupe immediately.
+        assertTrue(
+            PushRegistrationRepository.registerDeviceToken(
+                token = "ios_token_repeat_1234",
+                platform = "ios",
+                isDebugBuild = true,
+                timezone = "America/New_York",
+                reminderHour = 7,
+                reminderMinute = 30,
+                remindersEnabled = true,
+                versionId = "KJV",
+                deviceId = "ios-device-dedupe",
+                client = client,
+            )
+        )
+        assertEquals(2, postCount)
+
+        // Unregistering clears dedupe cache so re-enabling sends immediately.
+        assertTrue(
+            PushRegistrationRepository.unregisterDeviceToken(
+                token = "ios_token_repeat_1234",
+                platform = "ios",
+                deviceId = "ios-device-dedupe",
+                client = client,
+            )
+        )
+        assertTrue(
+            PushRegistrationRepository.registerDeviceToken(
+                token = "ios_token_repeat_1234",
+                platform = "ios",
+                isDebugBuild = true,
+                timezone = "America/New_York",
+                reminderHour = 7,
+                reminderMinute = 30,
+                remindersEnabled = true,
+                versionId = "KJV",
+                deviceId = "ios-device-dedupe",
+                client = client,
+            )
+        )
+        assertEquals(4, postCount)
+    }
+
+    @Test
+    fun notificationDeliveryPolicyPreventsLocalDailyDuplicateWhenRemoteTokenExists() {
+        assertTrue(
+            NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
+                remindersEnabled = true,
+                hasRemotePushToken = false,
+            )
+        )
+        assertFalse(
+            NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
+                remindersEnabled = true,
+                hasRemotePushToken = true,
+            )
+        )
+        assertFalse(
+            NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
+                remindersEnabled = false,
+                hasRemotePushToken = false,
+            )
+        )
     }
 }

@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import data.notifications.AndroidPushTokenStore
 import data.notifications.parseVotdNotificationPayload
 import java.util.Calendar
 import org.junit.runner.RunWith
@@ -276,6 +277,25 @@ class VotdNotificationReceiverTest {
         )
         Thread.sleep(100)
         assertTrue(Shadows.shadowOf(notificationManager).allNotifications.isEmpty())
+    }
+
+    @Test
+    fun storedRemoteFcmTokenCancelsLocalDaily6AmAlarmToAvoidDuplicates() {
+        val app = RuntimeEnvironment.getApplication()
+        VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val shadowAlarmManager = Shadows.shadowOf(alarmManager)
+
+        // Release flags, no token -> schedules local 6:00 AM fallback alarm
+        app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
+        val now = calendarMillis(2026, Calendar.NOVEMBER, 25, 5, 0, 0)
+        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
+        assertEquals(1, shadowAlarmManager.scheduledAlarms.size)
+
+        // Saving remote FCM token -> local 6:00 AM alarm is cancelled so only server push fires
+        AndroidPushTokenStore.saveToken(app, "remote-fcm-token-registered-123")
+        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
     }
 
     private fun calendarMillis(

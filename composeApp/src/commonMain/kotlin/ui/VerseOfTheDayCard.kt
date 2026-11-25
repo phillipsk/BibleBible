@@ -107,6 +107,10 @@ internal fun rememberDailyVerse(
         }
         try {
             val loaded = repository.get(version, refresh = refreshing)
+            if (refreshing) {
+                BibleState.clearHighlightedVerse()
+            }
+            BibleState.setActiveDailyVerse(loaded)
             holdMinimum()
             AnalyticsTracker.track(
                 name = "votd_loaded",

@@ -1,6 +1,7 @@
 package data.notifications
 
 import cancelIosDailyVotdNotifications
+import cancelIosLocalDailyVotdOnly
 import data.bible.BibleState
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.Platform
@@ -80,7 +81,7 @@ internal fun syncIosPushRegistration(isDebugOverride: Boolean? = null) {
         notifyIosTopicSync()
     }
     iosPushSyncScope.launch {
-        PushRegistrationRepository.registerDeviceToken(
+        val registered = PushRegistrationRepository.registerDeviceToken(
             token = token,
             platform = "ios",
             isDebugBuild = isDebug,
@@ -90,6 +91,11 @@ internal fun syncIosPushRegistration(isDebugOverride: Boolean? = null) {
             remindersEnabled = enabled,
             versionId = versionId,
         )
+        if (registered && enabled) {
+            dispatch_async(dispatch_get_main_queue()) {
+                cancelIosLocalDailyVotdOnly()
+            }
+        }
     }
 }
 
@@ -154,7 +160,8 @@ private class IosNotificationBridge : NotificationPlatformBridge {
     override fun rescheduleIfEnabled() {
         if (remindersAvailable() && isUserEnabled()) {
             val (h, m) = getReminderTime()
-            scheduleIosDailyVotdNotifications(h, m)
+            val hasRemoteToken = IosPushTokenStore.getToken() != null
+            scheduleIosDailyVotdNotifications(h, m, hasRemotePushToken = hasRemoteToken)
             syncIosPushRegistration()
         }
     }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -64,7 +65,7 @@ internal object AnalyticsTracker {
     private val platformName: String = getPlatformName()
     private val sessionIdValue: String =
         "$platformName-${Clock.System.now().toEpochMilliseconds()}-${Random.nextInt(1000, 9999)}"
-    private var cachedDeviceId: String? = null
+    private val persistentDeviceId: String by lazy { loadOrGenerateDeviceId() }
 
     private val mutex = Mutex()
     private val eventChannel = Channel<AnalyticsEventDto>(capacity = 512)
@@ -73,38 +74,7 @@ internal object AnalyticsTracker {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     internal var remoteDispatchEnabled: Boolean = true
-    private var workerStarted: Boolean = false
-
-    val sessionId: String get() = sessionIdValue
-    val deviceId: String get() = resolveDeviceId()
-
-    private fun generateDeviceId(): String {
-        val partA = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
-        val partB = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
-        return "${platformName.lowercase()}-$partA$partB"
-    }
-
-    private fun resolveDeviceId(): String {
-        cachedDeviceId?.let { return it }
-        val persisted = runCatching {
-            val backing = platformShortsPrefsBacking()
-            val existing = backing.getString(KEY_DEVICE_ID)?.trim()
-            if (!existing.isNullOrEmpty()) {
-                existing
-            } else {
-                generateDeviceId().also { generated ->
-                    backing.putString(KEY_DEVICE_ID, generated)
-                }
-            }
-        }.getOrNull()
-        val resolved = persisted ?: generateDeviceId()
-        cachedDeviceId = resolved
-        return resolved
-    }
-
-    private fun ensureWorkerStarted() {
-        if (workerStarted || !remoteDispatchEnabled) return
-        workerStarted = true
+    private val workerJob: Job by lazy {
         scope.launch {
             while (true) {
                 val first = eventChannel.receive()
@@ -123,6 +93,37 @@ internal object AnalyticsTracker {
                 }
             }
         }
+    }
+
+    val sessionId: String get() = sessionIdValue
+    val deviceId: String get() = persistentDeviceId
+
+    private fun generateDeviceId(): String {
+        val partA = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
+        val partB = Random.nextInt(0x100000, 0xFFFFFF).toString(16)
+        return "${platformName.lowercase()}-$partA$partB"
+    }
+
+    private fun loadOrGenerateDeviceId(): String {
+        val persisted = runCatching {
+            val backing = platformShortsPrefsBacking()
+            val existing = backing.getString(KEY_DEVICE_ID)?.trim()
+            if (!existing.isNullOrEmpty()) {
+                existing
+            } else {
+                generateDeviceId().also { generated ->
+                    backing.putString(KEY_DEVICE_ID, generated)
+                }
+            }
+        }.getOrNull()
+        return persisted ?: generateDeviceId()
+    }
+
+    private fun resolveDeviceId(): String = persistentDeviceId
+
+    private fun ensureWorkerStarted() {
+        if (!remoteDispatchEnabled) return
+        workerJob
     }
 
     private fun recordIntoBuffersLocked(events: List<AnalyticsEventDto>) {
@@ -204,18 +205,97 @@ internal object AnalyticsTracker {
         )
     }
 
-    fun trackShortViewed(shortItem: BiblicalShortDto, advanceSource: String = "manual") {
+    fun trackShortViewed(
+        shortItem: BiblicalShortDto,
+        advanceSource: String = "manual",
+        viewCount: Long = 1L,
+        isRepeat: Boolean = false,
+        isManualRevisit: Boolean = false,
+        unseenRemaining: Int? = null,
+    ) {
+        val props = buildMap {
+            put("shortId", shortItem.id)
+            put("order", shortItem.order.toString())
+            put("title", shortItem.title)
+            put("category", shortItem.category)
+            put("bookUsfm", shortItem.bookUsfm)
+            put("chapter", shortItem.chapter.toString())
+            put("advanceSource", advanceSource)
+            put("viewCount", viewCount.toString())
+            put("isRepeat", isRepeat.toString())
+            put("isManualRevisit", isManualRevisit.toString())
+            if (unseenRemaining != null) {
+                put("unseenRemaining", unseenRemaining.toString())
+            }
+        }
         track(
             name = "short_viewed",
             category = "biblical_shorts",
+            properties = props,
+        )
+    }
+
+    fun trackShortReplayed(
+        shortItem: BiblicalShortDto,
+        loopsInSession: Int,
+        lifetimeReplays: Long,
+        lifetimeViews: Long,
+    ) {
+        track(
+            name = "short_replayed",
+            category = "biblical_shorts",
             properties = mapOf(
                 "shortId" to shortItem.id,
-                "order" to shortItem.order.toString(),
+                "loopsInSession" to loopsInSession.toString(),
+                "lifetimeReplays" to lifetimeReplays.toString(),
+                "lifetimeViews" to lifetimeViews.toString(),
+            ),
+        )
+    }
+
+    fun trackShortPaused(
+        shortItem: BiblicalShortDto,
+        elapsedSeconds: Int,
+        pauseCountInSession: Int,
+        lifetimePauses: Long,
+    ) {
+        track(
+            name = "short_paused",
+            category = "biblical_shorts",
+            properties = mapOf(
+                "shortId" to shortItem.id,
+                "elapsedSeconds" to elapsedSeconds.coerceAtLeast(0).toString(),
+                "pauseCountInSession" to pauseCountInSession.toString(),
+                "lifetimePauses" to lifetimePauses.toString(),
+            ),
+        )
+    }
+
+    fun trackShortWatchSummary(
+        shortItem: BiblicalShortDto,
+        watchTimeMs: Long,
+        completedLoops: Int,
+        pauseCountInSession: Int,
+        wasManualRevisit: Boolean,
+        lifetimeViews: Long,
+        lifetimeWatchTimeMs: Long,
+        exitReason: String,
+    ) {
+        val cleanWatchMs = watchTimeMs.coerceIn(0L, 3_600_000L)
+        track(
+            name = "short_watch_summary",
+            category = "biblical_shorts",
+            properties = mapOf(
+                "shortId" to shortItem.id,
                 "title" to shortItem.title,
-                "category" to shortItem.category,
-                "bookUsfm" to shortItem.bookUsfm,
-                "chapter" to shortItem.chapter.toString(),
-                "advanceSource" to advanceSource,
+                "watchTimeMs" to cleanWatchMs.toString(),
+                "watchSeconds" to (cleanWatchMs / 1000L).toString(),
+                "completedLoops" to completedLoops.toString(),
+                "pauseCountInSession" to pauseCountInSession.toString(),
+                "wasManualRevisit" to wasManualRevisit.toString(),
+                "lifetimeViews" to lifetimeViews.toString(),
+                "lifetimeWatchTimeMs" to lifetimeWatchTimeMs.toString(),
+                "exitReason" to exitReason,
             ),
         )
     }

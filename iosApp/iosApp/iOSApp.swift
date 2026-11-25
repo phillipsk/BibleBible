@@ -24,7 +24,9 @@ final class NotificationAppDelegate: NSObject, UIApplicationDelegate, UNUserNoti
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
         application.registerForRemoteNotifications()
-        fetchAndSyncFcmToken()
+        if Messaging.messaging().apnsToken != nil {
+            fetchAndSyncFcmToken()
+        }
         FoundationModelsBridge.register()
 
         topicObserver = NotificationCenter.default.addObserver(

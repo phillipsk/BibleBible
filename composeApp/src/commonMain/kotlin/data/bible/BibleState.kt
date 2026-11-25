@@ -20,6 +20,7 @@ import data.notifications.ScriptureDeepLink
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
 import data.plans.ActivePlanReadingContext
+import data.shorts.platformShortsPrefsBacking
 import email.kevinphillips.biblebible.BuildKonfig
 import email.kevinphillips.biblebible.db.SelectReadingHistory
 import email.kevinphillips.biblebible.isDesktopPlatform
@@ -78,6 +79,8 @@ internal object BibleState {
     var showHomePage by mutableStateOf(true)
     var showBiblicalShorts by mutableStateOf(false)
     var isSearchActive by mutableStateOf(false)
+    var inlineSearchQuery by mutableStateOf("")
+    var isInlineSearchFocused by mutableStateOf(false)
     var showReadingPlans by mutableStateOf(false)
     var selectedShortsCategory by mutableStateOf("All")
     var autoDemoTourEnabled by mutableStateOf(false)
@@ -103,6 +106,139 @@ internal object BibleState {
         private set
     var highlightedVerseEnd by mutableStateOf<Int?>(null)
         private set
+
+    internal data class DailyVerseHighlight(
+        val bookId: String,
+        val bookNumber: Int,
+        val chapter: Int,
+        val verseStart: Int,
+        val verseEnd: Int = verseStart,
+        val date: String = "",
+        val version: String = "",
+    )
+
+    var activeDailyVerseHighlight by mutableStateOf<DailyVerseHighlight?>(null)
+        private set
+
+    private const val KEY_ACTIVE_VOTD_BOOK_ID = "active_votd_book_id"
+    private const val KEY_ACTIVE_VOTD_BOOK_NUM = "active_votd_book_num"
+    private const val KEY_ACTIVE_VOTD_CHAPTER = "active_votd_chapter"
+    private const val KEY_ACTIVE_VOTD_VERSE_START = "active_votd_verse_start"
+    private const val KEY_ACTIVE_VOTD_VERSE_END = "active_votd_verse_end"
+    private const val KEY_ACTIVE_VOTD_DATE = "active_votd_date"
+    private const val KEY_ACTIVE_VOTD_VERSION = "active_votd_version"
+
+    fun setActiveDailyVerse(dailyVerse: DailyVerse) {
+        val data = dailyVerse.data
+        val resolvedUsfm = data.bookUsfm?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+            ?: usfmForBookNumber(data.bookNumber)
+            ?: return
+        setActiveDailyVerse(
+            bookId = resolvedUsfm,
+            bookNumber = data.bookNumber,
+            chapter = data.chapter,
+            verseStart = data.verse,
+            verseEnd = data.verse,
+            date = dailyVerse.date,
+            version = dailyVerse.version,
+        )
+    }
+
+    fun setActiveDailyVerse(
+        bookId: String,
+        bookNumber: Int? = null,
+        chapter: Int,
+        verseStart: Int,
+        verseEnd: Int = verseStart,
+        date: String = "",
+        version: String = "",
+    ) {
+        val cleanBookId = bookId.trim().uppercase()
+        if (cleanBookId.isBlank() || chapter < 1 || verseStart < 1) return
+        val resolvedBookNumber = bookNumber ?: bookNumberForUsfm(cleanBookId) ?: 1
+        val safeChapter = chapter.coerceAtLeast(1)
+        val safeStart = verseStart.coerceAtLeast(1)
+        val safeEnd = verseEnd.coerceAtLeast(safeStart)
+        val cleanDate = date.trim()
+        val cleanVersion = version.trim().uppercase()
+        activeDailyVerseHighlight = DailyVerseHighlight(
+            bookId = cleanBookId,
+            bookNumber = resolvedBookNumber,
+            chapter = safeChapter,
+            verseStart = safeStart,
+            verseEnd = safeEnd,
+            date = cleanDate,
+            version = cleanVersion,
+        )
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            prefs.putString(KEY_ACTIVE_VOTD_BOOK_ID, cleanBookId)
+            prefs.putInt(KEY_ACTIVE_VOTD_BOOK_NUM, resolvedBookNumber)
+            prefs.putInt(KEY_ACTIVE_VOTD_CHAPTER, safeChapter)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_START, safeStart)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_END, safeEnd)
+            prefs.putString(KEY_ACTIVE_VOTD_DATE, cleanDate)
+            prefs.putString(KEY_ACTIVE_VOTD_VERSION, cleanVersion)
+        }
+    }
+
+    fun restorePersistedDailyVerseHighlight() {
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            val savedBookId = prefs.getString(KEY_ACTIVE_VOTD_BOOK_ID)?.trim()?.uppercase().orEmpty()
+            val savedBookNum = prefs.getInt(KEY_ACTIVE_VOTD_BOOK_NUM, 0)
+            val savedChapter = prefs.getInt(KEY_ACTIVE_VOTD_CHAPTER, 0)
+            val savedStart = prefs.getInt(KEY_ACTIVE_VOTD_VERSE_START, 0)
+            val savedEnd = prefs.getInt(KEY_ACTIVE_VOTD_VERSE_END, savedStart).coerceAtLeast(savedStart)
+            val savedDate = prefs.getString(KEY_ACTIVE_VOTD_DATE).orEmpty()
+            val savedVersion = prefs.getString(KEY_ACTIVE_VOTD_VERSION).orEmpty()
+            if (savedBookId.isNotBlank() && savedChapter >= 1 && savedStart >= 1) {
+                activeDailyVerseHighlight = DailyVerseHighlight(
+                    bookId = savedBookId,
+                    bookNumber = savedBookNum.takeIf { it in 1..66 } ?: bookNumberForUsfm(savedBookId) ?: 1,
+                    chapter = savedChapter,
+                    verseStart = savedStart,
+                    verseEnd = savedEnd,
+                    date = savedDate,
+                    version = savedVersion,
+                )
+            }
+        }
+    }
+
+    fun clearActiveDailyVerseHighlight() {
+        activeDailyVerseHighlight = null
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            prefs.putString(KEY_ACTIVE_VOTD_BOOK_ID, "")
+            prefs.putInt(KEY_ACTIVE_VOTD_BOOK_NUM, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_CHAPTER, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_START, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_END, 0)
+            prefs.putString(KEY_ACTIVE_VOTD_DATE, "")
+            prefs.putString(KEY_ACTIVE_VOTD_VERSION, "")
+        }
+    }
+
+    fun effectiveHighlightRangeForChapter(bookId: String, chapter: Int): IntRange? {
+        if (bookId.isBlank() || chapter < 1) return null
+        val explicitStart = highlightedVerseStart
+        if (highlightedVerseBookId.equals(bookId, ignoreCase = true) &&
+            highlightedVerseChapter == chapter &&
+            explicitStart != null &&
+            explicitStart >= 1
+        ) {
+            return explicitStart..(highlightedVerseEnd ?: explicitStart).coerceAtLeast(explicitStart)
+        }
+        val daily = activeDailyVerseHighlight
+        if (daily != null &&
+            daily.bookId.equals(bookId, ignoreCase = true) &&
+            daily.chapter == chapter
+        ) {
+            return daily.verseStart..daily.verseEnd.coerceAtLeast(daily.verseStart)
+        }
+        return null
+    }
 
     fun enqueueDeepLink(link: ScriptureDeepLink) {
         pendingDeepLink = link
@@ -149,6 +285,9 @@ internal object BibleState {
 
         when (link.destination) {
             PushDestinationKind.BIBLICAL_WORDS -> {
+                isSearchActive = false
+                showReadingPlans = false
+                activePlanReading = null
                 showHomePage = true
                 openBiblicalShorts(link.shortsCategory ?: "All")
                 AnalyticsTracker.track(
@@ -162,6 +301,9 @@ internal object BibleState {
                 return true
             }
             PushDestinationKind.HOME -> {
+                isSearchActive = false
+                showReadingPlans = false
+                activePlanReading = null
                 returnToShortsOnBack = false
                 closeBiblicalShorts()
                 showHomePage = true
@@ -230,14 +372,31 @@ internal object BibleState {
                 },
         )
 
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showReadingPlans = false
+        activePlanReading = null
         returnToShortsOnBack = false
         closeBiblicalShorts()
         restoreReadingLocation(matchedBook, targetRef.chapter.coerceAtLeast(1))
+        val targetChapter = targetRef.chapter.coerceAtLeast(1)
+        val targetVerse = targetRef.verse.coerceAtLeast(1)
+        if (link.isDailyVerse || link.fetchDailyIfMissing) {
+            setActiveDailyVerse(
+                bookId = matchedBook.bookId,
+                bookNumber = resolvedNumber,
+                chapter = targetChapter,
+                verseStart = targetVerse,
+                verseEnd = targetVerse,
+                version = targetRef.version ?: selectedVersion,
+            )
+        }
         focusScriptureVerse(
             bookId = matchedBook.bookId,
-            chapter = targetRef.chapter.coerceAtLeast(1),
-            verseStart = targetRef.verse.coerceAtLeast(1),
-            verseEnd = targetRef.verse.coerceAtLeast(1),
+            chapter = targetChapter,
+            verseStart = targetVerse,
+            verseEnd = targetVerse,
         )
         AnalyticsTracker.trackBookSelected(
             bookId = matchedBook.bookId,
@@ -495,17 +654,22 @@ internal object BibleState {
     }
 
     fun openSpotlightSearch() {
-        isSearchActive = true
+        isSearchActive = false
+        isInlineSearchFocused = true
         showReadingPlans = false
         AnalyticsTracker.track("spotlight_search_opened", "search")
     }
 
     fun closeSpotlightSearch() {
         isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
     }
 
     fun openReadingPlans() {
         isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
         showBiblicalShorts = false
         showReadingPlans = true
         AnalyticsTracker.track("reading_plans_opened", "reading_plans")
@@ -529,6 +693,8 @@ internal object BibleState {
             minChapters = ref.chapter,
         )
         isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
         showReadingPlans = false
         showBiblicalShorts = false
         returnToShortsOnBack = false
@@ -569,6 +735,8 @@ internal object BibleState {
         activePlanReading = null
         activeReaderScrollProgress = 0f
         isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
         showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()
@@ -586,6 +754,8 @@ internal object BibleState {
         activePlanReading = null
         activeReaderScrollProgress = 0f
         isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
         showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()

@@ -33,6 +33,8 @@ import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -141,6 +143,9 @@ internal data class CloudTokenResponseDto(
 internal object CloudSessionManager {
     private var gatewayUrlOverride: String? = null
     internal var customAttesterForTesting: (suspend (String) -> ClientAttestationDto?)? = null
+    private val startupConfigMutex = Mutex()
+    private var startupConfigCache: CloudRuntimeConfigDto? = null
+    private var startupConfigFetched: Boolean = false
 
     val configuredGatewayUrl: String
         get() = (gatewayUrlOverride ?: ProtectedEndpoints.gatewayUrl()).trim().trimEnd('/')
@@ -268,6 +273,8 @@ internal object CloudSessionManager {
     internal fun resetForTesting() {
         gatewayUrlOverride = null
         customAttesterForTesting = null
+        startupConfigCache = null
+        startupConfigFetched = false
         sessionToken = ""
         attestationRequired = false
         aiSummariesEnabled = email.kevinphillips.biblebible.BuildKonfig.AI_SUMMARIES_ENABLED
@@ -288,11 +295,14 @@ internal object CloudSessionManager {
 
     suspend fun initializeStartupConfig(
         client: HttpClient = httpClientCloudGateway,
-    ): CloudRuntimeConfigDto? {
-        val baseUrl = configuredGatewayUrl.takeIf { parseSecureGatewayUrl(it) != null } ?: return null
+    ): CloudRuntimeConfigDto? = startupConfigMutex.withLock {
+        if (startupConfigFetched && startupConfigCache != null && client === httpClientCloudGateway) {
+            return@withLock startupConfigCache
+        }
+        val baseUrl = configuredGatewayUrl.takeIf { parseSecureGatewayUrl(it) != null } ?: return@withLock null
         val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
         val endpoint = "$prefix${ProtectedEndpoints.configPath()}"
-        return try {
+        return@withLock try {
             val response = withContext(Dispatchers.IO) {
                 client.get {
                     expectSuccess = false
@@ -307,10 +317,12 @@ internal object CloudSessionManager {
                     "lifecycle",
                     mapOf("httpStatus" to response.status.value.toString()),
                 )
-                return null
+                return@withLock null
             }
             val config = response.body<CloudRuntimeConfigDto>()
             applyRuntimeConfig(config)
+            startupConfigCache = config
+            startupConfigFetched = true
             if (config.attestationRequired && sessionToken.isBlank()) {
                 refreshSessionToken(client)
             }

@@ -11,6 +11,8 @@ import android.content.pm.ApplicationInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import data.config.CloudSessionManager
+import data.notifications.AndroidPushTokenStore
+import data.notifications.NotificationDeliveryPolicy
 import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import java.net.HttpURLConnection
 import java.net.URL
@@ -406,18 +408,27 @@ class VotdNotificationReceiver : BroadcastReceiver() {
             }
             ensureChannel(context)
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+            val hasRemotePush = AndroidPushTokenStore.getToken(context.applicationContext) != null
+            val scheduleLocalDaily = NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
+                remindersEnabled = true,
+                hasRemotePushToken = hasRemotePush,
+            )
 
-            val dailyTriggerAt = nextTriggerTimeMillis(
-                hour = getReminderHour(context),
-                minute = getReminderMinute(context),
-                nowMillis = nowMillis,
-                minLeadMillis = dailyMinLeadMillis,
-            )
-            scheduleIdleAllowedAlarm(
-                alarmManager = alarmManager,
-                triggerAtMillis = dailyTriggerAt,
-                pendingIntent = buildAlarmPendingIntent(context, ACTION_DAILY_VOTD, DAILY_ALARM_REQUEST_CODE),
-            )
+            if (scheduleLocalDaily) {
+                val dailyTriggerAt = nextTriggerTimeMillis(
+                    hour = getReminderHour(context),
+                    minute = getReminderMinute(context),
+                    nowMillis = nowMillis,
+                    minLeadMillis = dailyMinLeadMillis,
+                )
+                scheduleIdleAllowedAlarm(
+                    alarmManager = alarmManager,
+                    triggerAtMillis = dailyTriggerAt,
+                    pendingIntent = buildAlarmPendingIntent(context, ACTION_DAILY_VOTD, DAILY_ALARM_REQUEST_CODE),
+                )
+            } else {
+                cancelDailyVotdOnly(context)
+            }
 
             if (isDebugBuild(context)) {
                 val debugTriggerAt = nextTriggerTimeMillis(
@@ -437,6 +448,22 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 )
             } else {
                 cancelDebugEveningVotd(context)
+            }
+        }
+
+        fun cancelDailyVotdOnly(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+            val existing = PendingIntent.getBroadcast(
+                context,
+                DAILY_ALARM_REQUEST_CODE,
+                Intent(context, VotdNotificationReceiver::class.java).apply {
+                    action = ACTION_DAILY_VOTD
+                },
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            )
+            if (existing != null) {
+                alarmManager?.cancel(existing)
+                existing.cancel()
             }
         }
 

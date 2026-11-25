@@ -13,17 +13,23 @@ import data.appPrefs.getUserPreferences
 import data.bible.BibleState
 import data.bible.checkDatabaseSize
 import data.bible.cleanReadingHistory
+import data.bible.dailyVerseRepository
 import data.bible.loadBibleBooks
 import data.bible.loadBibleVersions
 import data.config.CloudSessionManager
 import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.SetSystemBarColor
+import email.kevinphillips.biblebible.cache.DriverFactory
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import ui.BibleBibleTheme
 import ui.BibleHomeScreen
 import ui.LoadingScreen
@@ -35,20 +41,37 @@ fun App(modifier: Modifier = Modifier) {
     BibleBibleTheme {
         ObserveReadingSessionLifecycle()
 
-        initializeNapier()
+        remember {
+            initializeNapier()
+            true
+        }
         val isLoading = remember { mutableStateOf(true) }
 
         SetSystemBarColor(MaterialTheme.colors.background)
 
-        LaunchedEffect(true) {
+        LaunchedEffect(Unit) {
             AnalyticsTracker.track("app_launch", "lifecycle")
+            BibleState.restorePersistedDailyVerseHighlight()
+            // Warm up the singleton SQLite driver once on IO before concurrent startup tasks access it.
+            withContext(Dispatchers.IO) {
+                runCatching { DriverFactory.createDriver() }
+            }
             launch {
-                async { checkDatabaseSize() }
-                async { cleanReadingHistory() }
-                async { ReadingPlanRepository.loadLocalState() }
-                async {
-                    CloudSessionManager.initializeStartupConfig()
-                    ReadingPlanRepository.refreshRemoteCatalog()
+                supervisorScope {
+                    async { runCatching { checkDatabaseSize() } }
+                    async { runCatching { cleanReadingHistory() } }
+                    async { ReadingPlanRepository.loadLocalState() }
+                    async {
+                        CloudSessionManager.initializeStartupConfig()
+                        ReadingPlanRepository.refreshRemoteCatalog()
+                        if (CloudSessionManager.verseOfTheDayEnabled) {
+                            runCatching {
+                                dailyVerseRepository.get(BibleState.selectedVersion)
+                            }.getOrNull()?.let { dailyVerse ->
+                                BibleState.setActiveDailyVerse(dailyVerse)
+                            }
+                        }
+                    }
                 }
             }
             val versionsJob = async { loadBibleVersions() }
