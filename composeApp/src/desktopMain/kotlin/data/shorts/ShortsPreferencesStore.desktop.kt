@@ -1,28 +1,74 @@
 package data.shorts
 
-import java.util.prefs.Preferences
+import email.kevinphillips.biblebible.cache.desktopAppDataDir
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.util.Properties
 
 private class DesktopShortsPrefsBacking : ShortsPrefsBacking {
-    private val prefs: Preferences by lazy {
-        Preferences.userNodeForPackage(DesktopShortsPrefsBacking::class.java)
+    private val prefsFile: Path by lazy {
+        desktopAppDataDir().toAbsolutePath().resolve("preferences.properties")
     }
 
-    override fun getString(key: String): String? = prefs.get(key, null)
+    private val properties: Properties by lazy {
+        Properties().apply {
+            runCatching {
+                if (Files.isRegularFile(prefsFile)) {
+                    Files.newInputStream(prefsFile).use { load(it) }
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    private fun persist() {
+        runCatching {
+            val parent = prefsFile.parent
+            if (parent != null) {
+                Files.createDirectories(parent)
+            }
+            val tmpFile = parent?.resolve("preferences.properties.tmp")
+            if (tmpFile != null) {
+                Files.newOutputStream(tmpFile).use { properties.store(it, null) }
+                runCatching {
+                    Files.move(tmpFile, prefsFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+                }.getOrElse {
+                    Files.move(tmpFile, prefsFile, StandardCopyOption.REPLACE_EXISTING)
+                }
+            } else {
+                Files.newOutputStream(prefsFile).use { properties.store(it, null) }
+            }
+        }
+    }
+
+    @Synchronized
+    override fun getString(key: String): String? = properties.getProperty(key)
+
+    @Synchronized
     override fun putString(key: String, value: String) {
-        prefs.put(key, value)
-        runCatching { prefs.flush() }
+        properties.setProperty(key, value)
+        persist()
     }
 
-    override fun getInt(key: String, defaultValue: Int): Int = prefs.getInt(key, defaultValue)
+    @Synchronized
+    override fun getInt(key: String, defaultValue: Int): Int =
+        properties.getProperty(key)?.toIntOrNull() ?: defaultValue
+
+    @Synchronized
     override fun putInt(key: String, value: Int) {
-        prefs.putInt(key, value)
-        runCatching { prefs.flush() }
+        properties.setProperty(key, value.toString())
+        persist()
     }
 
-    override fun getLong(key: String, defaultValue: Long): Long = prefs.getLong(key, defaultValue)
+    @Synchronized
+    override fun getLong(key: String, defaultValue: Long): Long =
+        properties.getProperty(key)?.toLongOrNull() ?: defaultValue
+
+    @Synchronized
     override fun putLong(key: String, value: Long) {
-        prefs.putLong(key, value)
-        runCatching { prefs.flush() }
+        properties.setProperty(key, value.toString())
+        persist()
     }
 }
 
