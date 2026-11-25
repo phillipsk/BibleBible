@@ -30,19 +30,37 @@ internal object SearchRepository {
         if (clean.isEmpty()) {
             return SearchResultUiState(query = "", aiSource = "none")
         }
-        val directRef = BundledTopicIndex.parseDirectReference(clean)
+        val parsedRef = BundledTopicIndex.parseDirectReference(clean)
+        val directRef = parsedRef?.let { ref ->
+            val excerpt = ref.excerpt.ifBlank {
+                BundledTopicIndex.lookupBundledExcerpt(ref.bookId, ref.chapter, ref.verseStart).orEmpty()
+            }
+            ref.copy(excerpt = excerpt)
+        }
         val books = BundledTopicIndex.matchBooks(clean, availableBooks)
-        val (topics, cards) = BundledTopicIndex.searchLocalTopics(
+        val (topics, topicCards) = BundledTopicIndex.searchLocalTopics(
             query = clean,
             includeMasonry = includeMasonry,
         )
+        val fallbackBookCards = if (
+            includeMasonry &&
+            topicCards.isEmpty() &&
+            (directRef != null || books.isNotEmpty())
+        ) {
+            BundledTopicIndex.relatedCardsForBook(
+                bookId = directRef?.bookId ?: books.first().bookId,
+                limit = 4,
+            )
+        } else {
+            emptyList()
+        }
         return SearchResultUiState(
             query = clean,
             aiSource = "deterministic",
             mappedTopics = topics,
             directReference = directRef,
             books = books,
-            masonryCards = cards,
+            masonryCards = topicCards.ifEmpty { fallbackBookCards },
         )
     }
 

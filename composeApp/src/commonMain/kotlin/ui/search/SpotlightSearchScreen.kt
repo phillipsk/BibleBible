@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -55,10 +57,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,6 +69,7 @@ import data.bible.BibleState
 import data.bible.BookData
 import data.config.CloudSessionManager
 import data.plans.ReadingPlanRepository
+import data.search.BundledTopicIndex
 import data.search.SearchBookHitDto
 import data.search.SearchDirectReferenceDto
 import data.search.SearchFilterTab
@@ -95,12 +98,12 @@ internal fun ElasticSearchTriggerBar(
         onClick = onActivateSearch,
         shape = RoundedCornerShape(18.dp),
         color = DeepNavy,
-        border = BorderStroke(1.3.dp, Color(0x73FBD38D)),
-        elevation = 3.dp,
+        border = BorderStroke(1.5.dp, Color(0x88FBD38D)),
+        elevation = 4.dp,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 58.dp)
             .padding(horizontal = 4.dp, vertical = 4.dp)
+            .heightIn(min = 60.dp)
             .testTag("elastic_search_trigger"),
     ) {
         Row(
@@ -108,35 +111,23 @@ internal fun ElasticSearchTriggerBar(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 15.dp),
+                .padding(horizontal = 18.dp, vertical = 16.dp),
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Search Bible",
                 tint = GoldAccent,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(22.dp),
             )
             Text(
-                text = "Search books, topics, or how you feel...",
-                color = Color(0xFFDCE6F2),
-                fontSize = 15.sp,
+                text = "Search books, verses, topics, or how you feel...",
+                color = Color(0xFFE2E8F0),
+                fontSize = 15.5.sp,
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = Color(0x28FBD38D),
-                elevation = 0.dp,
-            ) {
-                Text(
-                    text = "Search",
-                    color = GoldAccent,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
         }
     }
 }
@@ -266,27 +257,27 @@ internal fun SpotlightSearchScreen(
                 elevation = 0.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp),
+                    .heightIn(min = 60.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         tint = GoldAccent,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                     Box(modifier = Modifier.weight(1f)) {
                         if (query.isEmpty()) {
                             Text(
                                 text = "Book, verse (John 3:16), topic, or mood...",
                                 color = Color(0xFF94A3B8),
-                                fontSize = 15.5.sp,
+                                fontSize = 16.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -297,7 +288,7 @@ internal fun SpotlightSearchScreen(
                             singleLine = true,
                             textStyle = TextStyle(
                                 color = Color.White,
-                                fontSize = 15.5.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
                             ),
                             cursorBrush = SolidColor(GoldAccent),
@@ -365,21 +356,65 @@ internal fun SpotlightSearchScreen(
             )
         }
 
-        // Scrollable Results Area
+        val showPinnedStrip = activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.BOOKS
+        val availableBookHits = remember(BibleState.uiBooks.data) {
+            BundledTopicIndex.allBookHits(BibleState.uiBooks.data.orEmpty())
+        }
+        val stripBooks = if (query.trim().isEmpty()) {
+            availableBookHits
+        } else {
+            searchState.books
+        }
+        if (showPinnedStrip && stripBooks.isNotEmpty()) {
+            PinnedHorizontalBookStrip(
+                books = stripBooks,
+                isFiltered = query.trim().isNotEmpty(),
+                onSelectBook = onSelectBook,
+            )
+        }
+
+        // Scrollable 2-Column Staggered Masonry Wall Area
         Column(
             verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 20.dp + navBarBottom),
+                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 20.dp + navBarBottom),
         ) {
             if (query.trim().isEmpty()) {
                 SpotlightEmptySuggestions(
                     onPickQuery = { picked -> query = picked },
                 )
+                if (CloudSessionManager.searchMasonryTopicsEnabled) {
+                    val starterCards = remember { BundledTopicIndex.featuredStarterCards() }
+                    StaggeredMasonryWall(
+                        heading = "Explore by Topic or Mood",
+                        cards = starterCards,
+                        onCardClick = { card ->
+                            AnalyticsTracker.track(
+                                "search_masonry_card_clicked",
+                                "search",
+                                mapOf("id" to card.id, "ref" to card.reference),
+                            )
+                            if (card.size == "wide" && !card.planId.isNullOrBlank() && CloudSessionManager.readingPlansEnabled) {
+                                scope.launch { ReadingPlanRepository.selectActivePlan(card.planId) }
+                                onOpenPlan(card.planId)
+                            } else {
+                                onJumpToReference(
+                                    card.bookId,
+                                    card.bookNumber,
+                                    card.reference.substringBeforeLast(" ").ifBlank { card.bookId },
+                                    card.chapter,
+                                    card.verseStart,
+                                    card.verseEnd,
+                                    "search_masonry_starter",
+                                )
+                            }
+                        },
+                    )
+                }
             } else {
-                val showBooks = activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.BOOKS
                 val showVerses = activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.VERSES
                 val showTopics = (activeFilter == SearchFilterTab.ALL || activeFilter == SearchFilterTab.TOPICS || activeFilter == SearchFilterTab.VERSES) &&
                     CloudSessionManager.searchMasonryTopicsEnabled
@@ -415,13 +450,6 @@ internal fun SpotlightSearchScreen(
                     )
                 }
 
-                if (showBooks && searchState.books.isNotEmpty()) {
-                    SearchBooksSection(
-                        books = searchState.books,
-                        onSelectBook = onSelectBook,
-                    )
-                }
-
                 if (showTopics && searchState.masonryCards.isNotEmpty()) {
                     val filteredCards = when (activeFilter) {
                         SearchFilterTab.VERSES -> searchState.masonryCards.filter { it.kind == "verse" || it.reference.isNotBlank() }
@@ -429,6 +457,7 @@ internal fun SpotlightSearchScreen(
                     }
                     if (filteredCards.isNotEmpty()) {
                         StaggeredMasonryWall(
+                            heading = "Topics & Passages",
                             cards = filteredCards,
                             onCardClick = { card ->
                                 AnalyticsTracker.track(
@@ -456,7 +485,7 @@ internal fun SpotlightSearchScreen(
                 }
 
                 val hasAnyResults = (showVerses && searchState.directReference != null) ||
-                    (showBooks && searchState.books.isNotEmpty()) ||
+                    (showPinnedStrip && stripBooks.isNotEmpty()) ||
                     (showTopics && searchState.masonryCards.isNotEmpty())
 
                 if (!hasAnyResults && !searchState.isLoadingCloud) {
@@ -483,6 +512,82 @@ internal fun SpotlightSearchScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PinnedHorizontalBookStrip(
+    books: List<SearchBookHitDto>,
+    isFiltered: Boolean,
+    onSelectBook: (BookData) -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF17273A))
+            .padding(top = 10.dp, bottom = 12.dp)
+            .testTag("search_pinned_book_strip"),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp),
+        ) {
+            Text(
+                text = if (isFiltered) "Books Matching Query" else "Books of the Bible",
+                color = GoldAccent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "${books.size} ${if (books.size == 1) "book" else "books"}",
+                color = Color(0xFF94A3B8),
+                fontSize = 11.5.sp,
+            )
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(books, key = { it.bookId }) { hit ->
+                val rawColor = BibleState.getBibleBookColor(hit.bookNumber)
+                val solid = rawColor.compositeOver(Color(0xFF1A2838))
+                Surface(
+                    onClick = {
+                        val resolved = BibleState.resolveBookData(
+                            bookId = hit.bookId,
+                            bookNumber = hit.bookNumber,
+                            fallbackName = hit.bookName,
+                            minChapters = hit.chapters,
+                        )
+                        AnalyticsTracker.trackBookSelected(
+                            bookId = resolved.bookId,
+                            bookName = resolved.name ?: hit.bookName,
+                            source = "spotlight_search_strip",
+                        )
+                        onSelectBook(resolved)
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    color = solid,
+                    border = BorderStroke(1.dp, Color(0x40FFFFFF)),
+                    elevation = 2.dp,
+                    modifier = Modifier.testTag("search_book_tile_${hit.bookId}"),
+                ) {
+                    Text(
+                        text = hit.bookName,
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    )
                 }
             }
         }
@@ -606,9 +711,14 @@ private fun DirectReferenceJumpCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Open in ${BibleState.selectedVersion} and center on this passage",
-                    color = Color(0xFFDCE6F2),
-                    fontSize = 12.sp,
+                    text = ref.excerpt.ifBlank {
+                        "Open in ${BibleState.selectedVersion} and center on this passage"
+                    },
+                    color = Color(0xFFE2E8F0),
+                    fontSize = 12.5.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Icon(
@@ -622,78 +732,13 @@ private fun DirectReferenceJumpCard(
 }
 
 @Composable
-private fun SearchBooksSection(
-    books: List<SearchBookHitDto>,
-    onSelectBook: (BookData) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Books",
-            color = GoldAccent,
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.Bold,
-        )
-        books.chunked(3).forEach { rowBooks ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                for (slot in 0 until 3) {
-                    val hit = rowBooks.getOrNull(slot)
-                    if (hit != null) {
-                        val rawColor = BibleState.getBibleBookColor(hit.bookNumber)
-                        val solid = rawColor.compositeOver(Color(0xFF1A2838))
-                        Surface(
-                            onClick = {
-                                val resolved = BibleState.resolveBookData(
-                                    bookId = hit.bookId,
-                                    bookNumber = hit.bookNumber,
-                                    fallbackName = hit.bookName,
-                                    minChapters = hit.chapters,
-                                )
-                                AnalyticsTracker.trackBookSelected(
-                                    bookId = resolved.bookId,
-                                    bookName = resolved.name ?: hit.bookName,
-                                    source = "spotlight_search",
-                                )
-                                onSelectBook(resolved)
-                            },
-                            shape = RoundedCornerShape(14.dp),
-                            color = solid,
-                            border = BorderStroke(1.dp, Color(0x36FFFFFF)),
-                            elevation = 2.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("search_book_tile_${hit.bookId}"),
-                        ) {
-                            Text(
-                                text = hit.bookName,
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun StaggeredMasonryWall(
+    heading: String,
     cards: List<SearchMasonryCardDto>,
     onCardClick: (SearchMasonryCardDto) -> Unit,
 ) {
-    val heroCard = cards.firstOrNull { it.size == "hero" }
     val wideCard = cards.firstOrNull { it.size == "wide" }
-    val masonryPool = cards.filter { it !== heroCard && it !== wideCard }
+    val masonryPool = cards.filter { it !== wideCard }
     val leftColumn = masonryPool.filterIndexed { idx, _ -> idx % 2 == 0 }
     val rightColumn = masonryPool.filterIndexed { idx, _ -> idx % 2 == 1 }
 
@@ -702,20 +747,11 @@ private fun StaggeredMasonryWall(
         modifier = Modifier.fillMaxWidth().testTag("search_masonry_wall"),
     ) {
         Text(
-            text = "Topics & Passages",
+            text = heading,
             color = GoldAccent,
             fontSize = 12.5.sp,
             fontWeight = FontWeight.Bold,
         )
-
-        if (heroCard != null) {
-            MasonryTopicCard(
-                card = heroCard,
-                isTall = true,
-                onClick = { onCardClick(heroCard) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
 
         if (masonryPool.isNotEmpty()) {
             Row(
@@ -726,10 +762,10 @@ private fun StaggeredMasonryWall(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    leftColumn.forEach { card ->
+                    leftColumn.forEachIndexed { localIdx, card ->
                         MasonryTopicCard(
                             card = card,
-                            isTall = card.size == "tall",
+                            isTall = localIdx % 2 == 0,
                             onClick = { onCardClick(card) },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -739,10 +775,10 @@ private fun StaggeredMasonryWall(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    rightColumn.forEach { card ->
+                    rightColumn.forEachIndexed { localIdx, card ->
                         MasonryTopicCard(
                             card = card,
-                            isTall = card.size == "tall",
+                            isTall = localIdx % 2 == 1,
                             onClick = { onCardClick(card) },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -770,61 +806,69 @@ private fun MasonryTopicCard(
     modifier: Modifier = Modifier,
 ) {
     val baseColor = parseAccentColor(card.accentHex)
-    val solidColor = baseColor.copy(alpha = 0.92f).compositeOver(Color(0xFF152334))
+    val topColor = baseColor.copy(alpha = 0.96f).compositeOver(Color(0xFF1A293B))
+    val bottomColor = lerp(topColor, Color(0xFF0E1B2A), 0.34f)
     val brush = Brush.verticalGradient(
-        colors = listOf(solidColor, Color(0xFF132238)),
+        colors = listOf(topColor, bottomColor),
     )
 
     val minCardHeight = when {
-        card.size == "hero" -> 148.dp
-        isTall -> 136.dp
-        else -> 96.dp
+        card.size == "wide" -> 92.dp
+        isTall -> 168.dp
+        else -> 104.dp
     }
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(18.dp),
-        color = solidColor,
-        border = BorderStroke(1.dp, Color(0x4DFBD38D)),
+        color = topColor,
+        border = BorderStroke(
+            width = if (card.size == "wide") 1.2.dp else 1.dp,
+            color = if (card.size == "wide") GoldAccent else Color(0x52FBD38D),
+        ),
         elevation = 3.dp,
         modifier = modifier
             .heightIn(min = minCardHeight)
             .testTag("masonry_card_${card.id}"),
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
                 .background(brush)
-                .padding(horizontal = 14.dp, vertical = if (isTall) 14.dp else 12.dp),
+                .padding(horizontal = 14.dp, vertical = if (isTall) 15.dp else 12.dp),
         ) {
-            Text(
-                text = card.tag.uppercase(),
-                color = GoldAccent,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.6.sp,
-            )
-            Text(
-                text = card.title,
-                color = Color.White,
-                fontSize = if (card.size == "hero") 15.sp else 13.5.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            if (isTall || card.size == "hero" || card.size == "wide") {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    text = card.excerpt,
-                    color = Color(0xFFDCE6F2),
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    maxLines = if (card.size == "hero") 4 else 3,
+                    text = card.tag.uppercase(),
+                    color = GoldAccent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.6.sp,
+                )
+                Text(
+                    text = card.title,
+                    color = Color.White,
+                    fontSize = if (isTall) 14.5.sp else 13.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (isTall || card.size == "wide") {
+                    Text(
+                        text = card.excerpt,
+                        color = Color(0xFFE2E8F0),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        maxLines = if (isTall) 4 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             ) {
                 Text(
                     text = if (card.size == "wide" && !card.planId.isNullOrBlank()) "Open Plan" else card.reference,

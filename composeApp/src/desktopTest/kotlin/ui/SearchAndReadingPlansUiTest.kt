@@ -65,11 +65,14 @@ class SearchAndReadingPlansUiTest {
         runOnIdle { assertTrue(triggerTapped) }
 
         onNodeWithTag("spotlight_search_screen").assertIsDisplayed()
+        onNodeWithTag("search_pinned_book_strip").assertIsDisplayed()
         onNodeWithTag("spotlight_search_input").performTextInput("John 3:16")
         waitForIdle()
 
         onNodeWithTag("search_direct_ref_card").assertIsDisplayed()
+        onNodeWithTag("search_pinned_book_strip").assertIsDisplayed()
         onNodeWithTag("search_book_tile_JHN").assertIsDisplayed()
+        onNodeWithTag("search_masonry_wall").assertIsDisplayed()
         onNodeWithTag("search_direct_ref_card").performClick()
         runOnIdle { assertEquals("JHN 3:16", jumpedRef) }
 

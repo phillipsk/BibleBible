@@ -507,6 +507,92 @@ internal object BundledTopicIndex {
         }.take(12)
     }
 
+    fun allBookHits(availableBooks: List<BookData>): List<SearchBookHitDto> {
+        if (availableBooks.isNotEmpty()) {
+            return availableBooks.mapIndexed { idx, book ->
+                val name = (book.name ?: book.cleanedName ?: book.bookId).trim()
+                SearchBookHitDto(
+                    bookId = book.bookId,
+                    bookNumber = idx + 1,
+                    bookName = name,
+                    chapters = chapterMaxByUsfm[book.bookId.uppercase()] ?: 1,
+                )
+            }
+        }
+        return bibleBooksFull.mapIndexedNotNull { idx, name ->
+            val number = idx + 1
+            val usfm = usfmForBookNumber(number) ?: return@mapIndexedNotNull null
+            SearchBookHitDto(
+                bookId = usfm,
+                bookNumber = number,
+                bookName = name,
+                chapters = chapterMaxByUsfm[usfm] ?: 1,
+            )
+        }
+    }
+
+    fun lookupBundledExcerpt(bookId: String, chapter: Int, verseStart: Int): String? {
+        val usfm = bookId.trim().uppercase()
+        return curatedTopics.firstOrNull { entry ->
+            entry.bookId.equals(usfm, ignoreCase = true) &&
+                entry.chapter == chapter &&
+                verseStart in entry.verseStart..entry.verseEnd
+        }?.excerpt ?: curatedTopics.firstOrNull { entry ->
+            entry.bookId.equals(usfm, ignoreCase = true) && entry.chapter == chapter
+        }?.excerpt
+    }
+
+    private fun toMasonryCard(entry: BundledTopicEntry, size: String): SearchMasonryCardDto {
+        val ref = if (entry.verseEnd > entry.verseStart) {
+            "${entry.bookName} ${entry.chapter}:${entry.verseStart}-${entry.verseEnd}"
+        } else {
+            "${entry.bookName} ${entry.chapter}:${entry.verseStart}"
+        }
+        return SearchMasonryCardDto(
+            id = "topic:${entry.topic.lowercase()}",
+            size = size,
+            kind = "topic",
+            tag = entry.tag,
+            title = entry.title,
+            reference = ref,
+            excerpt = entry.excerpt,
+            bookId = entry.bookId,
+            bookNumber = entry.bookNumber,
+            chapter = entry.chapter,
+            verseStart = entry.verseStart,
+            verseEnd = entry.verseEnd,
+            accentHex = entry.accentHex,
+            planId = entry.planId,
+        )
+    }
+
+    fun featuredStarterCards(limit: Int = 5): List<SearchMasonryCardDto> {
+        val preferredTopics = listOf("Peace", "Love", "Hope", "Wisdom", "Grace")
+        val selected = preferredTopics.mapNotNull { topicByLower[it.lowercase()] }
+            .ifEmpty { curatedTopics.take(limit) }
+            .take(limit)
+        return selected.mapIndexed { idx, entry ->
+            val size = if (idx == 4 && !entry.planId.isNullOrBlank()) {
+                "wide"
+            } else if (idx % 2 == 0) {
+                "tall"
+            } else {
+                "compact"
+            }
+            toMasonryCard(entry, size)
+        }
+    }
+
+    fun relatedCardsForBook(bookId: String, limit: Int = 4): List<SearchMasonryCardDto> {
+        val cleanBook = bookId.trim().uppercase()
+        val matching = curatedTopics.filter { it.bookId.equals(cleanBook, ignoreCase = true) }
+        val pool = (matching + curatedTopics.filterNot { it in matching }).distinctBy { it.topic }.take(limit)
+        return pool.mapIndexed { idx, entry ->
+            val size = if (idx % 2 == 0) "tall" else "compact"
+            toMasonryCard(entry, size)
+        }
+    }
+
     fun searchLocalTopics(
         query: String,
         explicitTopics: List<String> = emptyList(),
@@ -540,35 +626,23 @@ internal object BundledTopicIndex {
                 }
             }
         }
+        if (scored.isNotEmpty() && scored.size < 4) {
+            val seen = scored.map { it.topic }.toHashSet()
+            for (extra in curatedTopics) {
+                if (scored.size >= 4) break
+                if (seen.add(extra.topic)) {
+                    scored.add(extra)
+                }
+            }
+        }
 
         val cards = scored.take(5).mapIndexed { idx, entry ->
-            val ref = if (entry.verseEnd > entry.verseStart) {
-                "${entry.bookName} ${entry.chapter}:${entry.verseStart}-${entry.verseEnd}"
-            } else {
-                "${entry.bookName} ${entry.chapter}:${entry.verseStart}"
-            }
-            val size = when (idx) {
-                0 -> "hero"
-                1 -> "tall"
-                4 -> "wide"
+            val size = when {
+                idx == 4 && !entry.planId.isNullOrBlank() -> "wide"
+                idx % 2 == 0 -> "tall"
                 else -> "compact"
             }
-            SearchMasonryCardDto(
-                id = "topic:${entry.topic.lowercase()}",
-                size = size,
-                kind = "topic",
-                tag = entry.tag,
-                title = entry.title,
-                reference = ref,
-                excerpt = entry.excerpt,
-                bookId = entry.bookId,
-                bookNumber = entry.bookNumber,
-                chapter = entry.chapter,
-                verseStart = entry.verseStart,
-                verseEnd = entry.verseEnd,
-                accentHex = entry.accentHex,
-                planId = entry.planId,
-            )
+            toMasonryCard(entry, size)
         }
         return scored.take(4).map { it.topic } to cards
     }

@@ -615,12 +615,11 @@ internal fun BibleHomeContent(
                 val showShorts = CloudSessionManager.biblicalShortsEnabled
                 val showPlans = CloudSessionManager.readingPlansEnabled
                 val plansLayout = CloudSessionManager.homePlansLayout
-                val useTwinCardsRow = showShorts && showPlans &&
-                    (plansLayout == "twin_cards" || (plansLayout == "adaptive" && windowMetrics.isLandscapePhone))
-                val isTabletWide = windowMetrics.isWideHome && !windowMetrics.isLandscapePhone
+                val useSideBySideTwinRow = (plansLayout == "adaptive" && windowMetrics.isWideHome)
+                val useLegacyTwinPlanRow = (plansLayout == "twin_cards" && showShorts && showPlans)
                 val hingeGap = windowMetrics.hingeSafeGap.coerceAtLeast(12.dp)
 
-                if (useTwinCardsRow) {
+                if (useLegacyTwinPlanRow) {
                     Column {
                         if (dailyVerse != null) {
                             VerseOfTheDay(
@@ -652,7 +651,7 @@ internal fun BibleHomeContent(
                             )
                         }
                     }
-                } else if (isTabletWide && dailyVerse != null && plansLayout != "stacked") {
+                } else if (useSideBySideTwinRow && dailyVerse != null) {
                     Column {
                         when {
                             showShorts -> {
@@ -666,7 +665,7 @@ internal fun BibleHomeContent(
                                         presentation = dailyVerse,
                                         version = version,
                                         modifier = Modifier
-                                            .weight(1.15f)
+                                            .weight(1.1f)
                                             .fillMaxHeight(),
                                         onVerseClick = { dv -> openDailyVerseChapter(dv) },
                                     )
@@ -676,7 +675,7 @@ internal fun BibleHomeContent(
                                             BibleState.openBiblicalShorts()
                                         },
                                         modifier = Modifier
-                                            .weight(0.85f)
+                                            .weight(0.9f)
                                             .fillMaxHeight(),
                                     )
                                 }
@@ -697,14 +696,14 @@ internal fun BibleHomeContent(
                                         presentation = dailyVerse,
                                         version = version,
                                         modifier = Modifier
-                                            .weight(1.15f)
+                                            .weight(1.1f)
                                             .fillMaxHeight(),
                                         onVerseClick = { dv -> openDailyVerseChapter(dv) },
                                     )
                                     ReadingPlanBannerCard(
                                         onOpenPlans = { BibleState.openReadingPlans() },
                                         modifier = Modifier
-                                            .weight(0.85f)
+                                            .weight(0.9f)
                                             .fillMaxHeight(),
                                     )
                                 }

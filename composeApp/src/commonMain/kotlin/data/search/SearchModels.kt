@@ -12,6 +12,7 @@ internal data class SearchDirectReferenceDto(
     @SerialName("verseStart") val verseStart: Int = 1,
     @SerialName("verseEnd") val verseEnd: Int = 1,
     @SerialName("reference") val reference: String = "",
+    @SerialName("excerpt") val excerpt: String = "",
 )
 
 @Serializable
