@@ -71,6 +71,7 @@ import data.bible.BibleState
 import data.bible.BookData
 import data.bible.currentTimeMillis
 import data.bible.fetchBibleChapter
+import data.bible.prefetchBibleChapter
 import data.config.CloudSessionManager
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
@@ -102,6 +103,9 @@ internal fun BibleScripturesPager(
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
         fetchBibleChapter(book, chapter, version, history)
+    },
+    prefetchChapter: suspend (BookData, Int, String) -> Unit = { book, chapter, version ->
+        prefetchBibleChapter(book, chapter, version)
     },
     homeBackSwipe: SwipeTransition? = null,
     animateHomeRightSwipe: Boolean = true,
@@ -179,6 +183,15 @@ internal fun BibleScripturesPager(
                 val newLocation = !sameBook || chapters.chapterId != chapter
                 loadChapter(selectedBook, chapter, bibleVersion, newLocation)
             }
+        }
+
+        // Quietly warm chapter + 1 into local DB + memory LRU once the user settles on a chapter.
+        LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage, chapterCount, sameBook) {
+            if (!sameBook) return@LaunchedEffect
+            val nextChapter = pagerState.settledPage + 2
+            if (nextChapter > chapterCount) return@LaunchedEffect
+            kotlinx.coroutines.delay(1_200L)
+            prefetchChapter(selectedBook, nextChapter, bibleVersion)
         }
 
         LaunchedEffect(isAISummaryLoading, showAISummary, pagerState.settledPage) {

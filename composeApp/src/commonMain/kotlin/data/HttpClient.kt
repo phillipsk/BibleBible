@@ -92,10 +92,3 @@ internal val httpClientCloudGateway: HttpClient by lazy {
     )
     createHttpClient(config)
 }
-
-internal val httpClientGemini: HttpClient by lazy {
-    val config = AppHttpClientConfig(
-        baseUrl = CloudSessionManager.gatewayHost,
-    )
-    createHttpClient(config, timeout = TIMEOUT_LIMIT_GEMINI)
-}

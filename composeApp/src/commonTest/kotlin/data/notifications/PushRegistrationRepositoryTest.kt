@@ -216,8 +216,8 @@ class PushRegistrationRepositoryTest {
     }
 
     @Test
-    fun notificationDeliveryPolicyPreventsLocalDailyDuplicateWhenRemoteTokenExists() {
-        assertTrue(
+    fun notificationDeliveryPolicyDisablesLocalDailySchedulingForRemoteOnlyDelivery() {
+        assertFalse(
             NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
                 remindersEnabled = true,
                 hasRemotePushToken = false,

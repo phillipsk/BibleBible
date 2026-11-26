@@ -36,6 +36,7 @@ class GeminiRepositoryTest {
     @AfterTest
     fun resetModel() {
         CloudSessionManager.resetForTesting()
+        clearGeminiSummaryCacheForTesting()
         GeminiModel.updateGeminiData(GeminiResponseDto())
         GeminiModel.showSummary = false
         GeminiModel.isLoading = false
@@ -139,6 +140,41 @@ class GeminiRepositoryTest {
         try {
             generateContent(SummaryTarget("JHN", 3), client)
             assertFalse(messages.joinToString().contains(sessionToken))
+        } finally { client.close() }
+    }
+
+    @Test
+    fun summaryLruCacheServesRevisitedChaptersAndRefreshBypassesCache() = runTest {
+        var calls = 0
+        val client = client(MockEngine {
+            calls++
+            respond(Json.encodeToString(summary("Summary #$calls")), HttpStatusCode.OK, jsonHeaders())
+        })
+        try {
+            GeminiModel.showSummary = true
+            generateContent(SummaryTarget("JHN", 3, "KJV"), client)
+            assertEquals("Summary #1", GeminiModel.geminiDataText)
+            assertEquals(1, calls)
+
+            // Revisiting same chapter hits client LRU without another network call.
+            generateContent(SummaryTarget("JHN", 3, "KJV"), client)
+            assertEquals("Summary #1", GeminiModel.geminiDataText)
+            assertEquals(1, calls)
+
+            // Refresh bypasses cache and updates stored value.
+            generateContent(SummaryTarget("JHN", 3, "KJV"), client, refresh = true)
+            assertEquals("Summary #2", GeminiModel.geminiDataText)
+            assertEquals(2, calls)
+
+            generateContent(SummaryTarget("JHN", 3, "KJV"), client)
+            assertEquals("Summary #2", GeminiModel.geminiDataText)
+            assertEquals(2, calls)
+
+            // Fill past GEMINI_SUMMARY_CACHE_MAX_ENTRIES to verify bounded eviction.
+            for (ch in 1..(GEMINI_SUMMARY_CACHE_MAX_ENTRIES + 5)) {
+                generateContent(SummaryTarget("PSA", ch, "KJV"), client)
+            }
+            assertEquals(GEMINI_SUMMARY_CACHE_MAX_ENTRIES, geminiSummaryCacheSizeForTesting())
         } finally { client.close() }
     }
 

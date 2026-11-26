@@ -45,14 +45,14 @@ internal data class PushDeviceUnregisterRequest(
 
 internal object NotificationDeliveryPolicy {
     /**
-     * Only schedule the local daily Verse of the Day fallback when reminders are enabled
-     * and the device does not yet hold an active remote push token, preventing duplicate
-     * local + server 6:00 AM notifications.
+     * Release 3.2+ uses remote push notifications exclusively, driven by each device's
+     * saved reminder time and timezone synced to `/v1/notifications/dispatch-due`.
+     * Local alarms are never scheduled so devices never receive duplicate alerts.
      */
     fun shouldScheduleLocalDailyVotd(
         remindersEnabled: Boolean,
         hasRemotePushToken: Boolean,
-    ): Boolean = remindersEnabled && !hasRemotePushToken
+    ): Boolean = false
 }
 
 internal object PushRegistrationRepository {

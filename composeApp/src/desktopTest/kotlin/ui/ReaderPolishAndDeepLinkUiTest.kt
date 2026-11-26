@@ -701,4 +701,45 @@ class ReaderPolishAndDeepLinkUiTest {
         onNodeWithText("BBE John chapter 4 verse 1.", substring = true).assertIsDisplayed()
     }
 
+    @Test
+    fun readerPrefetchesNextChapterAfterSettling() = runComposeUiTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+        val john = books.data!!.first { it.bookId == "JHN" }
+        BibleState.restoreReadingLocation(john, 2)
+        val prefetched = mutableListOf<Triple<String, Int, String>>()
+
+        setContent {
+            BibleBibleTheme {
+                Box(Modifier.size(400.dp, 760.dp)) {
+                    BibleScripturesPager(
+                        chapters = BibleChapterUIState(
+                            bookId = 43,
+                            chapterId = 2,
+                            chapterList = (1L..21L).toList(),
+                            version = "KJV",
+                            text = "[1] KJV John chapter 2 verse 1.",
+                            verses = listOf(BibleChapter(id = "1", v = "1", t = "KJV John chapter 2 verse 1.")),
+                        ),
+                        bibleVersion = "KJV",
+                        selectedBook = john,
+                        isAISummaryLoading = false,
+                        showAISummary = false,
+                        bottomSheetScaffoldState = rememberBottomSheetScaffoldState(
+                            bottomSheetState = rememberBottomSheetState(BottomSheetValue.Collapsed)
+                        ),
+                        prefetchChapter = { book, chapter, version ->
+                            prefetched.add(Triple(book.bookId, chapter, version))
+                        },
+                        initialShowGestureTutorial = false,
+                    )
+                }
+            }
+        }
+
+        mainClock.advanceTimeBy(1_500)
+        waitForIdle()
+        assertEquals(listOf(Triple("JHN", 3, "KJV")), prefetched)
+    }
+
 }

@@ -115,87 +115,11 @@ internal fun scheduleIosDailyVotdNotifications(
     hasRemotePushToken: Boolean = IosPushTokenStore.getToken() != null,
 ) {
     iosLocalScheduleJob?.cancel()
-    val cleanHour = hour.coerceIn(0, 23).toLong()
-    val cleanMinute = minute.coerceIn(0, 59).toLong()
+    // Release 3.2+ delivers notifications remotely via /v1/notifications/dispatch-due;
+    // clear any legacy local schedules without creating new local triggers.
     val center = UNUserNotificationCenter.currentNotificationCenter()
-    val isDebug = Platform.isDebugBinary
-    val scheduleLocalDaily = NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
-        remindersEnabled = true,
-        hasRemotePushToken = hasRemotePushToken,
-    )
-
-    // Always clean up legacy 6:07 AM schedule, clear 9:00 PM test schedule on non-debug builds,
-    // and remove local daily 6:00 AM triggers when remote FCM/APNs push handles delivery.
-    val idsToRemove = buildList {
-        add(LEGACY_DAILY_VOTD_ID)
-        if (!scheduleLocalDaily) add(DAILY_VOTD_ID)
-        if (!isDebug) add(DEBUG_EVENING_VOTD_ID)
-    }
+    val idsToRemove = listOf(LEGACY_DAILY_VOTD_ID, DAILY_VOTD_ID, DEBUG_EVENING_VOTD_ID)
     center.removePendingNotificationRequestsWithIdentifiers(idsToRemove)
-
-    val fallbackUserInfo: Map<Any?, Any> = mapOf("type" to "votd", "isDailyVerse" to "true")
-    if (scheduleLocalDaily) {
-        scheduleDailyLocalNotification(
-            center = center,
-            identifier = DAILY_VOTD_ID,
-            hour = cleanHour,
-            minute = cleanMinute,
-            title = "Verse of the Day",
-            body = "Start your morning with today’s scripture in BibleBible.",
-            userInfo = fallbackUserInfo,
-        )
-    }
-
-    if (isDebug) {
-        scheduleDailyLocalNotification(
-            center = center,
-            identifier = DEBUG_EVENING_VOTD_ID,
-            hour = 21,
-            minute = 0,
-            title = "Verse of the Day (Debug 9 PM)",
-            body = "Evening debug test notification · Open today’s scripture in BibleBible.",
-            userInfo = fallbackUserInfo,
-        )
-    }
-
-    if (!scheduleLocalDaily && !isDebug) return
-
-    iosLocalScheduleJob = iosNotificationScope.launch {
-        val daily = runCatching { dailyVerseRepository.get(BibleState.selectedVersion) }.getOrNull() ?: return@launch
-        val data = daily.data
-        val bookName = bibleBooksFull.getOrNull(data.bookNumber - 1) ?: data.bookUsfm ?: "Scripture"
-        val liveUserInfo: Map<Any?, Any> = buildMap {
-            put("type", "votd")
-            put("bookNumber", data.bookNumber.toString())
-            data.bookUsfm?.takeIf { it.isNotBlank() }?.let { put("bookUsfm", it) }
-            put("chapter", data.chapter.toString())
-            put("verse", data.verse.toString())
-            put("versionId", daily.version)
-        }
-        val liveTitle = "Verse of the Day · $bookName ${data.chapter}:${data.verse}"
-        if (scheduleLocalDaily) {
-            scheduleDailyLocalNotification(
-                center = center,
-                identifier = DAILY_VOTD_ID,
-                hour = cleanHour,
-                minute = cleanMinute,
-                title = liveTitle,
-                body = data.text,
-                userInfo = liveUserInfo,
-            )
-        }
-        if (isDebug) {
-            scheduleDailyLocalNotification(
-                center = center,
-                identifier = DEBUG_EVENING_VOTD_ID,
-                hour = 21,
-                minute = 0,
-                title = "$liveTitle (Debug 9 PM)",
-                body = data.text,
-                userInfo = liveUserInfo,
-            )
-        }
-    }
 }
 
 private fun scheduleDailyLocalNotification(

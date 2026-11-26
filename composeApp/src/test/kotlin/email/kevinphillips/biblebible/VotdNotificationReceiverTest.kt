@@ -54,7 +54,7 @@ class VotdNotificationReceiverTest {
     }
 
     @Test
-    fun debugBuildSchedulesBoth6AmAnd9PmAllowWhileIdleAlarms() {
+    fun debugBuildCancelsLocalAlarmsAndReliesOnRemotePush() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
@@ -64,41 +64,26 @@ class VotdNotificationReceiverTest {
         val now = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 0, 0)
         VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
 
-        val alarms = shadowAlarmManager.scheduledAlarms
-        assertEquals(2, alarms.size)
-        assertTrue(alarms.all { it.allowWhileIdle }, "Alarms must allow delivery during Doze mode")
-
-        val expected6Am = calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 0)
-        val expected9Pm = calendarMillis(2026, Calendar.NOVEMBER, 21, 21, 0, 0)
-        assertEquals(setOf(expected6Am, expected9Pm), alarms.map { it.triggerAtTime }.toSet())
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty(), "Release 3.2+ must not schedule local daily/debug alarms")
     }
 
     @Test
-    fun releaseBuildSchedulesOnly6AmAndCancelsAnyDebug9PmAlarm() {
+    fun releaseBuildSchedulesNoLocalAlarmsAndCreatesNotificationChannels() {
         val app = RuntimeEnvironment.getApplication()
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val shadowAlarmManager = Shadows.shadowOf(alarmManager)
 
         val now = calendarMillis(2026, Calendar.NOVEMBER, 21, 5, 0, 0)
-        // First schedule as debug so 9 PM exists
-        app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
-        VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
-        assertEquals(2, shadowAlarmManager.scheduledAlarms.size)
-
-        // Now switch to release build flags -> 9 PM must be cancelled, leaving only 6 AM
         app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
         assertFalse(VotdNotificationReceiver.isDebugBuild(app))
 
         VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
-        val alarms = shadowAlarmManager.scheduledAlarms
-        assertEquals(1, alarms.size)
-        assertEquals(calendarMillis(2026, Calendar.NOVEMBER, 21, 6, 0, 0), alarms.single().triggerAtTime)
-        assertTrue(alarms.single().allowWhileIdle)
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
     }
 
     @Test
-    fun bootCompletedReschedulesAlarmsWithoutPostingNotification() {
+    fun bootCompletedLeavesAlarmsEmptyWithoutPostingNotification() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
@@ -108,12 +93,12 @@ class VotdNotificationReceiverTest {
         val receiver = VotdNotificationReceiver()
         receiver.onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
 
-        assertEquals(1, Shadows.shadowOf(alarmManager).scheduledAlarms.size)
+        assertTrue(Shadows.shadowOf(alarmManager).scheduledAlarms.isEmpty())
         assertTrue(Shadows.shadowOf(notificationManager).allNotifications.isEmpty())
     }
 
     @Test
-    fun disabledNotificationsCancelAlarmsAndIgnoreBootCompletedReschedule() {
+    fun disabledNotificationsKeepAlarmsEmptyAcrossBootCompleted() {
         val app = RuntimeEnvironment.getApplication()
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -121,7 +106,7 @@ class VotdNotificationReceiverTest {
 
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         VotdNotificationReceiver.scheduleDailyVotd(app)
-        assertEquals(2, shadowAlarmManager.scheduledAlarms.size)
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
 
         VotdNotificationReceiver.setUserNotificationsEnabled(app, false)
         VotdNotificationReceiver.cancelAllVotd(app)
@@ -132,12 +117,12 @@ class VotdNotificationReceiverTest {
     }
 
     @Test
-    fun releaseSwitchPausesAlarmsWithoutClearingTheUsersPreference() {
+    fun releaseSwitchPreservesUsersPreferenceWithoutSchedulingLocalAlarms() {
         val app = RuntimeEnvironment.getApplication()
         val alarms = Shadows.shadowOf(app.getSystemService(Context.ALARM_SERVICE) as AlarmManager)
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         VotdNotificationReceiver.scheduleDailyVotd(app)
-        assertTrue(alarms.scheduledAlarms.isNotEmpty())
+        assertTrue(alarms.scheduledAlarms.isEmpty())
 
         VotdNotificationReceiver.setRemindersAvailable(app, false)
         VotdNotificationReceiver().onReceive(app, Intent(Intent.ACTION_BOOT_COMPLETED))
@@ -145,7 +130,7 @@ class VotdNotificationReceiverTest {
         assertTrue(VotdNotificationReceiver.isUserNotificationsEnabled(app))
 
         VotdNotificationReceiver.setRemindersAvailable(app, true)
-        assertTrue(alarms.scheduledAlarms.isNotEmpty())
+        assertTrue(alarms.scheduledAlarms.isEmpty())
     }
 
     @Test
@@ -280,19 +265,17 @@ class VotdNotificationReceiverTest {
     }
 
     @Test
-    fun storedRemoteFcmTokenCancelsLocalDaily6AmAlarmToAvoidDuplicates() {
+    fun remoteOnlyPolicyNeverSchedulesLocalDailyAlarmRegardlessOfToken() {
         val app = RuntimeEnvironment.getApplication()
         VotdNotificationReceiver.setUserNotificationsEnabled(app, true)
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val shadowAlarmManager = Shadows.shadowOf(alarmManager)
 
-        // Release flags, no token -> schedules local 6:00 AM fallback alarm
         app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
         val now = calendarMillis(2026, Calendar.NOVEMBER, 25, 5, 0, 0)
         VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
-        assertEquals(1, shadowAlarmManager.scheduledAlarms.size)
+        assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())
 
-        // Saving remote FCM token -> local 6:00 AM alarm is cancelled so only server push fires
         AndroidPushTokenStore.saveToken(app, "remote-fcm-token-registered-123")
         VotdNotificationReceiver.scheduleDailyVotd(app, nowMillis = now)
         assertTrue(shadowAlarmManager.scheduledAlarms.isEmpty())

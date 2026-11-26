@@ -251,3 +251,24 @@ UPDATE BiblicalShortEngagement SET cycle_seen = 0;
 
 clearShortEngagements:
 DELETE FROM BiblicalShortEngagement;
+
+CREATE TABLE IF NOT EXISTS ChapterFormatMeta (
+    chapterKey TEXT PRIMARY KEY NOT NULL,
+    metaJson TEXT NOT NULL
+);
+
+upsertChapterFormatMeta:
+INSERT OR REPLACE INTO ChapterFormatMeta (chapterKey, metaJson)
+VALUES (?, ?);
+
+selectChapterFormatMeta:
+SELECT metaJson FROM ChapterFormatMeta WHERE chapterKey = ?;
+
+deleteOrphanChapterFormatMeta:
+DELETE FROM ChapterFormatMeta
+WHERE chapterKey NOT IN (
+    SELECT DISTINCT 'v2:' || b || ':' || c || ':' || version FROM BibleVerses
+);
+
+countChapterFormatMeta:
+SELECT COUNT(*) FROM ChapterFormatMeta;

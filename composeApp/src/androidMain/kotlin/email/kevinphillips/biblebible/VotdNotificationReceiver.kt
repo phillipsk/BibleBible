@@ -407,48 +407,9 @@ class VotdNotificationReceiver : BroadcastReceiver() {
                 return
             }
             ensureChannel(context)
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-            val hasRemotePush = AndroidPushTokenStore.getToken(context.applicationContext) != null
-            val scheduleLocalDaily = NotificationDeliveryPolicy.shouldScheduleLocalDailyVotd(
-                remindersEnabled = true,
-                hasRemotePushToken = hasRemotePush,
-            )
-
-            if (scheduleLocalDaily) {
-                val dailyTriggerAt = nextTriggerTimeMillis(
-                    hour = getReminderHour(context),
-                    minute = getReminderMinute(context),
-                    nowMillis = nowMillis,
-                    minLeadMillis = dailyMinLeadMillis,
-                )
-                scheduleIdleAllowedAlarm(
-                    alarmManager = alarmManager,
-                    triggerAtMillis = dailyTriggerAt,
-                    pendingIntent = buildAlarmPendingIntent(context, ACTION_DAILY_VOTD, DAILY_ALARM_REQUEST_CODE),
-                )
-            } else {
-                cancelDailyVotdOnly(context)
-            }
-
-            if (isDebugBuild(context)) {
-                val debugTriggerAt = nextTriggerTimeMillis(
-                    hour = DEBUG_EVENING_HOUR,
-                    minute = DEBUG_EVENING_MINUTE,
-                    nowMillis = nowMillis,
-                    minLeadMillis = debugEveningMinLeadMillis,
-                )
-                scheduleIdleAllowedAlarm(
-                    alarmManager = alarmManager,
-                    triggerAtMillis = debugTriggerAt,
-                    pendingIntent = buildAlarmPendingIntent(
-                        context,
-                        ACTION_DEBUG_EVENING_VOTD,
-                        DEBUG_EVENING_ALARM_REQUEST_CODE,
-                    ),
-                )
-            } else {
-                cancelDebugEveningVotd(context)
-            }
+            // Release 3.2+ delivers notifications remotely via /v1/notifications/dispatch-due;
+            // cancel any legacy local alarms so upgrades never fire duplicates.
+            cancelAllVotd(context)
         }
 
         fun cancelDailyVotdOnly(context: Context) {

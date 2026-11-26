@@ -45,6 +45,7 @@ class ReadingSessionDatabaseTest {
                 driver.execute(null, "DROP TABLE ActiveReadingPlan", 0)
                 driver.execute(null, "DROP TABLE ReadingPlanProgress", 0)
                 driver.execute(null, "DROP TABLE BiblicalShortEngagement", 0)
+                driver.execute(null, "DROP TABLE ChapterFormatMeta", 0)
                 driver.execute(null, "PRAGMA user_version = 6", 0)
                 val database = BibleBibleDatabase(driver)
                 database.bibleBibleDatabaseQueries.insertUserPrefs()
@@ -52,7 +53,7 @@ class ReadingSessionDatabaseTest {
                 database.bibleBibleDatabaseQueries.insertReadingHistory("2026-10-28 12:00:00", "19", "119")
             }
             openDesktopDatabase(path).use { driver ->
-                assertEquals(11L, BibleBibleDatabase.Schema.version)
+                assertEquals(12L, BibleBibleDatabase.Schema.version)
                 val database = BibleBibleDatabase(driver)
                 val preferences = database.bibleBibleDatabaseQueries.selectUserPrefs().executeAsOne()
                 assertEquals(30.0, preferences.fontSize)
@@ -124,6 +125,17 @@ class ReadingSessionDatabaseTest {
                 database.bibleBibleDatabaseQueries.insertLastCalled(1000L)
                 database.bibleBibleDatabaseQueries.insertLastCalled(2000L)
                 assertEquals(2000L, database.bibleBibleDatabaseQueries.getLastCalled().executeAsOne().time)
+
+                // ChapterFormatMeta is schema-managed and orphan cleanup prunes entries without matching BibleVerses.
+                database.bibleBibleDatabaseQueries.upsertChapterFormatMeta("v2:43:3:kjv", """[{"v":"16","p":true,"r":[[0,5]]}]""")
+                database.bibleBibleDatabaseQueries.upsertChapterFormatMeta("v2:1:1:kjv", """[{"v":"1","p":true,"r":[]}]""")
+                assertEquals(2L, database.bibleBibleDatabaseQueries.countChapterFormatMeta().executeAsOne())
+                database.bibleBibleDatabaseQueries.deleteOrphanChapterFormatMeta()
+                assertEquals(1L, database.bibleBibleDatabaseQueries.countChapterFormatMeta().executeAsOne())
+                assertEquals(
+                    """[{"v":"16","p":true,"r":[[0,5]]}]""",
+                    database.bibleBibleDatabaseQueries.selectChapterFormatMeta("v2:43:3:kjv").executeAsOne(),
+                )
             }
         } finally {
             Files.deleteIfExists(path)
