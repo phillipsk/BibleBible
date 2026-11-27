@@ -1,153 +1,65 @@
+# BibleBible Desktop (macOS)
 
-# Desktop App Packaging Script
+The `desktopApp` module packages the Kotlin Multiplatform Compose Desktop application for macOS (`email.kevinphillips.biblebible`), conforming to `release/3.2` security and storage standards.
 
-This project includes a shell script (`package_desktop.sh`) to package a desktop application as a signed `.pkg` file for macOS using `jpackage`. It automates signing, verifying the signature, and checking the fingerprint for validation.
+## Local Run & Release Smoke Testing
 
-## Prerequisites
-
-Before using the script, ensure you have the following:
-
-1. **macOS System**:
-    - The script is designed for macOS.
-
-2. **Installed Dependencies**:
-    - Java Development Kit (JDK) 17+ with `jpackage`.
-    - `pkgutil` (macOS utility for verifying package signatures).
-    - `productsign` (macOS utility for signing `.pkg` files).
-
-3. **Valid Developer Certificate**:
-    - You need a valid Apple Developer Certificate for signing packages:
-        - `3rd Party Mac Developer Installer` or similar.
-
-
----
-
-## Setting Up the Environment
-
-### 1. Install Dependencies
-
-Install dependencies if not already installed:
-
-- **JDK 17+**:
-    - Install the Amazon Corretto JDK 17 or another JDK 17+ distribution:
-      ```bash
-      brew install --cask corretto
-      ```
-    - Verify the installation:
-      ```bash
-      java -version
-      ```
-
-- **Apple Developer Tools**:
-    - Install the Xcode command-line tools if not already installed:
-      ```bash
-      xcode-select --install
-      ```
-
-### 2. Set Environment Variables
-
-Export the following variables to your shell environment (`~/.zshrc`, `~/.bash_profile`, etc.), or set them manually in the terminal before running the script.
+Run the development desktop app directly:
 
 ```bash
-# Path to your JDK bin directory
-export JDK_PATH="/Library/Java/JavaVirtualMachines/amazon-corretto-17.jdk/Contents/Home/bin"
-
-# Your macOS Developer Certificate
-export MAC_DEVELOPER_ID="3rd Party Mac Developer Installer: Your Name (YourID)"
-
-# Expected SHA256 fingerprint of your signing certificate
-export EXPECTED_FINGERPRINT="5B:EC:0D:5A:BA:38:39:80:9E:C4:0C:6C:E1:EE:71:50:AB:E0:96:B1:B3:6B:E3:6F:64:95:14:A4:A9:B4:4D:6A"
+./gradlew :desktopApp:run
 ```
 
-After editing, reload your shell configuration:
+Run the ProGuard-obfuscated release build locally to verify startup and Ktor/SQLite behavior:
+
 ```bash
-source ~/.zshrc
+./gradlew :desktopApp:runRelease
 ```
 
-You can also export these variables temporarily in your terminal session:
+Run the shared desktop unit and UI test suite:
+
 ```bash
-export JDK_PATH="/path/to/jdk/bin"
-export MAC_DEVELOPER_ID="Your Certificate Name"
-export EXPECTED_FINGERPRINT="Your Certificate Fingerprint"
+./gradlew :composeApp:desktopTest --console=plain --max-workers=2
 ```
 
----
+## Storage & Sandbox Paths
 
-## Usage
+- On macOS, the SQLite database (`BibleBibleDB.db`), SQLite extraction temp files (`sqlite-tmp/`), and user preferences (`preferences.properties`) are stored under `~/Library/Application Support/BibleBible` (which resolves inside `~/Library/Containers/email.kevinphillips.biblebible/Data/Library/Application Support/BibleBible` when sandboxed).
+- Any existing `~/.biblebible/BibleBibleDB.db` is copied forward automatically on first launch if no database exists yet in Application Support.
 
-### Run the Script
+## Mac App Store Signing Configuration
 
-1. Ensure the script is executable:
-   ```bash
-   chmod +x package_desktop.sh
-   ```
+Keep certificates, `.p8` keys, and provisioning profiles outside the repository (for example, in `~/Desktop/BibleBible-Cloud-Signing/`). Configure non-secret paths in `local.properties`:
 
-2. Run the script:
-   ```bash
-   ./package_desktop.sh
-   ```
+```properties
+MAC_APPSTORE_SIGN_IDENTITY=Kevin Phillips (7JJ7U4528N)
+MAC_APP_PROVISIONING_PROFILE=/path/to/BibleBible_MacAppStore.provisionprofile
+MAC_RUNTIME_PROVISIONING_PROFILE=/path/to/BibleBible_MacAppStore_JVM.provisionprofile
+```
 
----
+Required Keychain certificates:
+- `3rd Party Mac Developer Application: Kevin Phillips (7JJ7U4528N)`
+- `3rd Party Mac Developer Installer: Kevin Phillips (7JJ7U4528N)`
 
-## Script Details
+Required App Store Connect API key (Admin role) placed at `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8` with `chmod 600`.
 
-### What the Script Does
+## Building, Validating, & Uploading `.pkg`
 
-1. **Dependency Check**:
-    - Ensures that `jpackage`, `pkgutil`, and `productsign` are available.
+Build and sign the Mac App Store installer package:
 
-2. **Packaging the Application**:
-    - Uses `jpackage` to create a `.pkg` file with:
-        - Application binaries.
-        - App metadata, including license and entitlements.
+```bash
+./desktopApp/package_desktop.sh
+```
 
-3. **Signing the Package**:
-    - Signs the package using the specified macOS Developer Certificate.
+Build, validate with Apple, and upload to App Store Connect / TestFlight:
 
-4. **Verifying the Signature**:
-    - Runs `pkgutil` to verify the signature.
-    - Compares the extracted SHA256 fingerprint with the expected value.
+```bash
+VALIDATE_APP=true UPLOAD_APP=true ASC_KEY_ID=8WY897B3M2 ASC_ISSUER_ID=73b0ed16-6145-4448-81fc-4123f13cf3de ./desktopApp/package_desktop.sh
+```
 
-5. **Output**:
-    - A signed `.pkg` file in the `build/compose/binaries/main/pkg` directory.
+Or invoke `xcrun altool` directly on `desktopApp/build/compose/binaries/main-release/pkg/BibleBible-3.2.0.pkg`:
 
-### Script Variables
-
-The following variables control the script:
-
-| Variable              | Description                                                | Default Value                                         |
-|-----------------------|------------------------------------------------------------|-----------------------------------------------------|
-| `JDK_PATH`            | Path to the JDK `bin` directory containing `jpackage`.     | `/Library/Java/JavaVirtualMachines/corretto-17/...` |
-| `MAC_DEVELOPER_ID`    | Developer Certificate identity for signing.                | `SetYourDeveloperIDHere`                            |
-| `EXPECTED_FINGERPRINT`| Expected SHA256 fingerprint of the signing certificate.    | `SetExpectedFingerprintHere`                        |
-| `APP_NAME`            | Name of the application.                                   | `BibleBible`                                        |
-| `VERSION`             | Application version.                                       | `1.0`                                               |
-
----
-
-## Troubleshooting
-
-### Common Errors
-
-1. **Error: Could not find `jpackage`**
-    - Ensure `JDK_PATH` is set correctly to point to a JDK 17+ installation.
-    - Verify `jpackage` is available:
-      ```bash
-      $JDK_PATH/jpackage --version
-      ```
-
-2. **Error: Could not find appropriate signing identity**
-    - Verify `MAC_DEVELOPER_ID` is set to a valid certificate name.
-    - Check available certificates:
-      ```bash
-      security find-identity -v -p codesigning
-      ```
-
-3. **Fingerprint Mismatch**
-    - Ensure `EXPECTED_FINGERPRINT` matches the actual fingerprint of your certificate:
-      ```bash
-      pkgutil --check-signature path/to/signed.pkg
-      ```
-
----
-
+```bash
+xcrun altool --validate-app -f desktopApp/build/compose/binaries/main-release/pkg/BibleBible-3.2.0.pkg -t macos --apiKey 8WY897B3M2 --apiIssuer 73b0ed16-6145-4448-81fc-4123f13cf3de
+xcrun altool --upload-app   -f desktopApp/build/compose/binaries/main-release/pkg/BibleBible-3.2.0.pkg -t macos --apiKey 8WY897B3M2 --apiIssuer 73b0ed16-6145-4448-81fc-4123f13cf3de
+```

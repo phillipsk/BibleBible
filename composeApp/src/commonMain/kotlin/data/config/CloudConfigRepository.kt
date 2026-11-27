@@ -3,29 +3,40 @@ package data.config
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import data.notifications.VotdNotificationController
-import data.appPrefs.DEFAULT_TUTORIAL_REMINDER_DAYS
 import data.analytics.AnalyticsTracker
+import data.appPrefs.DEFAULT_TUTORIAL_REMINDER_DAYS
 import data.bible.BibleState
 import data.bible.BibleVersion
 import data.bible.BibleVersions
 import data.gemini.GEMINI_MODEL
 import data.httpClientCloudGateway
-import email.kevinphillips.biblebible.BuildKonfig
+import data.notifications.VotdNotificationController
+import data.security.AppIntegrityProvider
+import data.security.ChallengeResponseDto
+import data.security.ClientAttestationDto
+import email.kevinphillips.biblebible.getPlatformName
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
+import io.ktor.http.ContentType
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
+import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.native.concurrent.ThreadLocal
 
@@ -50,6 +61,12 @@ private val validReaderLayoutStyles = setOf(
     "classic_inline",
 )
 
+private val validHomePlansLayouts = setOf(
+    "adaptive",
+    "stacked",
+    "twin_cards",
+)
+
 private fun parseUsfmSet(rawCsv: String, fallback: Set<String>): Set<String> {
     val parsed = rawCsv.split(",")
         .map { it.trim().uppercase() }
@@ -62,62 +79,76 @@ private val defaultMobileSectionBreaks = setOf("JOS", "JOB", "DAN", "MAL", "ROM"
 private val defaultTabletSectionBreaks = setOf("MAL")
 
 @Serializable
-data class CloudFeatureFlagsDto(
-    val biblicalShortsEnabled: Boolean = true,
-    val verseOfTheDayEnabled: Boolean = true,
-    val inHouseWordsEnabled: Boolean = true,
-    val bookShimmerStyle: String = "soft_gold_sheen",
-    val bookShimmerPace: Float = 1.0f,
-    val bookShimmerIntensity: Float = 1.0f,
-    val bookSectionPaddingDp: Int = 10,
-    val bookGridTabletLayout: String = "split_testaments",
-    val bookSectionBreaksMobile: String = "JOS,JOB,DAN,MAL,ROM,PHM",
-    val bookSectionBreaksTablet: String = "MAL",
-    val readerLayoutStyle: String = "literary_serif",
-    val readerLineHeightMultiplier: Float = 1.68f,
-    val readerVerseGapDp: Int = 14,
-    val readerDefaultFontSizeSp: Float = 22.0f,
-    val readerRedLetterEnabled: Boolean = true,
-    val homeSwipePreviewEnabled: Boolean = true,
-    val homeSwipeToShortsEnabled: Boolean = true,
-    val homeScrollToGenesisEnabled: Boolean = true,
-    val shortsAutoAdvanceEnabled: Boolean = true,
-    val votdNotificationsEnabled: Boolean = true,
-    val readerTutorialEnabled: Boolean = true,
-    val readerTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
-    val biblicalShortsTutorialEnabled: Boolean = true,
-    val biblicalShortsTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+internal data class CloudFeatureFlagsDto(
+    @SerialName("biblicalShortsEnabled") val biblicalShortsEnabled: Boolean = true,
+    @SerialName("verseOfTheDayEnabled") val verseOfTheDayEnabled: Boolean = true,
+    @SerialName("inHouseWordsEnabled") val inHouseWordsEnabled: Boolean = true,
+    @SerialName("bookShimmerStyle") val bookShimmerStyle: String = "soft_gold_sheen",
+    @SerialName("bookShimmerPace") val bookShimmerPace: Float = 1.0f,
+    @SerialName("bookShimmerIntensity") val bookShimmerIntensity: Float = 1.0f,
+    @SerialName("bookSectionPaddingDp") val bookSectionPaddingDp: Int = 10,
+    @SerialName("bookGridTabletLayout") val bookGridTabletLayout: String = "split_testaments",
+    @SerialName("bookSectionBreaksMobile") val bookSectionBreaksMobile: String = "JOS,JOB,DAN,MAL,ROM,PHM",
+    @SerialName("bookSectionBreaksTablet") val bookSectionBreaksTablet: String = "MAL",
+    @SerialName("readerLayoutStyle") val readerLayoutStyle: String = "literary_serif",
+    @SerialName("readerLineHeightMultiplier") val readerLineHeightMultiplier: Float = 1.68f,
+    @SerialName("readerVerseGapDp") val readerVerseGapDp: Int = 14,
+    @SerialName("readerDefaultFontSizeSp") val readerDefaultFontSizeSp: Float = 22.0f,
+    @SerialName("readerRedLetterEnabled") val readerRedLetterEnabled: Boolean = true,
+    @SerialName("homeSwipePreviewEnabled") val homeSwipePreviewEnabled: Boolean = true,
+    @SerialName("homeSwipeToShortsEnabled") val homeSwipeToShortsEnabled: Boolean = true,
+    @SerialName("homeScrollToGenesisEnabled") val homeScrollToGenesisEnabled: Boolean = true,
+    @SerialName("shortsAutoAdvanceEnabled") val shortsAutoAdvanceEnabled: Boolean = true,
+    @SerialName("votdNotificationsEnabled") val votdNotificationsEnabled: Boolean = true,
+    @SerialName("readerTutorialEnabled") val readerTutorialEnabled: Boolean = true,
+    @SerialName("readerTutorialReminderDays") val readerTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    @SerialName("biblicalShortsTutorialEnabled") val biblicalShortsTutorialEnabled: Boolean = true,
+    @SerialName("biblicalShortsTutorialReminderDays") val biblicalShortsTutorialReminderDays: Int = DEFAULT_TUTORIAL_REMINDER_DAYS,
+    @SerialName("elasticSearchEnabled") val elasticSearchEnabled: Boolean = true,
+    @SerialName("searchMasonryTopicsEnabled") val searchMasonryTopicsEnabled: Boolean = true,
+    @SerialName("readingPlansEnabled") val readingPlansEnabled: Boolean = true,
+    @SerialName("readingPlansAutoCheckoffEnabled") val readingPlansAutoCheckoffEnabled: Boolean = true,
+    @SerialName("onDeviceAiEnabled") val onDeviceAiEnabled: Boolean = true,
+    @SerialName("cloudSearchAiFallbackEnabled") val cloudSearchAiFallbackEnabled: Boolean = true,
+    @SerialName("homePlansLayout") val homePlansLayout: String = "adaptive",
 )
 
 @Serializable
-data class CloudRuntimeConfigDto(
-    val schemaVersion: Int = 1,
-    val aiSummariesEnabled: Boolean = true,
-    val geminiModel: String = GEMINI_MODEL,
-    val defaultVersion: String = "KJV",
-    val supportedVersions: List<BibleVersion> = emptyList(),
-    val sessionToken: String = "",
-    val tokenExpiresInSeconds: Long = 3600L,
-    val features: CloudFeatureFlagsDto = CloudFeatureFlagsDto(),
+internal data class CloudRuntimeConfigDto(
+    @SerialName("schemaVersion") val schemaVersion: Int = 1,
+    @SerialName("aiSummariesEnabled") val aiSummariesEnabled: Boolean = true,
+    @SerialName("geminiModel") val geminiModel: String = GEMINI_MODEL,
+    @SerialName("defaultVersion") val defaultVersion: String = "KJV",
+    @SerialName("supportedVersions") val supportedVersions: List<BibleVersion> = emptyList(),
+    @SerialName("sessionToken") val sessionToken: String = "",
+    @SerialName("tokenExpiresInSeconds") val tokenExpiresInSeconds: Long = 3600L,
+    @SerialName("attestationRequired") val attestationRequired: Boolean = false,
+    @SerialName("features") val features: CloudFeatureFlagsDto = CloudFeatureFlagsDto(),
 ) {
     override fun toString(): String =
-        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, features=$features, sessionToken=[redacted])"
+        "CloudRuntimeConfigDto(schemaVersion=$schemaVersion, aiSummariesEnabled=$aiSummariesEnabled, geminiModel=$geminiModel, defaultVersion=$defaultVersion, versions=${supportedVersions.size}, attestationRequired=$attestationRequired, features=$features, sessionToken=[redacted])"
 }
 
 @Serializable
-data class CloudTokenResponseDto(
-    val sessionToken: String = "",
-    val tokenExpiresInSeconds: Long = 3600L,
+internal data class CloudTokenResponseDto(
+    @SerialName("sessionToken") val sessionToken: String = "",
+    @SerialName("tokenExpiresInSeconds") val tokenExpiresInSeconds: Long = 3600L,
+    @SerialName("tier") val tier: String = "anon",
+    @SerialName("attested") val attested: Boolean = false,
 ) {
-    override fun toString(): String = "CloudTokenResponseDto(sessionToken=[redacted])"
+    override fun toString(): String = "CloudTokenResponseDto(tier=$tier, attested=$attested, sessionToken=[redacted])"
 }
 
 @ThreadLocal
-object CloudSessionManager {
+internal object CloudSessionManager {
     private var gatewayUrlOverride: String? = null
+    internal var customAttesterForTesting: (suspend (String) -> ClientAttestationDto?)? = null
+    private val startupConfigMutex = Mutex()
+    private var startupConfigCache: CloudRuntimeConfigDto? = null
+    private var startupConfigFetched: Boolean = false
 
     val configuredGatewayUrl: String
-        get() = (gatewayUrlOverride ?: BuildKonfig.CLOUD_GATEWAY_URL).trim().trimEnd('/')
+        get() = (gatewayUrlOverride ?: ProtectedEndpoints.gatewayUrl()).trim().trimEnd('/')
 
     val isGatewayConfigured: Boolean
         get() = parseSecureGatewayUrl(configuredGatewayUrl) != null
@@ -132,7 +163,10 @@ object CloudSessionManager {
     var sessionToken: String by mutableStateOf("")
         internal set
 
-    var aiSummariesEnabled: Boolean by mutableStateOf(BuildKonfig.AI_SUMMARIES_ENABLED)
+    var attestationRequired: Boolean by mutableStateOf(false)
+        internal set
+
+    var aiSummariesEnabled: Boolean by mutableStateOf(email.kevinphillips.biblebible.BuildKonfig.AI_SUMMARIES_ENABLED)
         internal set
 
     var geminiModel: String by mutableStateOf(GEMINI_MODEL)
@@ -207,14 +241,43 @@ object CloudSessionManager {
     val readerRedLetterEnabled: Boolean
         get() = featureFlags.readerRedLetterEnabled
 
+    val elasticSearchEnabled: Boolean
+        get() = featureFlags.elasticSearchEnabled
+
+    val searchMasonryTopicsEnabled: Boolean
+        get() = featureFlags.searchMasonryTopicsEnabled
+
+    val readingPlansEnabled: Boolean
+        get() = featureFlags.readingPlansEnabled
+
+    val readingPlansAutoCheckoffEnabled: Boolean
+        get() = featureFlags.readingPlansAutoCheckoffEnabled
+
+    val onDeviceAiEnabled: Boolean
+        get() = featureFlags.onDeviceAiEnabled
+
+    val cloudSearchAiFallbackEnabled: Boolean
+        get() = featureFlags.cloudSearchAiFallbackEnabled
+
+    val homePlansLayout: String
+        get() = featureFlags.homePlansLayout
+            .trim()
+            .lowercase()
+            .takeIf { it in validHomePlansLayouts }
+            ?: "adaptive"
+
     internal fun overrideGatewayUrlForTesting(url: String?) {
         gatewayUrlOverride = url
     }
 
     internal fun resetForTesting() {
         gatewayUrlOverride = null
+        customAttesterForTesting = null
+        startupConfigCache = null
+        startupConfigFetched = false
         sessionToken = ""
-        aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED
+        attestationRequired = false
+        aiSummariesEnabled = email.kevinphillips.biblebible.BuildKonfig.AI_SUMMARIES_ENABLED
         geminiModel = GEMINI_MODEL
         featureFlags = CloudFeatureFlagsDto()
     }
@@ -232,13 +295,18 @@ object CloudSessionManager {
 
     suspend fun initializeStartupConfig(
         client: HttpClient = httpClientCloudGateway,
-    ): CloudRuntimeConfigDto? {
-        val baseUrl = configuredGatewayUrl.takeIf { parseSecureGatewayUrl(it) != null } ?: return null
-        val endpoint = if ("://" in baseUrl) "$baseUrl/v1/config" else "https://$baseUrl/v1/config"
-        return try {
+    ): CloudRuntimeConfigDto? = startupConfigMutex.withLock {
+        if (startupConfigFetched && startupConfigCache != null && client === httpClientCloudGateway) {
+            return@withLock startupConfigCache
+        }
+        val baseUrl = configuredGatewayUrl.takeIf { parseSecureGatewayUrl(it) != null } ?: return@withLock null
+        val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
+        val endpoint = "$prefix${ProtectedEndpoints.configPath()}"
+        return@withLock try {
             val response = withContext(Dispatchers.IO) {
                 client.get {
                     expectSuccess = false
+                    header(ProtectedEndpoints.headerClientPlatform(), getPlatformName())
                     url(endpoint)
                 }
             }
@@ -249,10 +317,15 @@ object CloudSessionManager {
                     "lifecycle",
                     mapOf("httpStatus" to response.status.value.toString()),
                 )
-                return null
+                return@withLock null
             }
             val config = response.body<CloudRuntimeConfigDto>()
             applyRuntimeConfig(config)
+            startupConfigCache = config
+            startupConfigFetched = true
+            if (config.attestationRequired && sessionToken.isBlank()) {
+                refreshSessionToken(client)
+            }
             VotdNotificationController.applyRemindersAvailability(config.features.votdNotificationsEnabled)
             AnalyticsTracker.track(
                 "cloud_config_loaded",
@@ -281,12 +354,44 @@ object CloudSessionManager {
         client: HttpClient = httpClientCloudGateway,
     ): String? {
         val baseUrl = configuredGatewayUrl.takeIf { parseSecureGatewayUrl(it) != null } ?: return null
-        val endpoint = if ("://" in baseUrl) "$baseUrl/v1/auth/token" else "https://$baseUrl/v1/auth/token"
+        val prefix = if ("://" in baseUrl) baseUrl else "https://$baseUrl"
+        val challengeEndpoint = "$prefix${ProtectedEndpoints.authChallengePath()}"
+        val tokenEndpoint = "$prefix${ProtectedEndpoints.authTokenPath()}"
         return try {
+            var attestationPayload: ClientAttestationDto? = null
+            if (attestationRequired || customAttesterForTesting != null || client === httpClientCloudGateway) {
+                val challengeResp = withContext(Dispatchers.IO) {
+                    runCatching {
+                        client.get {
+                            expectSuccess = false
+                            header(ProtectedEndpoints.headerClientPlatform(), getPlatformName())
+                            url(challengeEndpoint)
+                        }
+                    }.getOrNull()
+                }
+                if (challengeResp != null && challengeResp.status.isSuccess()) {
+                    val nonce = runCatching { challengeResp.body<ChallengeResponseDto>().nonce }.getOrDefault("")
+                    if (nonce.isNotBlank()) {
+                        attestationPayload = customAttesterForTesting?.invoke(nonce)
+                            ?: AppIntegrityProvider.attestChallenge(nonce)
+                    }
+                }
+            }
+
+            val runtimeStatus = AppIntegrityProvider.inspectRuntimeEnvironment()
             val response = withContext(Dispatchers.IO) {
                 client.post {
                     expectSuccess = false
-                    url(endpoint)
+                    header(ProtectedEndpoints.headerClientPlatform(), getPlatformName())
+                    header(
+                        ProtectedEndpoints.headerClientIntegrity(),
+                        if (runtimeStatus.compromised) "compromised" else "ok",
+                    )
+                    if (attestationPayload != null) {
+                        contentType(ContentType.Application.Json)
+                        setBody(attestationPayload)
+                    }
+                    url(tokenEndpoint)
                 }
             }
             if (!response.status.isSuccess()) return null
@@ -305,10 +410,11 @@ object CloudSessionManager {
     }
 
     internal fun applyRuntimeConfig(config: CloudRuntimeConfigDto) {
+        attestationRequired = config.attestationRequired
         if (config.sessionToken.isNotBlank()) {
             sessionToken = config.sessionToken
         }
-        aiSummariesEnabled = BuildKonfig.AI_SUMMARIES_ENABLED && config.aiSummariesEnabled
+        aiSummariesEnabled = email.kevinphillips.biblebible.BuildKonfig.AI_SUMMARIES_ENABLED && config.aiSummariesEnabled
         featureFlags = config.features
         if (config.geminiModel.isNotBlank()) {
             geminiModel = config.geminiModel

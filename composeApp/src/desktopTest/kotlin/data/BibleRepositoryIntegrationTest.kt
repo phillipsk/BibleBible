@@ -5,6 +5,7 @@ import data.bible.BibleChapter
 import data.bible.BibleState
 import data.bible.BookData
 import data.bible.ChapterCount
+import data.bible.clearChapterMemoryCacheForTesting
 import data.bible.fetchBibleChapter
 import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
 import email.kevinphillips.biblebible.cache.DriverFactory
@@ -19,7 +20,8 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BibleRepositoryIntegrationTest {
-    private fun clearCache() {
+    private suspend fun clearCache() {
+        clearChapterMemoryCacheForTesting()
         DriverFactory.createDriver()?.let { driver ->
             BibleBibleDatabase(driver).bibleBibleDatabaseQueries.removeExcessVerses(0)
             driver.execute(null, "DELETE FROM ChapterCounts", 0)
@@ -48,7 +50,8 @@ class BibleRepositoryIntegrationTest {
             val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
             BibleState.updateBooks(books)
             fetchBibleChapter(books.data!!.first(), version = "BSB", updateReadingHistory = false, client = client)
-            assertEquals(listOf("/GetChapter", "/GetChapterCount"), paths)
+            assertEquals(2, paths.size)
+            assertEquals(setOf("/GetChapter", "/GetChapterCount"), paths.toSet())
             assertEquals("[1] In the beginning God created the heavens and the earth.", BibleState.bibleChapter?.text)
             assertEquals(50, BibleState.bibleChapter?.chapterList?.size)
         } finally {

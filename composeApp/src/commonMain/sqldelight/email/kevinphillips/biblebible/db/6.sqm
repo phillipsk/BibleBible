@@ -1,4 +1,4 @@
-CREATE TABLE SavedReadingPosition (
+CREATE TABLE IF NOT EXISTS SavedReadingPosition (
     uuid INTEGER PRIMARY KEY CHECK (uuid = 1),
     bookKey TEXT NOT NULL,
     chapter INTEGER NOT NULL CHECK (chapter >= 1),

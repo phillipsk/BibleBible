@@ -5,7 +5,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.toLocalDateTime
 
-fun getTimeZone(): String {
+internal fun getTimeZone(): String {
     val currentInstant = Clock.System.now()
     val userTimeZone = getUserTimeZone()
     return currentInstant.toLocalDateTime(userTimeZone).toString()

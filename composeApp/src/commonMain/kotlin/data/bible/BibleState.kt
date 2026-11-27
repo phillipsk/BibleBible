@@ -15,9 +15,12 @@ import data.config.CloudSessionManager
 import data.GeminiModel
 import data.analytics.AnalyticsTracker
 import data.appPrefs.ReadingSession
+import data.notifications.PushDestinationKind
 import data.notifications.ScriptureDeepLink
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
+import data.plans.ActivePlanReadingContext
+import data.shorts.platformShortsPrefsBacking
 import email.kevinphillips.biblebible.BuildKonfig
 import email.kevinphillips.biblebible.db.SelectReadingHistory
 import email.kevinphillips.biblebible.isDesktopPlatform
@@ -27,7 +30,7 @@ import kotlinx.datetime.LocalDate
 import kotlin.native.concurrent.ThreadLocal
 
 @ThreadLocal
-object BibleState {
+internal object BibleState {
     val RELEASE_BUILD: Boolean get() = !BuildKonfig.ENABLE_DIAGNOSTIC_LOGGING
     const val DEFAULT_BIBLE_ID = "kjv"
     val singleChapterBooksOrdinal = setOf("31", "57", "63", "64", "65")
@@ -75,8 +78,14 @@ object BibleState {
     var isFirstLaunch by mutableStateOf(true)
     var showHomePage by mutableStateOf(true)
     var showBiblicalShorts by mutableStateOf(false)
+    var isSearchActive by mutableStateOf(false)
+    var inlineSearchQuery by mutableStateOf("")
+    var isInlineSearchFocused by mutableStateOf(false)
+    var showReadingPlans by mutableStateOf(false)
     var selectedShortsCategory by mutableStateOf("All")
     var autoDemoTourEnabled by mutableStateOf(false)
+    var activePlanReading by mutableStateOf<ActivePlanReadingContext?>(null)
+    var activeReaderScrollProgress by mutableStateOf(0f)
 
     var pendingDeepLink by mutableStateOf<ScriptureDeepLink?>(null)
         private set
@@ -97,6 +106,139 @@ object BibleState {
         private set
     var highlightedVerseEnd by mutableStateOf<Int?>(null)
         private set
+
+    internal data class DailyVerseHighlight(
+        val bookId: String,
+        val bookNumber: Int,
+        val chapter: Int,
+        val verseStart: Int,
+        val verseEnd: Int = verseStart,
+        val date: String = "",
+        val version: String = "",
+    )
+
+    var activeDailyVerseHighlight by mutableStateOf<DailyVerseHighlight?>(null)
+        private set
+
+    private const val KEY_ACTIVE_VOTD_BOOK_ID = "active_votd_book_id"
+    private const val KEY_ACTIVE_VOTD_BOOK_NUM = "active_votd_book_num"
+    private const val KEY_ACTIVE_VOTD_CHAPTER = "active_votd_chapter"
+    private const val KEY_ACTIVE_VOTD_VERSE_START = "active_votd_verse_start"
+    private const val KEY_ACTIVE_VOTD_VERSE_END = "active_votd_verse_end"
+    private const val KEY_ACTIVE_VOTD_DATE = "active_votd_date"
+    private const val KEY_ACTIVE_VOTD_VERSION = "active_votd_version"
+
+    fun setActiveDailyVerse(dailyVerse: DailyVerse) {
+        val data = dailyVerse.data
+        val resolvedUsfm = data.bookUsfm?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+            ?: usfmForBookNumber(data.bookNumber)
+            ?: return
+        setActiveDailyVerse(
+            bookId = resolvedUsfm,
+            bookNumber = data.bookNumber,
+            chapter = data.chapter,
+            verseStart = data.verse,
+            verseEnd = data.verse,
+            date = dailyVerse.date,
+            version = dailyVerse.version,
+        )
+    }
+
+    fun setActiveDailyVerse(
+        bookId: String,
+        bookNumber: Int? = null,
+        chapter: Int,
+        verseStart: Int,
+        verseEnd: Int = verseStart,
+        date: String = "",
+        version: String = "",
+    ) {
+        val cleanBookId = bookId.trim().uppercase()
+        if (cleanBookId.isBlank() || chapter < 1 || verseStart < 1) return
+        val resolvedBookNumber = bookNumber ?: bookNumberForUsfm(cleanBookId) ?: 1
+        val safeChapter = chapter.coerceAtLeast(1)
+        val safeStart = verseStart.coerceAtLeast(1)
+        val safeEnd = verseEnd.coerceAtLeast(safeStart)
+        val cleanDate = date.trim()
+        val cleanVersion = version.trim().uppercase()
+        activeDailyVerseHighlight = DailyVerseHighlight(
+            bookId = cleanBookId,
+            bookNumber = resolvedBookNumber,
+            chapter = safeChapter,
+            verseStart = safeStart,
+            verseEnd = safeEnd,
+            date = cleanDate,
+            version = cleanVersion,
+        )
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            prefs.putString(KEY_ACTIVE_VOTD_BOOK_ID, cleanBookId)
+            prefs.putInt(KEY_ACTIVE_VOTD_BOOK_NUM, resolvedBookNumber)
+            prefs.putInt(KEY_ACTIVE_VOTD_CHAPTER, safeChapter)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_START, safeStart)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_END, safeEnd)
+            prefs.putString(KEY_ACTIVE_VOTD_DATE, cleanDate)
+            prefs.putString(KEY_ACTIVE_VOTD_VERSION, cleanVersion)
+        }
+    }
+
+    fun restorePersistedDailyVerseHighlight() {
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            val savedBookId = prefs.getString(KEY_ACTIVE_VOTD_BOOK_ID)?.trim()?.uppercase().orEmpty()
+            val savedBookNum = prefs.getInt(KEY_ACTIVE_VOTD_BOOK_NUM, 0)
+            val savedChapter = prefs.getInt(KEY_ACTIVE_VOTD_CHAPTER, 0)
+            val savedStart = prefs.getInt(KEY_ACTIVE_VOTD_VERSE_START, 0)
+            val savedEnd = prefs.getInt(KEY_ACTIVE_VOTD_VERSE_END, savedStart).coerceAtLeast(savedStart)
+            val savedDate = prefs.getString(KEY_ACTIVE_VOTD_DATE).orEmpty()
+            val savedVersion = prefs.getString(KEY_ACTIVE_VOTD_VERSION).orEmpty()
+            if (savedBookId.isNotBlank() && savedChapter >= 1 && savedStart >= 1) {
+                activeDailyVerseHighlight = DailyVerseHighlight(
+                    bookId = savedBookId,
+                    bookNumber = savedBookNum.takeIf { it in 1..66 } ?: bookNumberForUsfm(savedBookId) ?: 1,
+                    chapter = savedChapter,
+                    verseStart = savedStart,
+                    verseEnd = savedEnd,
+                    date = savedDate,
+                    version = savedVersion,
+                )
+            }
+        }
+    }
+
+    fun clearActiveDailyVerseHighlight() {
+        activeDailyVerseHighlight = null
+        runCatching {
+            val prefs = platformShortsPrefsBacking()
+            prefs.putString(KEY_ACTIVE_VOTD_BOOK_ID, "")
+            prefs.putInt(KEY_ACTIVE_VOTD_BOOK_NUM, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_CHAPTER, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_START, 0)
+            prefs.putInt(KEY_ACTIVE_VOTD_VERSE_END, 0)
+            prefs.putString(KEY_ACTIVE_VOTD_DATE, "")
+            prefs.putString(KEY_ACTIVE_VOTD_VERSION, "")
+        }
+    }
+
+    fun effectiveHighlightRangeForChapter(bookId: String, chapter: Int): IntRange? {
+        if (bookId.isBlank() || chapter < 1) return null
+        val explicitStart = highlightedVerseStart
+        if (highlightedVerseBookId.equals(bookId, ignoreCase = true) &&
+            highlightedVerseChapter == chapter &&
+            explicitStart != null &&
+            explicitStart >= 1
+        ) {
+            return explicitStart..(highlightedVerseEnd ?: explicitStart).coerceAtLeast(explicitStart)
+        }
+        val daily = activeDailyVerseHighlight
+        if (daily != null &&
+            daily.bookId.equals(bookId, ignoreCase = true) &&
+            daily.chapter == chapter
+        ) {
+            return daily.verseStart..daily.verseEnd.coerceAtLeast(daily.verseStart)
+        }
+        return null
+    }
 
     fun enqueueDeepLink(link: ScriptureDeepLink) {
         pendingDeepLink = link
@@ -140,6 +282,40 @@ object BibleState {
     ): Boolean {
         val link = pendingDeepLink ?: return false
         pendingDeepLink = null
+
+        when (link.destination) {
+            PushDestinationKind.BIBLICAL_WORDS -> {
+                isSearchActive = false
+                showReadingPlans = false
+                activePlanReading = null
+                showHomePage = true
+                openBiblicalShorts(link.shortsCategory ?: "All")
+                AnalyticsTracker.track(
+                    "push_deeplink_opened",
+                    "notifications",
+                    mapOf(
+                        "destination" to "biblical_words",
+                        "category" to (link.shortsCategory ?: "All"),
+                    ),
+                )
+                return true
+            }
+            PushDestinationKind.HOME -> {
+                isSearchActive = false
+                showReadingPlans = false
+                activePlanReading = null
+                returnToShortsOnBack = false
+                closeBiblicalShorts()
+                showHomePage = true
+                AnalyticsTracker.track(
+                    "push_deeplink_opened",
+                    "notifications",
+                    mapOf("destination" to "home"),
+                )
+                return true
+            }
+            PushDestinationKind.SCRIPTURE -> Unit
+        }
 
         val targetRef = if (link.fetchDailyIfMissing) {
             val requestedVersion = link.version ?: selectedVersion
@@ -196,14 +372,31 @@ object BibleState {
                 },
         )
 
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showReadingPlans = false
+        activePlanReading = null
         returnToShortsOnBack = false
         closeBiblicalShorts()
         restoreReadingLocation(matchedBook, targetRef.chapter.coerceAtLeast(1))
+        val targetChapter = targetRef.chapter.coerceAtLeast(1)
+        val targetVerse = targetRef.verse.coerceAtLeast(1)
+        if (link.isDailyVerse || link.fetchDailyIfMissing) {
+            setActiveDailyVerse(
+                bookId = matchedBook.bookId,
+                bookNumber = resolvedNumber,
+                chapter = targetChapter,
+                verseStart = targetVerse,
+                verseEnd = targetVerse,
+                version = targetRef.version ?: selectedVersion,
+            )
+        }
         focusScriptureVerse(
             bookId = matchedBook.bookId,
-            chapter = targetRef.chapter.coerceAtLeast(1),
-            verseStart = targetRef.verse.coerceAtLeast(1),
-            verseEnd = targetRef.verse.coerceAtLeast(1),
+            chapter = targetChapter,
+            verseStart = targetVerse,
+            verseEnd = targetVerse,
         )
         AnalyticsTracker.trackBookSelected(
             bookId = matchedBook.bookId,
@@ -431,7 +624,105 @@ object BibleState {
     }
 
     var returnToShortsOnBack by mutableStateOf(false)
+    var returnToPlansOnBack by mutableStateOf(false)
     var resumeShortIdOnReturn by mutableStateOf<String?>(null)
+
+    fun resolveBookData(
+        bookId: String,
+        bookNumber: Int? = null,
+        fallbackName: String? = null,
+        minChapters: Int = 1,
+    ): BookData {
+        val cleanUsfm = bookId.trim().uppercase()
+        val resolvedOrdinal = bookNumber ?: bookNumberForUsfm(cleanUsfm)
+        val books = bibleBooks.data.orEmpty()
+        return books.find { it.bookId.equals(cleanUsfm, ignoreCase = true) }
+            ?: resolvedOrdinal?.let { ord -> books.getOrNull(ord - 1) }
+            ?: BookData(
+                id = cleanUsfm,
+                name = fallbackName ?: resolvedOrdinal?.let { bibleBooksFull.getOrNull(it - 1) } ?: cleanUsfm,
+                chapters = listOf(Chapter(bookId = "$cleanUsfm.intro")) +
+                    (1..minChapters.coerceAtLeast(1)).map { ch ->
+                        Chapter(
+                            name = "$cleanUsfm.$ch",
+                            bookId = cleanUsfm,
+                            number = ch.toString(),
+                            position = ch,
+                        )
+                    },
+            )
+    }
+
+    fun openSpotlightSearch() {
+        isSearchActive = false
+        isInlineSearchFocused = true
+        showReadingPlans = false
+        AnalyticsTracker.track("spotlight_search_opened", "search")
+    }
+
+    fun closeSpotlightSearch() {
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+    }
+
+    fun openReadingPlans() {
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showBiblicalShorts = false
+        showReadingPlans = true
+        AnalyticsTracker.track("reading_plans_opened", "reading_plans")
+    }
+
+    fun exitReadingPlansToHome() {
+        showReadingPlans = false
+        returnToPlansOnBack = false
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        showHomePage = true
+        ReadingSession.goHome()
+    }
+
+    fun openPlanReading(context: ActivePlanReadingContext) {
+        val ref = context.reading
+        val targetBook = resolveBookData(
+            bookId = ref.bookId,
+            bookNumber = ref.bookNumber,
+            fallbackName = ref.bookName,
+            minChapters = ref.chapter,
+        )
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showReadingPlans = false
+        showBiblicalShorts = false
+        returnToShortsOnBack = false
+        returnToPlansOnBack = true
+        activePlanReading = context
+        activeReaderScrollProgress = 0f
+        restoreReadingLocation(targetBook, ref.chapter.coerceAtLeast(1))
+        if (ref.verseStart != null && ref.verseStart >= 1) {
+            focusScriptureVerse(
+                bookId = targetBook.bookId,
+                chapter = ref.chapter.coerceAtLeast(1),
+                verseStart = ref.verseStart,
+                verseEnd = (ref.verseEnd ?: ref.verseStart).coerceAtLeast(ref.verseStart),
+            )
+        } else {
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+        }
+        AnalyticsTracker.track(
+            name = "reading_plan_passage_opened",
+            category = "reading_plans",
+            properties = mapOf(
+                "planId" to context.planId,
+                "day" to context.dayNumber.toString(),
+                "readingId" to ref.id,
+            ),
+        )
+    }
 
     val onHomeClick: () -> Unit = {
         dailyVerseSwipeOrigin = null
@@ -439,7 +730,14 @@ object BibleState {
         Napier.v("onHomeClick", tag = "BB2452")
         AnalyticsTracker.track("home_top_bar_click", "navigation")
         returnToShortsOnBack = false
+        returnToPlansOnBack = false
         resumeShortIdOnReturn = null
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()
         showBiblicalShorts = false
@@ -451,7 +749,14 @@ object BibleState {
         closeBiblicalShorts()
         GeminiModel.cancelPendingSummary()
         returnToShortsOnBack = false
+        returnToPlansOnBack = false
         resumeShortIdOnReturn = null
+        activePlanReading = null
+        activeReaderScrollProgress = 0f
+        isSearchActive = false
+        isInlineSearchFocused = false
+        inlineSearchQuery = ""
+        showReadingPlans = false
         clearHighlightedVerse()
         clearPendingTargetVerse()
         showBiblicalShorts = false
@@ -469,6 +774,16 @@ object BibleState {
             ReadingSession.goHome()
             AnalyticsTracker.track("reader_back_to_shorts", "navigation")
             openBiblicalShorts()
+        } else if (returnToPlansOnBack) {
+            returnToPlansOnBack = false
+            activePlanReading = null
+            activeReaderScrollProgress = 0f
+            clearHighlightedVerse()
+            clearPendingTargetVerse()
+            showHomePage = true
+            showReadingPlans = true
+            ReadingSession.goHome()
+            AnalyticsTracker.track("reader_back_to_plans", "reading_plans")
         } else {
             onHomeClick()
         }

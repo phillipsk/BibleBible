@@ -26,4 +26,4 @@ private class AndroidShortsPrefsBacking : ShortsPrefsBacking {
     }
 }
 
-actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = AndroidShortsPrefsBacking()
+internal actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = AndroidShortsPrefsBacking()

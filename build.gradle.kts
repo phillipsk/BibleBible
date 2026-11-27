@@ -9,4 +9,5 @@ plugins {
     alias(libs.plugins.buildKonfig) apply false
     alias(libs.plugins.kotlinX.serialization.plugin) apply false
     alias(libs.plugins.sqlDelight) apply false
+    alias(libs.plugins.googleServices) apply false
 }

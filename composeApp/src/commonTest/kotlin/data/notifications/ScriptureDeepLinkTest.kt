@@ -2,6 +2,7 @@ package data.notifications
 
 import data.bible.BibleBooksResponse
 import data.bible.BibleState
+import data.bible.DailyVerse
 import data.bible.DailyVerseData
 import data.bible.json.BUNDLED_BIBLE_BOOKS_JSON
 import kotlinx.coroutines.test.runTest
@@ -20,6 +21,7 @@ class ScriptureDeepLinkTest {
 
     @AfterTest
     fun resetState() {
+        BibleState.clearActiveDailyVerseHighlight()
         BibleState.discardReadingLocation()
         BibleState.updateBooks(originalBooks)
         BibleState.updateSelectedVersion(originalVersion)
@@ -160,5 +162,102 @@ class ScriptureDeepLinkTest {
         assertEquals(40, BibleState.bibleChapter?.chapterId)
         assertEquals(31, BibleState.pendingTargetVerse)
         assertFalse(BibleState.showHomePage)
+    }
+
+    @Test
+    fun parsesAndConsumesBiblicalWordsReadingNudgeAndAnnouncementPayloads() = runTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+
+        val wordsLink = parseVotdNotificationPayload(
+            mapOf(
+                "type" to "biblical_words",
+                "destination" to "biblical_words",
+                "category" to "Faith",
+            )
+        )
+        assertNotNull(wordsLink)
+        assertEquals(PushDestinationKind.BIBLICAL_WORDS, wordsLink.destination)
+        assertEquals("Faith", wordsLink.shortsCategory)
+
+        BibleState.enqueueDeepLink(wordsLink)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertTrue(BibleState.showBiblicalShorts)
+        assertEquals("Faith", BibleState.selectedShortsCategory)
+
+        val readingNudge = parseVotdNotificationPayload(
+            mapOf(
+                "type" to "reading_nudge",
+                "destination" to "scripture",
+                "bookNumber" to "19",
+                "bookUsfm" to "PSA",
+                "chapter" to "23",
+                "verse" to "1",
+                "versionId" to "KJV",
+            )
+        )
+        assertNotNull(readingNudge)
+        assertEquals(PushDestinationKind.SCRIPTURE, readingNudge.destination)
+        BibleState.enqueueDeepLink(readingNudge)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertFalse(BibleState.showBiblicalShorts)
+        assertEquals("Psalms", BibleState.selectedBook.name)
+        assertEquals(23, BibleState.bibleChapter?.chapterId)
+
+        val homeAnnouncement = parseVotdNotificationPayload(mapOf("type" to "announcement"))
+        assertNotNull(homeAnnouncement)
+        assertEquals(PushDestinationKind.HOME, homeAnnouncement.destination)
+        BibleState.enqueueDeepLink(homeAnnouncement)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertTrue(BibleState.showHomePage)
+    }
+
+    @Test
+    fun globalDailyVerseHighlightPersistsAcrossChapterSwipesAndUpdatesOnRefresh() = runTest {
+        val books = Json.decodeFromString<BibleBooksResponse>(BUNDLED_BIBLE_BOOKS_JSON)
+        BibleState.updateBooks(books)
+        BibleState.openSpotlightSearch()
+
+        val votdLink = parseVotdNotificationPayload(
+            mapOf(
+                "type" to "votd",
+                "bookNumber" to "23",
+                "bookUsfm" to "ISA",
+                "chapter" to "40",
+                "verse" to "31",
+                "versionId" to "KJV",
+            )
+        )
+        assertNotNull(votdLink)
+        assertTrue(votdLink.isDailyVerse)
+
+        BibleState.enqueueDeepLink(votdLink)
+        assertTrue(BibleState.consumePendingDeepLink())
+        assertFalse(BibleState.isSearchActive)
+        assertEquals(31..31, BibleState.effectiveHighlightRangeForChapter("ISA", 40))
+
+        // Swiping away to chapter 41 clears the one-shot target focus, then returning keeps VOTD highlighted
+        val isaiah = BibleState.resolveBookData("ISA", 23)
+        BibleState.restoreReadingLocation(isaiah, 41)
+        assertNull(BibleState.effectiveHighlightRangeForChapter("ISA", 41))
+        BibleState.restoreReadingLocation(isaiah, 40)
+        assertEquals(31..31, BibleState.effectiveHighlightRangeForChapter("ISA", 40))
+
+        // Refreshing VOTD un-highlights the old verse globally and highlights the newly refreshed verse
+        BibleState.setActiveDailyVerse(
+            DailyVerse(
+                version = "KJV",
+                date = "2026-11-25",
+                data = DailyVerseData(
+                    bookNumber = 24,
+                    chapter = 29,
+                    verse = 11,
+                    text = "For I know the thoughts that I think toward you",
+                    bookUsfm = "JER",
+                ),
+            )
+        )
+        assertNull(BibleState.effectiveHighlightRangeForChapter("ISA", 40))
+        assertEquals(11..11, BibleState.effectiveHighlightRangeForChapter("JER", 29))
     }
 }

@@ -59,8 +59,12 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.play.integrity)
+            implementation(libs.mlkit.genai.prompt)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -130,15 +134,86 @@ val cloudGatewayUrl = providers.gradleProperty("CLOUD_GATEWAY_URL")
     .get()
     .trim()
 
+composeCompiler {
+    includeSourceInformation.set(diagnosticLoggingEnabled)
+}
+
+val protectedEndpointsDir = layout.buildDirectory.dir("generated/protectedEndpoints/commonMain/kotlin")
+val generateProtectedEndpoints = tasks.register("generateProtectedEndpoints") {
+    val gatewayInput = cloudGatewayUrl
+    val outputDir = protectedEndpointsDir
+    inputs.property("gatewayUrl", gatewayInput)
+    inputs.property("schemaVersion", 4)
+    outputs.dir(outputDir)
+    doLast {
+        val outFile = outputDir.get()
+            .file("email/kevinphillips/biblebible/security/ProtectedEndpoints.kt")
+            .asFile
+        outFile.parentFile.mkdirs()
+        val seed = intArrayOf(0x5A, 0x3C, 0x6F, 0x19, 0x71, 0x2D, 0x4E, 0x63)
+        fun encodeLiteral(raw: String, salt: Int): String {
+            val bytes = raw.encodeToByteArray()
+            return bytes.indices.joinToString(", ") { i ->
+                val b = bytes[i].toInt() and 0xFF
+                val mask = (seed[i % seed.size] xor ((i * 31 + salt) and 0xFF)) and 0xFF
+                (b xor mask).toString()
+            }
+        }
+        val entries = listOf(
+            "gatewayUrl" to gatewayInput,
+            "configPath" to "/v1/config",
+            "authChallengePath" to "/v1/auth/challenge",
+            "authTokenPath" to "/v1/auth/token",
+            "geminiSummaryPath" to "/v1/gemini/summary",
+            "analyticsEventsPath" to "/v1/analytics/events",
+            "shortsFeedPath" to "/GetBiblicalShorts",
+            "shortsMediaPrefix" to "/v1/shorts/media/",
+            "versionsPath" to "/GetVersions",
+            "chapterPath" to "/GetChapter",
+            "chapterCountPath" to "/GetChapterCount",
+            "dailyVersePath" to "/GetVerseOfTheDay",
+            "votdPreviewPath" to "/v1/notifications/preview",
+            "pushRegisterPath" to "/v1/notifications/register",
+            "pushUnregisterPath" to "/v1/notifications/unregister",
+            "searchPath" to "/v1/search",
+            "plansPath" to "/v1/plans",
+            "headerClientPlatform" to "X-Client-Platform",
+            "headerClientDeviceId" to "X-Client-Device-Id",
+            "headerClientIntegrity" to "X-Client-Integrity",
+        )
+        val functions = entries.mapIndexed { idx, (fnName, value) ->
+            val salt = (idx + 1) * 17
+            "    internal fun $fnName(): String = d(intArrayOf(${encodeLiteral(value, salt)}), $salt)"
+        }.joinToString("\n")
+        outFile.writeText(
+            """
+            package email.kevinphillips.biblebible.security
+
+            internal object ProtectedEndpoints {
+                private val m = intArrayOf(0x5A, 0x3C, 0x6F, 0x19, 0x71, 0x2D, 0x4E, 0x63)
+
+                private fun d(data: IntArray, salt: Int): String {
+                    val out = ByteArray(data.size)
+                    for (i in data.indices) {
+                        val mask = (m[i % m.size] xor ((i * 31 + salt) and 0xFF)) and 0xFF
+                        out[i] = (data[i] xor mask).toByte()
+                    }
+                    return out.decodeToString()
+                }
+
+            $functions
+            }
+            """.trimIndent() + "\n"
+        )
+    }
+}
+
+kotlin.sourceSets.getByName("commonMain").kotlin.srcDir(generateProtectedEndpoints)
+
 buildkonfig {
     packageName = "email.kevinphillips.biblebible"
 
     defaultConfigs {
-        buildConfigField(
-            STRING,
-            "CLOUD_GATEWAY_URL",
-            cloudGatewayUrl
-        )
         buildConfigField(BOOLEAN, "AI_SUMMARIES_ENABLED", aiSummariesEnabled.toString())
         buildConfigField(BOOLEAN, "ENABLE_DIAGNOSTIC_LOGGING", diagnosticLoggingEnabled.toString())
     }

@@ -5,20 +5,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlin.native.concurrent.ThreadLocal
 
-enum class NotificationPermissionStatus {
+internal enum class NotificationPermissionStatus {
     NOT_DETERMINED,
     GRANTED,
     DENIED,
     UNSUPPORTED,
 }
 
-data class DailyReminderTimeOption(
+internal data class DailyReminderTimeOption(
     val hour: Int,
     val minute: Int,
     val label: String,
 )
 
-val dailyReminderTimeOptions: List<DailyReminderTimeOption> = listOf(
+internal val dailyReminderTimeOptions: List<DailyReminderTimeOption> = listOf(
     DailyReminderTimeOption(5, 0, "5:00 AM"),
     DailyReminderTimeOption(5, 30, "5:30 AM"),
     DailyReminderTimeOption(6, 0, "6:00 AM"),
@@ -33,7 +33,7 @@ val dailyReminderTimeOptions: List<DailyReminderTimeOption> = listOf(
     DailyReminderTimeOption(21, 0, "9:00 PM"),
 )
 
-fun formatReminderTime12Hour(hour: Int, minute: Int): String {
+internal fun formatReminderTime12Hour(hour: Int, minute: Int): String {
     val cleanHour = hour.coerceIn(0, 23)
     val cleanMinute = minute.coerceIn(0, 59)
     val period = if (cleanHour < 12) "AM" else "PM"
@@ -45,7 +45,7 @@ fun formatReminderTime12Hour(hour: Int, minute: Int): String {
     return "$displayHour:$minStr $period"
 }
 
-interface NotificationPlatformBridge {
+internal interface NotificationPlatformBridge {
     val isSupported: Boolean
     fun isUserEnabled(): Boolean
     fun setUserEnabled(enabled: Boolean)
@@ -62,10 +62,10 @@ interface NotificationPlatformBridge {
     fun openSystemNotificationSettings()
 }
 
-expect fun platformNotificationBridge(): NotificationPlatformBridge
+internal expect fun platformNotificationBridge(): NotificationPlatformBridge
 
 @ThreadLocal
-object VotdNotificationController {
+internal object VotdNotificationController {
     private var overrideBridge: NotificationPlatformBridge? = null
     private val bridge: NotificationPlatformBridge
         get() = overrideBridge ?: defaultBridge

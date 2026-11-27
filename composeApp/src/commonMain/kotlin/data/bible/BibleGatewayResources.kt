@@ -1,28 +1,53 @@
 package data.bible
 
-import io.ktor.resources.Resource
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
+import io.ktor.client.HttpClient
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.request.url
+import io.ktor.client.statement.HttpResponse
 
-@Resource("/GetVersions")
-class GetVersions
+internal suspend fun HttpClient.getBibleChapter(
+    bookId: Int,
+    chapterId: String? = "1",
+    versionId: String? = BibleState.selectedVersion.lowercase(),
+    block: HttpRequestBuilder.() -> Unit = {},
+): HttpResponse = get {
+    url(path = ProtectedEndpoints.chapterPath())
+    parameter("bookId", bookId)
+    chapterId?.let { parameter("chapterId", it) }
+    versionId?.let { parameter("versionId", it) }
+    block()
+}
 
-@Resource("/GetChapter")
-class GetChapter(
-    val bookId: Int,
-    private val chapterId: String? = "1",
-    private val versionId: String? = BibleState.selectedVersion.lowercase(),
-)
+internal suspend fun HttpClient.getChapterCount(
+    bookId: Int,
+    block: HttpRequestBuilder.() -> Unit = {},
+): HttpResponse = get {
+    url(path = ProtectedEndpoints.chapterCountPath())
+    parameter("bookId", bookId)
+    block()
+}
 
-@Resource("/GetChapterCount")
-class GetChapterCount(val bookId: Int)
+internal suspend fun HttpClient.getVerseOfTheDay(
+    versionId: String = BibleState.selectedVersion.lowercase(),
+    after: String? = null,
+    block: HttpRequestBuilder.() -> Unit = {},
+): HttpResponse = get {
+    url(path = ProtectedEndpoints.dailyVersePath())
+    parameter("versionId", versionId)
+    after?.let { parameter("after", it) }
+    block()
+}
 
-@Resource("/GetVerseOfTheDay")
-class GetVerseOfTheDay(
-    val versionId: String = BibleState.selectedVersion.lowercase(),
-    val after: String? = null,
-)
-
-@Resource("/GetBiblicalShorts")
-class GetBiblicalShorts(
-    val category: String? = null,
-    val limit: Int? = null,
-)
+internal suspend fun HttpClient.getBiblicalShorts(
+    category: String? = null,
+    limit: Int? = null,
+    block: HttpRequestBuilder.() -> Unit = {},
+): HttpResponse = get {
+    url(path = ProtectedEndpoints.shortsFeedPath())
+    category?.let { parameter("category", it) }
+    limit?.let { parameter("limit", it) }
+    block()
+}

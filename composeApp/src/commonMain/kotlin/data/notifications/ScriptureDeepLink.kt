@@ -1,12 +1,21 @@
 package data.notifications
 
-data class ScriptureDeepLink(
+internal enum class PushDestinationKind {
+    SCRIPTURE,
+    BIBLICAL_WORDS,
+    HOME,
+}
+
+internal data class ScriptureDeepLink(
     val bookUsfm: String = "",
     val bookNumber: Int? = null,
     val chapter: Int = 1,
     val verse: Int = 1,
     val version: String? = null,
     val fetchDailyIfMissing: Boolean = false,
+    val destination: PushDestinationKind = PushDestinationKind.SCRIPTURE,
+    val shortsCategory: String? = null,
+    val isDailyVerse: Boolean = false,
 )
 
 private val canonicalBookUsfms = listOf(
@@ -27,13 +36,26 @@ internal fun bookNumberForUsfm(bookUsfm: String?): Int? {
     return canonicalBookUsfms.indexOf(clean).takeIf { it >= 0 }?.plus(1)
 }
 
-fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLink? {
+internal fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLink? {
     if (extras.isEmpty()) return null
     val normalized = extras.entries.associate { (k, v) ->
         k.trim().lowercase() to v?.trim()
     }
 
     val type = normalized["type"]
+    val explicitDestination = normalized["destination"]
+    if (
+        type.equals("biblical_words", ignoreCase = true) ||
+        type.equals("inhouse_words", ignoreCase = true) ||
+        explicitDestination.equals("biblical_words", ignoreCase = true)
+    ) {
+        val category = normalized["category"]?.takeIf { it.isNotBlank() } ?: "All"
+        return ScriptureDeepLink(
+            destination = PushDestinationKind.BIBLICAL_WORDS,
+            shortsCategory = category,
+        )
+    }
+
     val rawUsfm = normalized["votd_book_usfm"]
         ?: normalized["bookusfm"]
         ?: normalized["book_usfm"]
@@ -61,6 +83,10 @@ fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLin
             ?: normalized["version"]
         )?.takeIf { it.isNotBlank() }?.uppercase()
 
+    val isDailyVersePayload = type.equals("votd", ignoreCase = true) ||
+        normalized.containsKey("votd_book_usfm") ||
+        normalized.containsKey("votd_chapter")
+
     if ((resolvedUsfm.isNotBlank() || rawBookNumber != null) && chapter != null) {
         return ScriptureDeepLink(
             bookUsfm = resolvedUsfm,
@@ -69,6 +95,8 @@ fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLin
             verse = verse,
             version = version,
             fetchDailyIfMissing = false,
+            destination = PushDestinationKind.SCRIPTURE,
+            isDailyVerse = isDailyVersePayload,
         )
     }
 
@@ -80,13 +108,24 @@ fun parseVotdNotificationPayload(extras: Map<String, String?>): ScriptureDeepLin
             verse = 1,
             version = version,
             fetchDailyIfMissing = true,
+            destination = PushDestinationKind.SCRIPTURE,
+            isDailyVerse = true,
+        )
+    }
+
+    if (
+        explicitDestination.equals("home", ignoreCase = true) ||
+        (type.equals("announcement", ignoreCase = true) && resolvedUsfm.isBlank() && chapter == null)
+    ) {
+        return ScriptureDeepLink(
+            destination = PushDestinationKind.HOME,
         )
     }
 
     return null
 }
 
-fun findVerseCharacterOffset(
+internal fun findVerseCharacterOffset(
     chapterText: String,
     verseNumber: Int,
     version: String,
@@ -109,7 +148,7 @@ fun findVerseCharacterOffset(
     return if (bareIdx >= 0) bareIdx else null
 }
 
-fun parseVerseRange(
+internal fun parseVerseRange(
     scriptureReference: String,
     fallbackVerse: Int = 1,
 ): IntRange {
@@ -121,7 +160,7 @@ fun parseVerseRange(
     return start..end
 }
 
-fun findVerseCharacterRange(
+internal fun findVerseCharacterRange(
     chapterText: String,
     verseStart: Int,
     verseEnd: Int = verseStart,

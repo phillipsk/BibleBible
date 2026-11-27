@@ -1,6 +1,6 @@
 package data.shorts
 
-interface ShortsPrefsBacking {
+internal interface ShortsPrefsBacking {
     fun getString(key: String): String?
     fun putString(key: String, value: String)
     fun getInt(key: String, defaultValue: Int = 0): Int
@@ -9,9 +9,9 @@ interface ShortsPrefsBacking {
     fun putLong(key: String, value: Long)
 }
 
-expect fun platformShortsPrefsBacking(): ShortsPrefsBacking
+internal expect fun platformShortsPrefsBacking(): ShortsPrefsBacking
 
-class InMemoryShortsPrefsBacking : ShortsPrefsBacking {
+internal class InMemoryShortsPrefsBacking : ShortsPrefsBacking {
     private val strings = mutableMapOf<String, String>()
     private val ints = mutableMapOf<String, Int>()
     private val longs = mutableMapOf<String, Long>()

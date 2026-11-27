@@ -137,7 +137,7 @@ private fun GoldSlidingProgressBar(
 }
 
 @Composable
-fun LoadingScreen(
+internal fun LoadingScreen(
     isAppStartup: Boolean = false,
     message: String? = null,
 ) {
@@ -170,7 +170,7 @@ fun LoadingScreen(
 }
 
 @Composable
-fun AiSummaryLoadingView(modifier: Modifier = Modifier) {
+internal fun AiSummaryLoadingView(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "ai_summary_shimmer")
     val shimmerX by transition.animateFloat(
         initialValue = -350f,
@@ -244,7 +244,7 @@ fun AiSummaryLoadingView(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ScriptureShimmerLoading(modifier: Modifier = Modifier) {
+internal fun ScriptureShimmerLoading(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "scripture_shimmer")
     val shimmerX by transition.animateFloat(
         initialValue = -400f,

@@ -5,13 +5,13 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 
-actual object DriverFactory {
-    lateinit var context: Context
+internal actual object DriverFactory {
+    internal lateinit var context: Context
     private val driver: SqlDriver by lazy {
         AndroidSqliteDriver(BibleBibleDatabase.Schema, context.applicationContext, "BibleBibleDB.db")
     }
 
-    actual fun createDriver(): SqlDriver? {
+    internal actual fun createDriver(): SqlDriver? {
         return driver
     }
 

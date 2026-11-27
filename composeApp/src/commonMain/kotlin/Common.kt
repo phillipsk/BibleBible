@@ -4,7 +4,7 @@ import kotlin.jvm.JvmStatic
 import data.bible.BibleState
 
 
-object NapierLogger {
+internal object NapierLogger {
     @JvmStatic
     internal fun initIosNapierLogger() {
         if (!BibleState.RELEASE_BUILD) Napier.base(DebugAntilog())

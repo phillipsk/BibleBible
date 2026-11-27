@@ -4,12 +4,12 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
 
-actual object DriverFactory {
+internal actual object DriverFactory {
     private val driver: SqlDriver by lazy {
         NativeSqliteDriver(BibleBibleDatabase.Schema, "BibleBibleDB.db")
     }
 
-    actual fun createDriver(): SqlDriver? {
+    internal actual fun createDriver(): SqlDriver? {
         return driver
     }
 

@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun CustomSnackbarHost(snackbarHostState: SnackbarHostState) {
+internal fun CustomSnackbarHost(snackbarHostState: SnackbarHostState) {
     SnackbarHost(
         hostState = snackbarHostState,
         modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)

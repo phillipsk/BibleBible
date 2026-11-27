@@ -1,10 +1,13 @@
 package data.shorts
 
+import data.analytics.AnalyticsTracker
+import kotlinx.coroutines.test.runTest
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class ShortsPlaybackLogicTest {
@@ -117,5 +120,72 @@ class ShortsPlaybackLogicTest {
         assertFalse(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(1))
         assertTrue(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(2))
         assertTrue(ShortsPlaybackLogic.shouldAutoAdvanceAfterPlay(3))
+    }
+
+    @Test
+    fun prioritizedDeckShowsLeastWatchedRepeatsAndPreservesLifetimeEngagementAcrossCycleReset() = runTest {
+        AnalyticsTracker.remoteDispatchEnabled = false
+        AnalyticsTracker.resetForTesting()
+        var nowMs = 1_700_000_000_000L
+        val catalog = defaultBiblicalShortsCatalog("").take(4)
+        val engagementStore = InMemoryShortEngagementStore()
+        val manager = ShortsProgressManager(
+            backing = InMemoryShortsPrefsBacking(),
+            seenStore = InMemorySeenWordsStore(),
+            engagementStore = engagementStore,
+            nowProvider = { nowMs },
+        )
+
+        // Watch all 4 clips, pausing and replaying clip 0 extra times
+        catalog.forEachIndexed { idx, item ->
+            nowMs += 10_000L
+            manager.recordShortImpression(item.id, isManualRevisit = idx == 0)
+            manager.recordShortWatchTime(item.id, 12_000L + idx * 1_000L)
+            if (idx == 0) {
+                manager.recordShortPause(item.id)
+                manager.recordShortLoopReplay(item.id)
+                manager.recordShortImpression(item.id, isManualRevisit = true)
+            }
+        }
+        assertEquals(0, manager.unseenCount(catalog.map { it.id }))
+
+        // Re-entering Shorts resets cycle_seen without losing lifetime view/pause/replay/watch-time counts
+        val repeatDeck = manager.buildFreshSessionDeck(catalog, random = Random(99))
+        assertEquals(4, repeatDeck.size)
+        // Most-recently-watched clip (catalog[3]) must not be placed first when other clips have fewer views
+        assertNotEquals(catalog.last().id, repeatDeck.first().id)
+        // Clip 0 has highest viewCount (2), so least-watched clips appear before clip 0
+        assertEquals(catalog[0].id, repeatDeck.last().id)
+
+        val clip0Stats = manager.getEngagement(catalog[0].id)
+        assertNotNull(clip0Stats)
+        assertEquals(2L, clip0Stats.viewCount)
+        assertEquals(2L, clip0Stats.manualRevisitCount)
+        assertEquals(1L, clip0Stats.sameSessionReplayCount)
+        assertEquals(1L, clip0Stats.pauseCount)
+        assertEquals(12_000L, clip0Stats.totalWatchTimeMs)
+        assertFalse(clip0Stats.cycleSeen)
+
+        AnalyticsTracker.trackShortViewed(
+            shortItem = catalog[0],
+            advanceSource = "manual_back",
+            viewCount = clip0Stats.viewCount,
+            isRepeat = true,
+            isManualRevisit = true,
+            unseenRemaining = 2,
+        )
+        AnalyticsTracker.trackShortWatchSummary(
+            shortItem = catalog[0],
+            watchTimeMs = 12_000L,
+            completedLoops = 1,
+            pauseCountInSession = 1,
+            wasManualRevisit = true,
+            lifetimeViews = clip0Stats.viewCount,
+            lifetimeWatchTimeMs = clip0Stats.totalWatchTimeMs,
+            exitReason = "swiped",
+        )
+        val events = AnalyticsTracker.snapshotEvents()
+        assertTrue(events.any { it.name == "short_viewed" && it.properties["isManualRevisit"] == "true" })
+        assertTrue(events.any { it.name == "short_watch_summary" && it.properties["watchTimeMs"] == "12000" })
     }
 }

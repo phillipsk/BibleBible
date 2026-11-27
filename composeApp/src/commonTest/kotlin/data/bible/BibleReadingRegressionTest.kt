@@ -121,4 +121,58 @@ class BibleReadingRegressionTest {
         assertEquals(2, refreshCalls)
     }
 
+    @Test
+    fun dailyVerseRepositoryPersistsAcrossColdStartsAndFallsBackOffline() = runTest {
+        val prefs = data.shorts.InMemoryShortsPrefsBacking()
+        var currentDay = "2026-11-25"
+        var networkCalls = 0
+
+        val repo1 = DailyVerseRepository(
+            fetch = { version ->
+                networkCalls++
+                DailyVerse(version, currentDay, DailyVerseData(43, 3, 16, "For God so loved the world", "JHN"))
+            },
+            today = { currentDay },
+            prefs = prefs,
+        )
+        assertEquals("For God so loved the world", repo1.get("KJV").data.text)
+        assertEquals(1, networkCalls)
+
+        // Same-day cold start hits persisted storage with zero network calls even when offline.
+        val repo2 = DailyVerseRepository(
+            fetch = { error("offline") },
+            today = { currentDay },
+            prefs = prefs,
+        )
+        assertEquals("For God so loved the world", repo2.get("KJV").data.text)
+
+        // Manual refresh updates persisted storage so subsequent cold starts see the new verse.
+        val repo3 = DailyVerseRepository(
+            fetch = { error("unused") },
+            today = { currentDay },
+            refreshFetch = { version, after ->
+                assertEquals(16, after?.verse)
+                DailyVerse(version, currentDay, DailyVerseData(19, 23, 1, "The Lord is my shepherd", "PSA"))
+            },
+            prefs = prefs,
+        )
+        assertEquals("The Lord is my shepherd", repo3.get("KJV", refresh = true).data.text)
+
+        val repo4 = DailyVerseRepository(
+            fetch = { error("should hit same-day cache") },
+            today = { currentDay },
+            prefs = prefs,
+        )
+        assertEquals("The Lord is my shepherd", repo4.get("KJV").data.text)
+
+        // Next day offline launch gracefully falls back to last persisted verse instead of failing.
+        currentDay = "2026-11-26"
+        val offlineNextDayRepo = DailyVerseRepository(
+            fetch = { error("network unavailable") },
+            today = { currentDay },
+            prefs = prefs,
+        )
+        assertEquals("The Lord is my shepherd", offlineNextDayRepo.get("KJV").data.text)
+    }
+
 }

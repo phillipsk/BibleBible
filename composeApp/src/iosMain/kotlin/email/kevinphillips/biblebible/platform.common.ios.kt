@@ -5,14 +5,14 @@ import androidx.compose.ui.graphics.Color
 import platform.UIKit.UIApplication
 import platform.UIKit.UIColor
 
-actual fun isDesktopPlatform(): Boolean {
+internal actual fun isDesktopPlatform(): Boolean {
     return false
 }
 
-actual fun getPlatformName(): String = "ios"
+internal actual fun getPlatformName(): String = "ios"
 
 @Composable
-actual fun SetSystemBarColor(darkColor: Color) {
+internal actual fun SetSystemBarColor(darkColor: Color) {
 /*    val uiColor = UIColor.yellowColor()
     val keyWindow = UIApplication.sharedApplication.keyWindow
     keyWindow?.backgroundColor = uiColor

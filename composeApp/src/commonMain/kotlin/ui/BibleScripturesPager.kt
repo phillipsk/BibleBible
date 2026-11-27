@@ -71,11 +71,15 @@ import data.bible.BibleState
 import data.bible.BookData
 import data.bible.currentTimeMillis
 import data.bible.fetchBibleChapter
+import data.bible.prefetchBibleChapter
 import data.config.CloudSessionManager
 import data.notifications.bookNumberForUsfm
 import data.notifications.usfmForBookNumber
+import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.isDesktopPlatform
 import kotlinx.coroutines.launch
+import ui.plans.PlanReaderCompletionBar
+import ui.plans.PlanReaderTopStrip
 
 internal fun resolveReaderPageMode(
     showAISummary: Boolean,
@@ -99,6 +103,9 @@ internal fun BibleScripturesPager(
     bottomSheetScaffoldState: BottomSheetScaffoldState,
     loadChapter: suspend (BookData, Int, String, Boolean) -> Unit = { book, chapter, version, history ->
         fetchBibleChapter(book, chapter, version, history)
+    },
+    prefetchChapter: suspend (BookData, Int, String) -> Unit = { book, chapter, version ->
+        prefetchBibleChapter(book, chapter, version)
     },
     homeBackSwipe: SwipeTransition? = null,
     animateHomeRightSwipe: Boolean = true,
@@ -130,7 +137,7 @@ internal fun BibleScripturesPager(
         }
     }
 
-    key(selectedBook.bookId, bibleVersion) {
+    key(selectedBook.bookId) {
         val scope = rememberCoroutineScope()
         val pagerState = rememberPagerState(
             initialPage = if (sameBook) ((chapters.chapterId ?: 1) - 1).coerceIn(0, chapterCount - 1) else 0,
@@ -152,6 +159,12 @@ internal fun BibleScripturesPager(
         // (rotation, foregrounding) must not reload chapter 1 or add history.
         LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage) {
             val chapter = pagerState.settledPage + 1
+            if (sameBook) {
+                val settledSelectedChapter = "${selectedBook.bookId}.$chapter"
+                if (BibleState.selectedChapter != settledSelectedChapter) {
+                    BibleState.updateSelectedChapter(settledSelectedChapter)
+                }
+            }
             BibleState.clearDailyVerseSwipeOriginIfMoved(selectedBook, chapter)
             ReadingSession.updateLocation(canonicalBookKey(selectedBook), chapter, bibleVersion)
             AnalyticsTracker.track(
@@ -170,6 +183,15 @@ internal fun BibleScripturesPager(
                 val newLocation = !sameBook || chapters.chapterId != chapter
                 loadChapter(selectedBook, chapter, bibleVersion, newLocation)
             }
+        }
+
+        // Quietly warm chapter + 1 into local DB + memory LRU once the user settles on a chapter.
+        LaunchedEffect(selectedBook.bookId, bibleVersion, pagerState.settledPage, chapterCount, sameBook) {
+            if (!sameBook) return@LaunchedEffect
+            val nextChapter = pagerState.settledPage + 2
+            if (nextChapter > chapterCount) return@LaunchedEffect
+            kotlinx.coroutines.delay(1_200L)
+            prefetchChapter(selectedBook, nextChapter, bibleVersion)
         }
 
         LaunchedEffect(isAISummaryLoading, showAISummary, pagerState.settledPage) {
@@ -275,6 +297,24 @@ internal fun BibleScripturesPager(
                 Divider(
                     color = Color(0x33FFFFFF),
                     thickness = 1.dp,
+                )
+            }
+
+            val activePlanContext = BibleState.activePlanReading?.takeIf {
+                CloudSessionManager.readingPlansEnabled &&
+                    sameBook &&
+                    (it.reading.bookNumber == bookId || it.reading.bookId.equals(selectedBook.bookId, ignoreCase = true)) &&
+                    it.reading.chapter == (chapters.chapterId ?: -1)
+            }
+            val isPlanReadingCompleted = activePlanContext != null &&
+                activePlanContext.reading.id in ReadingPlanRepository.completedReadingIds
+            val nextPlanPassage = activePlanContext?.let {
+                ReadingPlanRepository.nextReadingAfter(it.planId, it.reading.id)
+            }
+            if (activePlanContext != null) {
+                PlanReaderTopStrip(
+                    context = activePlanContext,
+                    scrollProgress = BibleState.activeReaderScrollProgress,
                 )
             }
 
@@ -473,6 +513,7 @@ internal fun BibleScripturesPager(
                         !showAISummary &&
                         sameBook &&
                         chapters.text != null &&
+                        !isPlanReadingCompleted &&
                         !BibleState.autoDemoTourEnabled,
                     enter = fadeIn(),
                     exit = fadeOut(),
@@ -485,6 +526,20 @@ internal fun BibleScripturesPager(
                         onDismiss = { dismissGestureTutorial("button") },
                     )
                 }
+
+                PlanReaderCompletionBar(
+                    visible = isPlanReadingCompleted && !showAISummary,
+                    hasNextPassage = nextPlanPassage != null,
+                    onBackToPlan = { BibleState.navigateBackFromReader() },
+                    onNextPassage = {
+                        nextPlanPassage?.let { nextContext ->
+                            BibleState.openPlanReading(nextContext)
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                )
             }
         }
     }

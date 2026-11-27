@@ -16,4 +16,4 @@ private class DesktopNotificationBridge : NotificationPlatformBridge {
     override fun openSystemNotificationSettings() {}
 }
 
-actual fun platformNotificationBridge(): NotificationPlatformBridge = DesktopNotificationBridge()
+internal actual fun platformNotificationBridge(): NotificationPlatformBridge = DesktopNotificationBridge()

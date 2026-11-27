@@ -51,9 +51,12 @@ import data.bible.BibleState
 import data.config.CloudSessionManager
 import data.notifications.findVerseCharacterOffset
 import data.notifications.findVerseCharacterRange
+import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.isDesktopPlatform
 import org.jetbrains.compose.resources.Font
+import ui.plans.PlanReaderReflectionCard
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -85,12 +88,62 @@ internal fun BibleScriptures(
     val verseGapDp = CloudSessionManager.readerVerseGapDp
     val redLetterEnabled = CloudSessionManager.readerRedLetterEnabled
 
-    val isHighlightedChapter =
-        BibleState.highlightedVerseBookId.equals(BibleState.selectedBook.bookId, ignoreCase = true) &&
-            BibleState.highlightedVerseChapter == chapters.chapterId
-    val highlightStart = if (isHighlightedChapter) BibleState.highlightedVerseStart else null
-    val highlightEnd = if (isHighlightedChapter) BibleState.highlightedVerseEnd else null
+    val effectiveHighlight = BibleState.effectiveHighlightRangeForChapter(
+        bookId = BibleState.selectedBook.bookId,
+        chapter = chapters.chapterId ?: -1,
+    )
+    val highlightStart = effectiveHighlight?.first
+    val highlightEnd = effectiveHighlight?.last
     val activeVersion = chapters.version ?: BibleState.selectedVersion
+
+    val activePlanContext = BibleState.activePlanReading?.takeIf {
+        CloudSessionManager.readingPlansEnabled &&
+            (it.reading.bookNumber == chapters.bookId || it.reading.bookId.equals(BibleState.selectedBook.bookId, ignoreCase = true)) &&
+            it.reading.chapter == chapters.chapterId
+    }
+    val bottomThresholdPx = with(LocalDensity.current) { 140.dp.roundToPx() }
+    var dwellSatisfied by remember(activePlanContext?.reading?.id) { mutableStateOf(false) }
+    var reachedPlanBottom by remember(activePlanContext?.reading?.id) { mutableStateOf(false) }
+
+    LaunchedEffect(activePlanContext?.reading?.id, chapters.text != null) {
+        if (activePlanContext != null && chapters.text != null) {
+            delay(3000L)
+            dwellSatisfied = true
+        }
+    }
+
+    LaunchedEffect(activePlanContext?.reading?.id, scrollState, chapters.text != null) {
+        if (activePlanContext == null || chapters.text == null) {
+            BibleState.activeReaderScrollProgress = 0f
+            return@LaunchedEffect
+        }
+        snapshotFlow { scrollState.value to scrollState.maxValue }.collect { (value, max) ->
+            if (max != Int.MAX_VALUE) {
+                val progress = if (max <= 0) 1f else (value.toFloat() / max.toFloat()).coerceIn(0f, 1f)
+                BibleState.activeReaderScrollProgress = progress
+                if (!readingState.restoring && (max == 0 || value >= (max - bottomThresholdPx).coerceAtLeast(0))) {
+                    reachedPlanBottom = true
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(
+        activePlanContext?.reading?.id,
+        dwellSatisfied,
+        reachedPlanBottom,
+        CloudSessionManager.readingPlansAutoCheckoffEnabled,
+    ) {
+        val ctx = activePlanContext ?: return@LaunchedEffect
+        if (CloudSessionManager.readingPlansAutoCheckoffEnabled && dwellSatisfied && reachedPlanBottom) {
+            ReadingPlanRepository.markReadingCompleted(
+                planId = ctx.planId,
+                dayNumber = ctx.dayNumber,
+                readingId = ctx.reading.id,
+                source = "auto_scroll",
+            )
+        }
+    }
 
     val renderedContent = remember(
         chapters.text,
@@ -331,6 +384,15 @@ internal fun BibleScriptures(
                             textLayout = result
                         }
                     }
+                )
+            }
+            if (activePlanContext != null && chapters.text != null) {
+                PlanReaderReflectionCard(
+                    context = activePlanContext,
+                    chapterExcerpt = chapters.text.orEmpty().take(1200),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .widthIn(max = windowMetrics.maxReadingWidth),
                 )
             }
         }

@@ -83,7 +83,7 @@ private val Shapes = Shapes(
 )
 
 @Composable
-fun getTypography(): Typography {
+internal fun getTypography(): Typography {
 
     val nunitoRegular = FontFamily(
         Font(Res.font.nunito_regular, FontWeight.Normal, FontStyle.Normal)

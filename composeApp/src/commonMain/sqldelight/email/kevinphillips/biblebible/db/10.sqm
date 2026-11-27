@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS idx_verses_bcv ON BibleVerses(b, c, version);
+CREATE INDEX IF NOT EXISTS idx_verses_updated_at ON BibleVerses(updated_at);

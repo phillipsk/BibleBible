@@ -1,15 +1,18 @@
 package data.gemini
 
 import data.GeminiModel
+import data.TIMEOUT_LIMIT_GEMINI
 import data.analytics.AnalyticsTracker
 import data.config.CloudSessionManager
-import data.httpClientGemini
+import data.httpClientCloudGateway
 import email.kevinphillips.biblebible.cache.DriverFactory
 import email.kevinphillips.biblebible.db.BibleBibleDatabase
+import email.kevinphillips.biblebible.security.ProtectedEndpoints
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -21,32 +24,83 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.IO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 
-
 /** Default cloud model used for chapter summaries. */
-const val GEMINI_MODEL = "gemini-3.5-flash"
+internal const val GEMINI_MODEL = "gemini-3.5-flash"
+internal const val GEMINI_SUMMARY_CACHE_MAX_ENTRIES = 40
 
-suspend fun generateContent(
-    content: String,
-    client: HttpClient = httpClientGemini,
+private val geminiCacheMutex = Mutex()
+private val geminiSummaryCache = LinkedHashMap<String, GeminiResponseDto>()
+
+private fun summaryCacheKey(target: SummaryTarget, model: String): String =
+    "${target.bookId.trim().uppercase()}:${target.chapter}:${target.version.trim().uppercase()}:${model.trim().lowercase()}"
+
+internal fun clearGeminiSummaryCacheForTesting() {
+    if (geminiCacheMutex.tryLock()) {
+        try {
+            geminiSummaryCache.clear()
+        } finally {
+            geminiCacheMutex.unlock()
+        }
+    }
+}
+
+internal suspend fun geminiSummaryCacheSizeForTesting(): Int =
+    geminiCacheMutex.withLock { geminiSummaryCache.size }
+
+private suspend fun getCachedSummary(key: String): GeminiResponseDto? = geminiCacheMutex.withLock {
+    val hit = geminiSummaryCache.remove(key) ?: return@withLock null
+    geminiSummaryCache[key] = hit
+    hit
+}
+
+private suspend fun putCachedSummary(key: String, response: GeminiResponseDto) {
+    geminiCacheMutex.withLock {
+        geminiSummaryCache.remove(key)
+        geminiSummaryCache[key] = response
+        while (geminiSummaryCache.size > GEMINI_SUMMARY_CACHE_MAX_ENTRIES) {
+            val eldestKey = geminiSummaryCache.keys.firstOrNull() ?: break
+            geminiSummaryCache.remove(eldestKey)
+        }
+    }
+}
+
+internal suspend fun generateContent(
+    target: SummaryTarget,
+    client: HttpClient = httpClientCloudGateway,
     refresh: Boolean = false,
 ) {
-    if (client === httpClientGemini && CloudSessionManager.sessionToken.isBlank()) {
+    val activeModel = CloudSessionManager.geminiModel.ifBlank { GEMINI_MODEL }
+    val cacheKey = summaryCacheKey(target, activeModel)
+    if (!refresh) {
+        getCachedSummary(cacheKey)?.let { cached ->
+            AnalyticsTracker.trackAiSummary(
+                "ai_summary_cache_hit",
+                mapOf("model" to activeModel),
+            )
+            GeminiModel.updateGeminiData(cached)
+            return
+        }
+    }
+
+    if (client === httpClientCloudGateway && CloudSessionManager.sessionToken.isBlank()) {
         CloudSessionManager.initializeStartupConfig()
         if (CloudSessionManager.sessionToken.isBlank()) {
             CloudSessionManager.refreshSessionToken()
         }
     }
-    val activeModel = CloudSessionManager.geminiModel.ifBlank { GEMINI_MODEL }
-    val parts = mutableListOf(RequestPart(text = content))
-    val requestBody = RequestBody(
-        contents = listOf(ContentItem(parts = parts)),
-        generationConfig = GenerationConfig(maxOutputTokens = 2048, candidateCount = 1),
+    val summaryPath = ProtectedEndpoints.geminiSummaryPath()
+    val requestBody = SummaryRequestDto(
+        bookId = target.bookId,
+        chapter = target.chapter,
+        version = target.version,
         model = activeModel,
         refresh = if (refresh) true else null,
     )
@@ -54,19 +108,29 @@ suspend fun generateContent(
 
     try {
         var response = withContext(Dispatchers.IO) {
-            client.post("/v1/gemini/summary") {
+            client.post {
+                url(path = summaryPath)
                 expectSuccess = false
+                timeout {
+                    requestTimeoutMillis = TIMEOUT_LIMIT_GEMINI
+                    socketTimeoutMillis = TIMEOUT_LIMIT_GEMINI
+                }
                 contentType(ContentType.Application.Json)
                 setBody(requestBody)
             }
         }
         // Automatically refresh the short-lived session token once on 401 when using the default gateway client
-        if (response.status == HttpStatusCode.Unauthorized && client === httpClientGemini) {
+        if (response.status == HttpStatusCode.Unauthorized && client === httpClientCloudGateway) {
             val refreshedToken = CloudSessionManager.refreshSessionToken()
             if (!refreshedToken.isNullOrBlank()) {
                 response = withContext(Dispatchers.IO) {
-                    client.post("/v1/gemini/summary") {
+                    client.post {
+                        url(path = summaryPath)
                         expectSuccess = false
+                        timeout {
+                            requestTimeoutMillis = TIMEOUT_LIMIT_GEMINI
+                            socketTimeoutMillis = TIMEOUT_LIMIT_GEMINI
+                        }
                         header(HttpHeaders.Authorization, "Bearer $refreshedToken")
                         contentType(ContentType.Application.Json)
                         setBody(requestBody)
@@ -98,6 +162,7 @@ suspend fun generateContent(
             )
             GeminiModel.updateGeminiError("Gemini returned no summary. Please try again.")
         } else {
+            putCachedSummary(cacheKey, responseText)
             AnalyticsTracker.trackAiSummary(
                 "ai_summary_generated",
                 mapOf("model" to activeModel, "refresh" to refresh.toString()),
@@ -117,7 +182,7 @@ suspend fun generateContent(
     }
 }
 
-suspend fun checkAnimationLastCalled(): Boolean {
+internal suspend fun checkAnimationLastCalled(): Boolean {
     var showAnimation = false
     try {
         withContext(Dispatchers.IO) {

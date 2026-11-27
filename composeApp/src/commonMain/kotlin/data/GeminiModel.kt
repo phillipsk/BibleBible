@@ -6,11 +6,12 @@ import androidx.compose.runtime.setValue
 import data.bible.BibleState
 import data.config.CloudSessionManager
 import data.gemini.GeminiResponseDto
+import data.gemini.SummaryTarget
 import data.gemini.generateContent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 
-object GeminiModel {
+internal object GeminiModel {
     private var pendingSummary: Job? = null
 
     internal fun cancelPendingSummary(preserveShowSummary: Boolean = false) {
@@ -49,6 +50,7 @@ object GeminiModel {
         errorMessage = message
         aiModeLocked = false
     }
+
     internal val geminiDataText: String? get() = geminiData.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
 
     val isSuccessful get() = !isLoading && showSummary && !geminiDataText.isNullOrBlank()
@@ -63,15 +65,17 @@ object GeminiModel {
         geminiFullResponse += text ?: ""
     }
 
-    private val geminiQuery
-        get() = "Generate a summary of the bible chapter " +
-                BibleState.selectedBook.cleanedName + " " +
-                BibleState.bibleChapter?.chapterId
+    private val currentTarget: SummaryTarget
+        get() = SummaryTarget(
+            bookId = BibleState.selectedBook.bookId.substringBefore('.').ifBlank { "GEN" },
+            chapter = BibleState.bibleChapter?.chapterId ?: 1,
+            version = BibleState.selectedVersion,
+        )
 
     internal suspend fun generateAISummary(
         pullToRefresh: Boolean = false,
         available: Boolean = isAvailable,
-        generate: suspend (String) -> Unit = { generateContent(it, refresh = pullToRefresh) },
+        generate: suspend (SummaryTarget) -> Unit = { generateContent(it, refresh = pullToRefresh) },
     ) {
         if (!available) {
             updateGeminiError("AI summaries are currently unavailable.")
@@ -82,7 +86,7 @@ object GeminiModel {
             val job = currentCoroutineContext()[Job]
             pendingSummary = job
             try {
-                generate(geminiQuery)
+                generate(currentTarget)
             } finally {
                 if (pendingSummary === job) pendingSummary = null
             }

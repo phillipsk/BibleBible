@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS BibleVerses (
 );
 
 insertVerse:
-INSERT INTO BibleVerses (
+INSERT OR REPLACE INTO BibleVerses (
                 uuid,
                 id,
                 b,
@@ -40,6 +40,8 @@ SELECT BibleVerses.*
 FROM BibleVerses WHERE b = ? AND c = ? AND version = ?;
 
 CREATE INDEX idx_id_bibleId ON BibleVerses(id, version);
+CREATE INDEX IF NOT EXISTS idx_verses_bcv ON BibleVerses(b, c, version);
+CREATE INDEX IF NOT EXISTS idx_verses_updated_at ON BibleVerses(updated_at);
 
 countVerses:
 SELECT COUNT(*) FROM BibleVerses;
@@ -63,7 +65,7 @@ CREATE TABLE IF NOT EXISTS ChapterCounts (
 );
 
 insertChapterCount:
-INSERT INTO ChapterCounts (
+INSERT OR REPLACE INTO ChapterCounts (
                 uuid,
                 b,
                 version,
@@ -77,7 +79,7 @@ CREATE TABLE IF NOT EXISTS LastCalled (
 );
 
 insertLastCalled:
-INSERT INTO LastCalled (id, time) VALUES (1, ?);
+INSERT OR REPLACE INTO LastCalled (id, time) VALUES (1, ?);
 
 getLastCalled:
 SELECT * FROM LastCalled WHERE id = 1;
@@ -92,7 +94,7 @@ CREATE TABLE IF NOT EXISTS ReadingHistory (
 );
 
 insertReadingHistory:
-INSERT INTO ReadingHistory (
+INSERT OR REPLACE INTO ReadingHistory (
                 created_at,
                 b,
                 c
@@ -168,3 +170,105 @@ SELECT short_id FROM SeenBiblicalWords;
 
 clearSeenBiblicalWords:
 DELETE FROM SeenBiblicalWords;
+
+CREATE TABLE IF NOT EXISTS ActiveReadingPlan (
+    plan_id TEXT PRIMARY KEY NOT NULL,
+    started_at INTEGER NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS ReadingPlanProgress (
+    reading_id TEXT PRIMARY KEY NOT NULL,
+    plan_id TEXT NOT NULL,
+    day_number INTEGER NOT NULL,
+    completed_at INTEGER NOT NULL,
+    source TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reading_plan_progress_plan
+ON ReadingPlanProgress(plan_id, day_number);
+
+deactivateAllReadingPlans:
+UPDATE ActiveReadingPlan SET is_active = 0;
+
+upsertActiveReadingPlan:
+INSERT OR REPLACE INTO ActiveReadingPlan (plan_id, started_at, is_active)
+VALUES (?, ?, 1);
+
+selectActiveReadingPlan:
+SELECT plan_id, started_at, is_active FROM ActiveReadingPlan
+WHERE is_active = 1
+ORDER BY started_at DESC
+LIMIT 1;
+
+insertReadingPlanProgress:
+INSERT OR REPLACE INTO ReadingPlanProgress (reading_id, plan_id, day_number, completed_at, source)
+VALUES (?, ?, ?, ?, ?);
+
+deleteReadingPlanProgress:
+DELETE FROM ReadingPlanProgress WHERE reading_id = ?;
+
+selectReadingPlanProgressByPlan:
+SELECT reading_id, plan_id, day_number, completed_at, source
+FROM ReadingPlanProgress
+WHERE plan_id = ?
+ORDER BY day_number ASC, completed_at ASC;
+
+selectAllReadingPlanProgress:
+SELECT reading_id, plan_id, day_number, completed_at, source
+FROM ReadingPlanProgress;
+
+CREATE TABLE IF NOT EXISTS BiblicalShortEngagement (
+    short_id TEXT PRIMARY KEY NOT NULL,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    same_session_replay_count INTEGER NOT NULL DEFAULT 0,
+    manual_revisit_count INTEGER NOT NULL DEFAULT 0,
+    pause_count INTEGER NOT NULL DEFAULT 0,
+    total_watch_time_ms INTEGER NOT NULL DEFAULT 0,
+    last_watched_at INTEGER NOT NULL DEFAULT 0,
+    cycle_seen INTEGER NOT NULL DEFAULT 0
+);
+
+upsertShortEngagement:
+INSERT OR REPLACE INTO BiblicalShortEngagement (
+    short_id, view_count, same_session_replay_count, manual_revisit_count,
+    pause_count, total_watch_time_ms, last_watched_at, cycle_seen
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllShortEngagements:
+SELECT short_id, view_count, same_session_replay_count, manual_revisit_count,
+       pause_count, total_watch_time_ms, last_watched_at, cycle_seen
+FROM BiblicalShortEngagement;
+
+selectShortEngagementById:
+SELECT short_id, view_count, same_session_replay_count, manual_revisit_count,
+       pause_count, total_watch_time_ms, last_watched_at, cycle_seen
+FROM BiblicalShortEngagement
+WHERE short_id = ?;
+
+resetShortEngagementCycle:
+UPDATE BiblicalShortEngagement SET cycle_seen = 0;
+
+clearShortEngagements:
+DELETE FROM BiblicalShortEngagement;
+
+CREATE TABLE IF NOT EXISTS ChapterFormatMeta (
+    chapterKey TEXT PRIMARY KEY NOT NULL,
+    metaJson TEXT NOT NULL
+);
+
+upsertChapterFormatMeta:
+INSERT OR REPLACE INTO ChapterFormatMeta (chapterKey, metaJson)
+VALUES (?, ?);
+
+selectChapterFormatMeta:
+SELECT metaJson FROM ChapterFormatMeta WHERE chapterKey = ?;
+
+deleteOrphanChapterFormatMeta:
+DELETE FROM ChapterFormatMeta
+WHERE chapterKey NOT IN (
+    SELECT DISTINCT 'v2:' || b || ':' || c || ':' || version FROM BibleVerses
+);
+
+countChapterFormatMeta:
+SELECT COUNT(*) FROM ChapterFormatMeta;

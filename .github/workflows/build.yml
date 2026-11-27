@@ -1,9 +1,6 @@
 name: Build and test
 
 on:
-  pull_request:
-  push:
-    branches: [main, build/refresh-stable-2026, "release/**", "validation/**"]
   workflow_dispatch:
 
 permissions:

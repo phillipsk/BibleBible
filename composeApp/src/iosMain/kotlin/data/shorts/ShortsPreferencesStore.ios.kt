@@ -30,4 +30,4 @@ private class IosShortsPrefsBacking : ShortsPrefsBacking {
     }
 }
 
-actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = IosShortsPrefsBacking()
+internal actual fun platformShortsPrefsBacking(): ShortsPrefsBacking = IosShortsPrefsBacking()

@@ -1,4 +1,4 @@
-CREATE TABLE UserPreferences (
+CREATE TABLE IF NOT EXISTS UserPreferences (
     uuid INTEGER PRIMARY KEY DEFAULT 1,
     fontSize REAL NOT NULL DEFAULT 18,
     bibleVersion TEXT NOT NULL DEFAULT 'KJV'

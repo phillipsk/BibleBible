@@ -48,9 +48,11 @@ import data.bible.Chapter
 import data.bible.ReadingHistoryUIState
 import data.bible.bibleBooksFull
 import data.bible.fetchReadingHistory
+import data.config.CloudSessionManager
 import data.notifications.NotificationPermissionStatus
 import data.notifications.VotdNotificationController
 import data.notifications.usfmForBookNumber
+import data.plans.ReadingPlanRepository
 import email.kevinphillips.biblebible.isDesktopPlatform
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
@@ -148,6 +150,57 @@ internal fun BottomSheetConfigView(
                 color = Color(0x33FBD38D),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
+        }
+        if (CloudSessionManager.readingPlansEnabled) {
+            val activePlan = ReadingPlanRepository.activeOrDefaultPlan()
+            val planProgress = ReadingPlanRepository.progressFor(activePlan)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0x1CFBD38D),
+                border = BorderStroke(1.dp, Color(0x4DFBD38D)),
+                elevation = 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable {
+                        interactionNonce++
+                        scope.launch { bottomSheetState.collapse() }
+                        BibleState.openReadingPlans()
+                    }
+                    .testTag("bottom_sheet_reading_plans_row"),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            text = "Bible Reading Plans",
+                            color = Color(0xFFFBD38D),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "${activePlan.title} (${planProgress.percentComplete}% complete)",
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 12.5.sp,
+                        )
+                    }
+                    Text(
+                        text = "Open >",
+                        color = Color(0xFFFBD38D),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
         }
         if (!readingHistory.isNullOrEmpty()) {
             Text(

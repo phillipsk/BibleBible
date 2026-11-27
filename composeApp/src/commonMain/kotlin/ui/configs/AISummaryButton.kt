@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun AISummaryButton(
+internal fun AISummaryButton(
     generateAISummary: () -> Unit,
     isAISummarySuccessful: Boolean,
     showSummary: Boolean,

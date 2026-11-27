@@ -4,17 +4,17 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class BibleVersions(
-    val data: List<BibleVersion> = listOf(),
+internal data class BibleVersions(
+    @SerialName("data") val data: List<BibleVersion> = listOf(),
 )
 
 @Serializable
-data class BibleVersion(
-    val table: String? = null,
+internal data class BibleVersion(
+    @SerialName("table") val table: String? = null,
     @SerialName("version_id") val versionId: String? = null,
-    val abbreviation: String? = null,
-    val version: String? = null,
-    val language: String? = null,
+    @SerialName("abbreviation") val abbreviation: String? = null,
+    @SerialName("version") val version: String? = null,
+    @SerialName("language") val language: String? = null,
 ) {
     val uiAbbreviation = when (abbreviation) {
         "KJV" -> "KJV"
@@ -28,18 +28,18 @@ data class BibleVersion(
 }
 
 @Serializable
-data class BibleBooksResponse(
-    val data: List<BookData>? = null,
+internal data class BibleBooksResponse(
+    @SerialName("data") val data: List<BookData>? = null,
 )
 
 @Serializable
-data class BookData(
-    private val id: String? = null,
-    val bibleId: String? = null,
-    val abbreviation: String? = null,
-    val name: String? = null,
-    val nameLong: String? = null,
-    private val chapters: List<Chapter>? = emptyList(),
+internal data class BookData(
+    @SerialName("id") private val id: String? = null,
+    @SerialName("bibleId") val bibleId: String? = null,
+    @SerialName("abbreviation") val abbreviation: String? = null,
+    @SerialName("name") val name: String? = null,
+    @SerialName("nameLong") val nameLong: String? = null,
+    @SerialName("chapters") private val chapters: List<Chapter>? = emptyList(),
 ) {
     val bookId = chapters?.getOrNull(1)?.bookId ?: id ?: "GEN.1"
     val remoteKey = "$bookId.1"
@@ -54,29 +54,29 @@ data class BookData(
 }
 
 @Serializable
-data class Chapter(
+internal data class Chapter(
     @SerialName("id") private val name: String? = null,
-    val bibleId: String? = null,
-    val bookId: String? = null,
-    val number: String? = null,
-    val position: Int? = null,
+    @SerialName("bibleId") val bibleId: String? = null,
+    @SerialName("bookId") val bookId: String? = null,
+    @SerialName("number") val number: String? = null,
+    @SerialName("position") val position: Int? = null,
 )
 
 @Serializable
-data class BibleChapter(
-    val id: String? = null,
-    val b: String? = null,
-    val c: String? = null,
-    val v: String? = null,
-    val t: String? = null,
-    val p: Boolean = false,
-    val r: List<List<Int>> = emptyList(),
+internal data class BibleChapter(
+    @SerialName("id") val id: String? = null,
+    @SerialName("b") val b: String? = null,
+    @SerialName("c") val c: String? = null,
+    @SerialName("v") val v: String? = null,
+    @SerialName("t") val t: String? = null,
+    @SerialName("p") val p: Boolean = false,
+    @SerialName("r") val r: List<List<Int>> = emptyList(),
 )
 
 @Serializable
-data class ChapterCount(val chapterCount: Long? = null)
+internal data class ChapterCount(@SerialName("chapterCount") val chapterCount: Long? = null)
 
-data class BibleChapterUIState(
+internal data class BibleChapterUIState(
     val id: String? = null,
     val bookId: Int? = null,
     val chapterId: Int? = 1,
@@ -86,7 +86,7 @@ data class BibleChapterUIState(
     val verses: List<BibleChapter> = emptyList(),
 )
 
-data class ReadingHistoryUIState(
+internal data class ReadingHistoryUIState(
     val bookName: String? = null,
     val chapterId: Int? = null,
     val date: String? = null,
@@ -97,7 +97,7 @@ data class ReadingHistoryUIState(
     }
 }
 
-val bibleBooksFull = listOf(
+internal val bibleBooksFull = listOf(
     "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
     "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
     "Nehemiah", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon",
